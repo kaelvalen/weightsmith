@@ -33,20 +33,55 @@ function defineTheme(): string {
       { token: "keyword", foreground: ink, fontStyle: "bold" },
       { token: "number", foreground: ink },
     ],
-    colors: {
-      "editor.background": css("--bg"),
-      "editor.foreground": css("--ink"),
-      "editorLineNumber.foreground": css("--muted"),
-      "editorLineNumber.activeForeground": css("--ink"),
-      "editor.lineHighlightBackground": css("--bg"),
-      "editor.lineHighlightBorder": css("--line"),
-      "editorCursor.foreground": css("--accent"),
-      "editor.selectionBackground": css("--accent") + "33",
-      "editorIndentGuide.background1": css("--line"),
-      "editorWidget.background": css("--bg"),
-      "editorWidget.border": css("--line"),
-      "scrollbarSlider.background": css("--line") + "aa",
-    },
+    colors: (() => {
+      const bg = css("--bg"), ink = css("--ink"), line = css("--line"), muted = css("--muted"), accent = css("--accent");
+      return {
+        "editor.background": bg,
+        "editor.foreground": ink,
+        "editorLineNumber.foreground": muted,
+        "editorLineNumber.activeForeground": ink,
+        "editor.lineHighlightBackground": bg,
+        "editor.lineHighlightBorder": line,
+        "editorCursor.foreground": accent,
+        "editor.selectionBackground": accent + "33",
+        "editor.inactiveSelectionBackground": accent + "1f",
+        "editor.findMatchBackground": accent + "40",
+        "editor.findMatchHighlightBackground": accent + "22",
+        "editorBracketMatch.background": bg,
+        ...Object.fromEntries([1, 2, 3, 4, 5, 6].map((i) => [`editorBracketHighlight.foreground${i}`, ink])),
+        "editorBracketHighlight.unexpectedBracket.foreground": css("--error"),
+        "editorBracketMatch.border": muted,
+        "editorIndentGuide.background1": line,
+        "editorIndentGuide.activeBackground1": muted,
+        "editorGutter.background": bg,
+        "editorOverviewRuler.border": bg,
+        "editorWidget.background": bg,
+        "editorWidget.foreground": ink,
+        "editorWidget.border": ink,
+        "editorSuggestWidget.background": bg,
+        "editorSuggestWidget.border": ink,
+        "editorSuggestWidget.foreground": ink,
+        "editorSuggestWidget.selectedBackground": ink + "10",
+        "editorSuggestWidget.selectedForeground": ink,
+        "editorSuggestWidget.highlightForeground": accent,
+        "editorHoverWidget.background": bg,
+        "editorHoverWidget.border": ink,
+        "input.background": bg,
+        "input.border": line,
+        "input.foreground": ink,
+        "inputOption.activeBorder": accent,
+        "focusBorder": accent,
+        "list.hoverBackground": ink + "0a",
+        "list.activeSelectionBackground": ink + "14",
+        "list.activeSelectionForeground": ink,
+        "list.highlightForeground": accent,
+        "widget.shadow": "#00000000",
+        "scrollbar.shadow": "#00000000",
+        "scrollbarSlider.background": line,
+        "scrollbarSlider.hoverBackground": muted,
+        "scrollbarSlider.activeBackground": muted,
+      };
+    })(),
   });
   return name;
 }
@@ -75,7 +110,12 @@ export default function CodeEditor({
     const mq = matchMedia("(prefers-color-scheme: dark)");
     const h = () => setTheme(defineTheme());
     mq.addEventListener("change", h);
-    return () => mq.removeEventListener("change", h);
+    const mo = new MutationObserver(h);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => {
+      mq.removeEventListener("change", h);
+      mo.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -115,7 +155,13 @@ export default function CodeEditor({
         padding: { top: 8 },
         tabSize: 4,
         guides: { indentation: true },
-        scrollbar: { verticalScrollbarSize: 8, horizontalScrollbarSize: 8, useShadows: false },
+        scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10, useShadows: false, verticalSliderSize: 4, horizontalSliderSize: 4 },
+        overviewRulerBorder: false,
+        bracketPairColorization: { enabled: false },
+        matchBrackets: "near",
+        fixedOverflowWidgets: true,
+        suggestFontSize: 12,
+        suggestLineHeight: 20,
       }}
     />
   );

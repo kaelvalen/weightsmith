@@ -40,5 +40,27 @@ check(await page.locator(".react-flow__node", { hasText: "12× block" }).getByTe
 await command(page, "go to ln_f");
 check(await page.locator(".react-flow__node.selected", { hasText: "ln_f" }).count() === 1, "go to node selects it");
 
+// one language for dialogs, selects and tooltips
+await page.keyboard.press("Control+k");
+await page.waitForTimeout(250);
+check(await page.locator("[role=dialog]").count() === 1, "the palette opens as a dialog");
+await page.keyboard.press("Escape");
+await page.waitForTimeout(200);
+check(await page.locator("[role=dialog]").count() === 0, "Esc closes it");
+await page.locator("nav[aria-label='Node library'] input").click();
+await page.keyboard.press("Control+k");
+await page.waitForTimeout(250);
+check(await page.locator("[role=dialog]").count() === 1, "Ctrl+K works while typing in a field");
+await page.keyboard.press("Escape");
+await page.locator("[aria-label=variant]").focus();
+await page.keyboard.press("ArrowDown");
+await page.waitForTimeout(200);
+check(await page.locator("[role=listbox] [role=option]").count() >= 2, "the variant select opens its own list from the keyboard");
+await page.keyboard.press("Escape");
+await page.locator("nav[aria-label='Node library'] >> text=ResNet-18").hover();
+await page.waitForTimeout(700);
+check(await page.locator("[role=tooltip].ws-tip").count() === 1, "tooltips use the interface's own box");
+check(await page.locator("nav[aria-label='Node library'] [title]").count() === 0, "no native title boxes left in the library");
+
 check(errors.length === 0, `no page errors (${errors.join(" | ")})`);
 await browser.close();

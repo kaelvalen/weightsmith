@@ -6,6 +6,7 @@ import { Inspector } from "./ui/Inspector";
 import { Library } from "./ui/Library";
 import { Palette } from "./ui/Palette";
 import { ProjectsView } from "./ui/ProjectsView";
+import { TooltipLayer } from "./ui/TooltipLayer";
 import { TopBar } from "./ui/TopBar";
 
 function typing(e: KeyboardEvent) {
@@ -95,12 +96,14 @@ export default function App() {
       {notice && (
         <div
           role="status"
-          className={`fixed bottom-10 left-1/2 z-40 -translate-x-1/2 border bg-bg px-3 py-1 text-small ${notice.error ? "border-error text-error" : "border-line"}`}
+          className={`fixed bottom-10 left-1/2 z-40 -translate-x-1/2 border bg-bg px-3 py-1 text-small ${notice.error ? "border-error text-error" : "border-ink"}`}
+          style={{ borderRadius: 2 }}
         >
           {notice.text}
         </div>
       )}
       <Palette />
+      <TooltipLayer />
     </div>
   );
 }

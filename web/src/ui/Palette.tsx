@@ -7,6 +7,7 @@ import { autoLayout, bulkAdapt, getBody, groupIntoSubgraph, moveNodes, removeNod
 import { CATALOG } from "../ir/registry";
 import { useAnalysis, useStore } from "../state/store";
 import { addAtCenter, insertTemplate } from "./Library";
+import { Modal } from "./Modal";
 
 interface Command {
   id: string;
@@ -208,43 +209,49 @@ export function Palette() {
     c?.run();
   };
   return (
-    <div className="fixed inset-0 z-50" onMouseDown={() => setPalette(false)}>
-      <div className="absolute top-16 left-1/2 w-[560px] -translate-x-1/2 border border-ink bg-bg" onMouseDown={(e) => e.stopPropagation()}>
-        <input
-          ref={input}
-          autoFocus
-          type="text"
-          className="!h-10 !border-0 !border-b !border-line !px-4"
-          placeholder="Add a node or run a command"
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setI(0);
-          }}
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            if (e.key === "Escape") setPalette(false);
-            if (e.key === "ArrowDown") (e.preventDefault(), setI((x) => Math.min(x + 1, hits.length - 1)));
-            if (e.key === "ArrowUp") (e.preventDefault(), setI((x) => Math.max(x - 1, 0)));
-            if (e.key === "Enter") go(hits[i]);
-          }}
-        />
-        <ul className="m-0 max-h-[384px] list-none overflow-y-auto p-0 py-1">
-          {hits.map((c, k) => (
-            <li
-              key={c.id}
-              className="flex h-8 cursor-pointer items-center justify-between px-4"
-              style={{ boxShadow: k === i ? "inset 2px 0 0 var(--accent)" : undefined, color: k === i ? "var(--ink)" : undefined }}
-              onMouseEnter={() => setI(k)}
-              onClick={() => go(c)}
-            >
-              <span>{c.label}</span>
-              {c.hint && <span className="num text-label text-muted">{c.hint}</span>}
-            </li>
-          ))}
-          {!hits.length && <li className="px-4 py-2 text-muted">No match.</li>}
-        </ul>
+    <Modal onClose={() => setPalette(false)} width={560}>
+      <input
+        ref={input}
+        autoFocus
+        type="text"
+        className="!h-10 !border-0 !border-b !border-line !px-4"
+        placeholder="Add a node or run a command"
+        value={q}
+        aria-label="Command"
+        aria-controls="palette-list"
+        onChange={(e) => {
+          setQ(e.target.value);
+          setI(0);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown") (e.preventDefault(), setI((x) => Math.min(x + 1, hits.length - 1)));
+          if (e.key === "ArrowUp") (e.preventDefault(), setI((x) => Math.max(x - 1, 0)));
+          if (e.key === "Enter") go(hits[i]);
+        }}
+      />
+      <ul id="palette-list" role="listbox" className="m-0 max-h-[384px] list-none overflow-y-auto p-0 py-1">
+        {hits.map((c, k) => (
+          <li
+            key={c.id}
+            role="option"
+            aria-selected={k === i}
+            className="flex h-8 cursor-pointer items-center justify-between px-4"
+            style={{ boxShadow: k === i ? "inset 2px 0 0 var(--accent)" : undefined, background: k === i ? "color-mix(in srgb, var(--ink) 4%, transparent)" : undefined }}
+            onMouseEnter={() => setI(k)}
+            onClick={() => go(c)}
+          >
+            <span className="truncate">{c.label}</span>
+            {c.hint && <span className="num shrink-0 pl-4 text-label text-muted">{c.hint}</span>}
+          </li>
+        ))}
+        {!hits.length && <li className="px-4 py-2 text-muted">No match.</li>}
+      </ul>
+      <div className="flex gap-4 border-t border-line px-4 py-2 text-label text-muted">
+        <span><kbd>↑</kbd> <kbd>↓</kbd> choose</span>
+        <span><kbd>↵</kbd> run</span>
+        <span><kbd>esc</kbd> close</span>
+        <span className="num ml-auto">{hits.length} of {commands.length}</span>
       </div>
-    </div>
+    </Modal>
   );
 }

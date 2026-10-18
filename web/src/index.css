@@ -215,3 +215,279 @@ button.link:hover {
   stroke: var(--muted);
   stroke-width: 2;
 }
+
+/* ===================================================================
+   Native and library parts, in the same language as everything else:
+   hairlines, square corners, ink for state, accent only for focus and selection.
+   =================================================================== */
+
+:root {
+  --backdrop: color-mix(in srgb, var(--bg) 72%, transparent);
+}
+
+/* scrollbars: thin hairline thumbs, no track */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--muted);
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
+@supports (-moz-appearance: none) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+}
+
+/* one focus ring for every interactive element */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+input:-webkit-autofill,
+textarea:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 100px var(--bg) inset;
+  -webkit-text-fill-color: var(--ink);
+  caret-color: var(--ink);
+}
+input:hover:not(:focus),
+select:hover:not(:focus),
+textarea:hover:not(:focus) {
+  border-color: var(--muted);
+}
+
+/* select: a hairline chevron drawn from the tokens */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 22px;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 13px) 50%,
+    calc(100% - 9px) 50%;
+  background-size: 4px 4px;
+  background-repeat: no-repeat;
+}
+select option,
+select optgroup {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* checkbox: a 12 px square, ink when on */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  border: 1px solid var(--muted);
+  border-radius: 0;
+  background: var(--bg);
+  display: inline-grid;
+  place-content: center;
+  vertical-align: -1px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+input[type="checkbox"]::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: var(--bg);
+  clip-path: polygon(14% 52%, 0 66%, 38% 100%, 100% 22%, 86% 8%, 38% 72%);
+  transform: scale(0);
+}
+input[type="checkbox"]:checked {
+  border-color: var(--ink);
+  background: var(--ink);
+}
+input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+input[type="checkbox"]:hover {
+  border-color: var(--ink);
+}
+input[type="checkbox"]:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* textarea: vertical resize only, with a hairline grip */
+textarea {
+  resize: vertical;
+  line-height: 16px;
+}
+textarea::-webkit-resizer {
+  background: linear-gradient(135deg, transparent 0 55%, var(--line) 55% 62%, transparent 62% 72%, var(--line) 72% 79%, transparent 79%);
+}
+
+button.danger {
+  color: var(--error);
+}
+button.danger:hover {
+  border-color: var(--error);
+}
+button.link.danger {
+  color: var(--error);
+}
+button:active:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+/* bottom strip resize grip */
+.ws-grip:hover,
+.ws-grip:active {
+  background: var(--line);
+}
+
+/* tooltips (TooltipLayer replaces the browser's title boxes) */
+.ws-tip {
+  position: fixed;
+  z-index: 60;
+  max-width: 320px;
+  padding: 4px 8px;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 12px/16px var(--sans);
+  white-space: pre-line;
+  pointer-events: none;
+}
+
+/* modal: backdrop + one bordered panel, no shadow */
+.ws-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--backdrop);
+}
+.ws-modal {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  background: var(--bg);
+  color: var(--ink);
+}
+.ws-modal-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px 8px;
+}
+.ws-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 16px 12px;
+  border-top: 1px solid var(--line);
+}
+kbd {
+  font: 400 11px var(--mono);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 0 4px;
+}
+
+/* Select: the field and its list */
+.ws-select {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 24px;
+  padding: 0 22px 0 7px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background-color: var(--bg);
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 13px) 50%,
+    calc(100% - 9px) 50%;
+  background-size: 4px 4px;
+  background-repeat: no-repeat;
+  text-align: left;
+  cursor: pointer;
+}
+.ws-select:hover {
+  border-color: var(--muted);
+}
+.ws-select[aria-expanded="true"],
+.ws-select:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+.ws-listbox {
+  position: fixed;
+  z-index: 70;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  background: var(--bg);
+  color: var(--ink);
+}
+.ws-listbox li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 24px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+.ws-listbox li.active {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.ws-listbox li[aria-selected="true"] {
+  font-weight: 500;
+}
+.ws-listbox-hint {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* inputs already turn their border to the accent on focus; no second ring */
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}

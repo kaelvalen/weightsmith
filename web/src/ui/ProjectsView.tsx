@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Select } from "./Select";
 import { api, daemonBase, setDaemonBase } from "../api/client";
 import templates from "../ir/templates.json";
 import { useStore } from "../state/store";
 import { fmtCount } from "./Inspector";
+import { Modal } from "./Modal";
 
 interface Card {
   slug: string;
@@ -83,21 +85,31 @@ function ProjectCard({ c, current }: { c: Card; current: boolean }) {
           <button className="link" onClick={exportJson}>
             Export
           </button>
-          {confirm ? (
-            <>
-              <button className="link !text-error" onClick={() => del(c.slug)}>
-                Delete {c.name}
-              </button>
-              <button className="link" onClick={() => setConfirm(false)}>
-                Keep
-              </button>
-            </>
-          ) : (
-            <button className="link ml-auto" onClick={() => setConfirm(true)}>
-              Delete
-            </button>
-          )}
+          <button className="link ml-auto" onClick={() => setConfirm(true)}>
+            Delete
+          </button>
         </div>
+        {confirm && (
+          <Modal
+            title={`Delete ${c.name}?`}
+            onClose={() => setConfirm(false)}
+            width={420}
+            footer={
+              <>
+                <button autoFocus onClick={() => setConfirm(false)}>
+                  Keep
+                </button>
+                <button className="danger" onClick={() => del(c.slug)}>
+                  Delete project
+                </button>
+              </>
+            }
+          >
+            <p className="m-0 px-4 pb-3 text-small text-muted">
+              Removes the project file with its {c.variants.length} variant{c.variants.length === 1 ? "" : "s"}. Its {c.runs ?? 0} runs, their checkpoints and imported weights stay on disk.
+            </p>
+          </Modal>
+        )}
       </div>
     </article>
   );
@@ -156,11 +168,7 @@ function ImportRow() {
           />
         </div>
         <div className="w-24">
-          <select id="hf-dtype" value={dtype} onChange={(e) => setDtype(e.target.value)} aria-label="Weight precision">
-            <option>bf16</option>
-            <option>f16</option>
-            <option>f32</option>
-          </select>
+          <Select id="hf-dtype" mono value={dtype} options={["bf16", "f16", "f32"]} onChange={setDtype} ariaLabel="Weight precision" />
         </div>
         <button onClick={go} disabled={busy || !src.trim()}>
           {busy ? "Importing…" : "Import"}

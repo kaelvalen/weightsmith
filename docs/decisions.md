@@ -101,6 +101,17 @@ Kapalı form ve ilişkisel tarama, işi L veya log T kat artırdığı için GPU
 
 Projects'ten HF import, uzak daemon adresi (SSH tüneli), Try it paneli, kapı sonucu ve `rejected` durumu, KL eğrisi, run notları, "Go to …" ile herhangi bir node'a atlama (blok içi dahil), kenarlarda tensör shape'i, blok node'unda "inside" önizlemesi, eklenen ve yapıştırılan node'ların boş yere yerleşmesi, job panelinde başlangıç ağırlıkları, `sft`/`triplets` kaynakları, KL ve kapı alanları.
 
+## Ortak arayüz parçaları
+
+Tarayıcının ve kütüphanelerin kendi görünümüyle kalan parçalar aynı token'lara bağlandı:
+
+- **Scrollbar**: ince, kanalsız, `--line` başparmak, üzerine gelince `--muted` (Monaco'nun scrollbar'ı dahil).
+- **Form**: `Select` bileşeni (kendi listesi, klavye, harfle atlama; işletim sisteminin açılır penceresi yok), 12 px kare checkbox (açıkken mürekkep), tek odak dili (alanlarda vurgu kenarlığı, diğerlerinde 1 px vurgu çizgisi), placeholder, autofill zemini, textarea tutamacı.
+- **Modal**: tek `Modal` (fon + çerçeveli panel, Esc, odak hapsi ve geri dönüş); komut paleti, varyant dallandırma ve proje silme onayı bunu kullanır.
+- **İpucu**: `TooltipLayer` her `title`'ı ortaya çıktığı anda `data-tip`'e taşır ve aynı kutuda gösterir.
+- **Monaco**: öneri, hover ve arama pencereleri, liste ve scrollbar renkleri token'lardan; parantez renklendirmesi kapalı (kod tek renk), tema `data-theme` değişince de güncellenir.
+- **Kısayollar**: metin alanları ve Select yazma tuşlarını kendinde tutar, Cmd/Ctrl+K ve Cmd/Ctrl+Enter her yerden çalışır.
+
 ## Testler
 
 `scripts/check.sh`: Python (çekirdek, codegen snapshot'ları, 84 node'un CPU'da gerçek forward'ı, şablon sayıları, importer eşdeğerliği, Cerata döngüsü, daemon uçtan uca), TS aynası çapraz testi, typecheck, build ve Chrome varsa tarayıcı senaryoları (`scripts/e2e.sh`, `web/e2e/`).

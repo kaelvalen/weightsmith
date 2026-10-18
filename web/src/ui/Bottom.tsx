@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { keepTyping } from "./keys";
 import { RunEvent, RunRecord, api } from "../api/client";
 import { BottomTab, useStore } from "../state/store";
 import { DiffList } from "./DiffList";
@@ -125,10 +126,10 @@ function TryIt({ run }: { run: RunRecord }) {
         <span className="text-label text-muted">Try it</span>
         <div className="min-w-0 flex-1">
           <input id={`try-${run.id}`} type="text" placeholder={job?.data?.records?.[1]?.prompt ?? "Ask the model"} value={prompt}
-            onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter") ask(); }} aria-label="Prompt" />
+            onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { keepTyping(e); if (e.key === "Enter" && !e.metaKey && !e.ctrlKey) ask(); }} aria-label="Prompt" />
         </div>
         <div className="w-48">
-          <input id={`sys-${run.id}`} type="text" value={system} onChange={(e) => setSystem(e.target.value)} onKeyDown={(e) => e.stopPropagation()}
+          <input id={`sys-${run.id}`} type="text" value={system} onChange={(e) => setSystem(e.target.value)} onKeyDown={keepTyping}
             aria-label="System prompt" title="system prompt" />
         </div>
         <button onClick={ask} disabled={busy}>{busy ? "…" : "Ask"}</button>
@@ -523,7 +524,7 @@ export function Bottom() {
 
   return (
     <div className="flex flex-col border-t border-line bg-bg" style={{ height: bottom.open ? bottom.height : 24 }}>
-      {bottom.open && <div className="h-1 -mt-0.5 cursor-row-resize" onMouseDown={startResize} />}
+      {bottom.open && <div className="ws-grip -mt-0.5 h-1 cursor-row-resize" onMouseDown={startResize} title="Drag to resize" />}
       <div className="flex h-6 shrink-0 items-center gap-4 px-4 text-small">
         {TABS.map(([t, label]) => (
           <button

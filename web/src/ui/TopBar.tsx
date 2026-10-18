@@ -1,6 +1,40 @@
 import { useState } from "react";
+import { Select } from "./Select";
 import { useIssues, useStore } from "../state/store";
 import { Field } from "./Inspector";
+import { Modal } from "./Modal";
+
+function BranchModal({ from, taken, onClose, onCreate }: { from: string; taken: string[]; onClose: () => void; onCreate: (name: string) => void }) {
+  const [name, setName] = useState(`${from.replace(/-\d+$/, "")}-2`);
+  const clean = name.trim().replace(/\s+/g, "-");
+  const clash = taken.includes(clean);
+  const create = () => {
+    if (!clean || clash) return;
+    onCreate(clean);
+    onClose();
+  };
+  return (
+    <Modal
+      title="Branch a variant"
+      onClose={onClose}
+      width={400}
+      footer={
+        <>
+          <button onClick={onClose}>Cancel</button>
+          <button className="primary" onClick={create} disabled={!clean || clash}>
+            Branch
+          </button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-2 px-4 pb-3">
+        <p className="m-0 text-small text-muted">A copy of {from}'s graph. The diff against {from} shows in the inspector.</p>
+        <input id="variant-name" autoFocus type="text" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && create()} aria-label="Variant name" />
+        {clash && <span className="text-small text-error">A variant named {clean} already exists.</span>}
+      </div>
+    </Modal>
+  );
+}
 
 export function TopBar() {
   const project = useStore((s) => s.project);
@@ -55,30 +89,16 @@ export function TopBar() {
         <Field value={project.name} onCommit={(v) => v && rename(v)} />
       </div>
       <div className="flex items-center gap-1">
-        {branching ? (
-          <span className="w-40">
-            <Field
-              value=""
-              placeholder="new variant name"
-              onCommit={(v) => {
-                setBranching(false);
-                if (v) branch(v.trim().replace(/\s+/g, "-"));
-              }}
-            />
-          </span>
-        ) : (
-          <>
-            <select className="w-40" value={project.active} onChange={(e) => (e.target.value === "+" ? setBranching(true) : switchVariant(e.target.value))} aria-label="variant">
-              {Object.keys(project.variants).map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-              <option value="+">+ branch variant…</option>
-            </select>
-          </>
-        )}
+        <div className="w-44">
+          <Select
+            value={project.active}
+            options={[...Object.keys(project.variants).map((v) => ({ value: v, hint: project.variants[v].parent ? `from ${project.variants[v].parent}` : undefined })), { value: "+", label: "+ branch variant…" }]}
+            onChange={(v) => (v === "+" ? setBranching(true) : switchVariant(v))}
+            ariaLabel="variant"
+          />
+        </div>
       </div>
+      {branching && <BranchModal from={project.active} taken={Object.keys(project.variants)} onClose={() => setBranching(false)} onCreate={(n) => branch(n)} />}
       <span className="num text-label text-muted" title={daemon === "offline" ? "start it with: weightsmith serve" : ""}>
         {daemon === "online" ? "daemon" : daemon === "offline" ? "daemon offline" : ""}
       </span>

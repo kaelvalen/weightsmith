@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { keepTyping } from "./keys";
 import { addNode, insertBlock, insertModelInline } from "../ir/ops";
 import { CATALOG } from "../ir/registry";
 import templates from "../ir/templates.json";
@@ -133,7 +134,7 @@ export function Library() {
           onChange={(e) => setQ(e.target.value)}
           aria-label="Search the library"
           onKeyDown={(e) => {
-            e.stopPropagation();
+            keepTyping(e);
             if (e.key === "Enter") {
               if (groups[0]) addAtCenter(groups[0][1][0].type);
               else if (blocks[0] || models[0]) insertTemplate((blocks[0] ?? models[0]).id);

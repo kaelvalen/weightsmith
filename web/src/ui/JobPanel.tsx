@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Select } from "./Select";
 import { api } from "../api/client";
 import { useAnalysis, useIssues, useStore } from "../state/store";
 import { DiffList } from "./DiffList";
@@ -34,20 +35,18 @@ function TrainSelect({ k, options, path, label }: { k: string; options: string[]
   const v = path ? train[path]?.[k] : train[k];
   return (
     <Row label={label ?? k}>
-      <select
+      <Select
         value={v ?? ""}
-        onChange={(e) => {
+        options={[{ value: "", label: "default" }, ...options]}
+        ariaLabel={label ?? k}
+        onChange={(val) => {
           const next = structuredClone(train);
-          if (path) next[path] = { ...(next[path] ?? {}), [k]: e.target.value };
-          else next[k] = e.target.value;
+          const target = path ? (next[path] = { ...(next[path] ?? {}) }) : next;
+          if (val === "") delete target[k];
+          else target[k] = val;
           setJob("train", next);
         }}
-      >
-        <option value="">default</option>
-        {options.map((o) => (
-          <option key={o}>{o}</option>
-        ))}
-      </select>
+      />
     </Row>
   );
 }
@@ -136,11 +135,7 @@ function DataPanel() {
   return (
     <Section title="Data">
       <Row label="source">
-        <select value={src} onChange={(e) => setJob("data", { source: e.target.value, split: data.split })}>
-          {Object.keys(SOURCE_FIELDS).map((s) => (
-            <option key={s}>{s}</option>
-          ))}
-        </select>
+        <Select value={src} options={Object.keys(SOURCE_FIELDS)} onChange={(v) => setJob("data", { source: v, split: data.split })} ariaLabel="data source" />
       </Row>
       {SOURCE_FIELDS[src].map((k) => (
         <Row

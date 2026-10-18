@@ -1,4 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { keepTyping } from "./keys";
+import { Select } from "./Select";
 import { api } from "../api/client";
 import { adaptDefaults, splitRef } from "../ir/analyze";
 import { bulkAdapt, getBody, renameNode, setParam, updateNode } from "../ir/ops";
@@ -49,7 +51,7 @@ export function Field({ value, onCommit, mono, placeholder }: { value: string; o
       onKeyDown={(e) => {
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
         if (e.key === "Escape") setV(value);
-        e.stopPropagation();
+        keepTyping(e);
       }}
     />
   );
@@ -76,11 +78,7 @@ function ParamInput({ node, k }: { node: Node; k: string }) {
       return <input type="checkbox" checked={!!v} onChange={(e) => set(e.target.checked)} />;
     case "choice":
       return (
-        <select value={String(v)} onChange={(e) => set(e.target.value)}>
-          {spec.choices!.map((c) => (
-            <option key={String(c)}>{String(c)}</option>
-          ))}
-        </select>
+        <Select value={String(v)} options={spec.choices!.map(String)} onChange={set} ariaLabel={k} />
       );
     case "shape":
       return <Field mono value={Array.isArray(v) ? v.join(", ") : ""} onCommit={(s) => set(parseShape(s))} placeholder="B, 784" />;
@@ -104,11 +102,7 @@ function ParamInput({ node, k }: { node: Node; k: string }) {
       if (node.type === "Subgraph" && k === "graph") {
         const subs = Object.keys(useStore.getState().graph().subgraphs ?? {});
         return (
-          <select value={String(v ?? "")} onChange={(e) => set(e.target.value)}>
-            {subs.map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
+          <Select value={String(v ?? "")} options={subs} onChange={set} ariaLabel="block" />
         );
       }
       return <Field value={String(v ?? "")} onCommit={set} />;
@@ -292,11 +286,7 @@ function AdaptPanel({ node }: { node: Node }) {
             {a.kind === "lora" && (
               <>
                 <Row label="target">
-                  <select value={a.target} onChange={(e) => setField(i, "target", e.target.value)}>
-                    {targets.map((t) => (
-                      <option key={t}>{t}</option>
-                    ))}
-                  </select>
+                  <Select mono value={a.target ?? "weight"} options={targets} onChange={(v) => setField(i, "target", v)} ariaLabel="LoRA target" />
                 </Row>
                 <Row label="r">
                   <Field mono value={String(a.r)} onCommit={(v) => setField(i, "r", Number(v) || 1)} />
@@ -308,10 +298,12 @@ function AdaptPanel({ node }: { node: Node }) {
                   <Field mono value={String(a.dropout)} onCommit={(v) => setField(i, "dropout", Number(v))} />
                 </Row>
                 <Row label="init">
-                  <select value={a.init} onChange={(e) => setField(i, "init", e.target.value)}>
-                    <option value="zeros_b">B = 0</option>
-                    <option value="gaussian">gaussian</option>
-                  </select>
+                  <Select
+                    value={a.init ?? "zeros_b"}
+                    options={[{ value: "zeros_b", label: "B = 0" }, { value: "gaussian", label: "gaussian" }]}
+                    onChange={(v) => setField(i, "init", v)}
+                    ariaLabel="LoRA init"
+                  />
                 </Row>
               </>
             )}
