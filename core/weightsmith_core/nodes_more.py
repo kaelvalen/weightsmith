@@ -828,3 +828,7 @@ def _klg_infer(p: Params, ins: Ins, env: SymbolEnv) -> Outs:
 
 register(NodeType("KLGaussian", "loss", "VAE prior term: KL(N(μ, σ²) ‖ N(0, 1)), summed over latent dims.", [Port("mu"), Port("logvar")], [Port("loss")], {**_LOSS}, _klg_infer, loss=True))
 
+
+
+# the everyday extras (math, plumbing, 3-D, graph, more losses) register themselves
+from . import nodes_extra  # noqa: E402,F401

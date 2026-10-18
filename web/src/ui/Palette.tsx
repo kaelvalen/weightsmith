@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
 import templates from "../ir/templates.json";
-import { autoLayout, bulkAdapt, getBody, groupIntoSubgraph, moveNodes, removeNodes } from "../ir/ops";
+import { autoLayout, bulkAdapt, getBody, groupIntoSubgraph, moveNodes } from "../ir/ops";
+import { dissolve } from "../ir/smart";
 import { CATALOG } from "../ir/registry";
 import { useAnalysis, useStore } from "../state/store";
 import { addAtCenter, insertTemplate } from "./Library";
@@ -33,6 +34,7 @@ export function useCommands(): Command[] {
   return useMemo(() => {
     const g = st.graph();
     const cmds: Command[] = [
+      { id: "help", label: "How Weightsmith works", hint: "?", run: () => window.dispatchEvent(new CustomEvent("ws:help")) },
       { id: "view:projects", label: "Go to Projects", run: () => st.setView("projects") },
       { id: "view:nodes", label: "Go to Nodes (canvas)", run: () => st.setView("nodes") },
       { id: "run", label: "Run", hint: "⌘↵", run: () => st.run() },
@@ -99,7 +101,7 @@ export function useCommands(): Command[] {
     if (st.selection.length) {
       cmds.push({ id: "copy", label: `Copy ${st.selection.join(", ")}`, hint: "⌘C", run: st.copy });
       cmds.push({ id: "dup", label: `Duplicate ${st.selection.join(", ")}`, hint: "⌘D", run: st.duplicate });
-      cmds.push({ id: "delete", label: `Delete ${st.selection.join(", ")}`, hint: "⌫", run: () => st.apply("delete", (gr) => removeNodes(gr, st.scope, st.selection)) });
+      cmds.push({ id: "delete", label: `Delete ${st.selection.join(", ")}`, hint: "⌫", run: () => st.apply("delete", (gr) => dissolve(gr, st.scope, st.selection)) });
       if (!st.scope)
         cmds.push({
           id: "group",

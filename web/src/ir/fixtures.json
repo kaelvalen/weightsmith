@@ -13822,6 +13822,5464 @@
   }
  },
  {
+  "name": "node_ReLU6",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "ReLU6"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_HardTanh",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "HardTanh",
+     "params": {
+      "min": -2.0,
+      "max": 2.0
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Hardsigmoid",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Hardsigmoid"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Softsign",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Softsign"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Swish",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Swish",
+     "params": {
+      "dim": 16
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     16,
+     16
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_PReLU",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       4,
+       8,
+       8
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "PReLU",
+     "params": {
+      "channels": 4
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     4,
+     4
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_PReLU_shared",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "PReLU"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     1,
+     1
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_GumbelSoftmax",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "GumbelSoftmax",
+     "params": {
+      "hard": true
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Dropout2d",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       4,
+       8,
+       8
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Dropout2d"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Math",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Math",
+     "params": {
+      "op": "square"
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Math_sin",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Math",
+     "params": {
+      "op": "sin"
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Clamp",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Clamp",
+     "params": {
+      "min": 0.1
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Pow",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Pow",
+     "params": {
+      "exponent": 3.0
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_AddConst",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "AddConst",
+     "params": {
+      "value": 0.5
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Div",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "y",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       1,
+       16
+      ],
+      "dtype": "f32",
+      "field": "z"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Div"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.a"
+    ],
+    [
+     "y.out",
+     "n.b"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.a": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.b": {
+     "shape": [
+      "B",
+      1,
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "y.out": {
+     "shape": [
+      "B",
+      1,
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ],
+    "y": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Maximum",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "y",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32",
+      "field": "z"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Maximum"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.a"
+    ],
+    [
+     "y.out",
+     "n.b"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.a": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.b": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "y.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ],
+    "y": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Minimum",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "y",
+     "type": "Input",
+     "params": {
+      "shape": [
+       16
+      ],
+      "dtype": "f32",
+      "field": "z"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Minimum"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.a"
+    ],
+    [
+     "y.out",
+     "n.b"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.a": {
+     "shape": [
+      "B",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.b": {
+     "shape": [
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "y.out": {
+     "shape": [
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ],
+    "y": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Einsum",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "y",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "S",
+       16
+      ],
+      "dtype": "f32",
+      "field": "z"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Einsum",
+     "params": {
+      "equation": "btd,bsd->bts"
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.a"
+    ],
+    [
+     "y.out",
+     "n.b"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.a": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.b": {
+     "shape": [
+      "B",
+      "S",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      "S"
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      "S"
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "y.out": {
+     "shape": [
+      "B",
+      "S",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ],
+    "y": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Einsum_unary",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       3,
+       4
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Einsum",
+     "params": {
+      "equation": "bij->bji"
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.a"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.a": {
+     "shape": [
+      "B",
+      3,
+      4
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      4,
+      3
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      4,
+      3
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      3,
+      4
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Cumsum",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Cumsum"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Stack",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "y",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32",
+      "field": "z"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Stack",
+     "params": {
+      "dim": 1
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.a"
+    ],
+    [
+     "y.out",
+     "n.b"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.a": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.b": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      2,
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      2,
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "y.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ],
+    "y": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Squeeze",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       1,
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Squeeze"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      1,
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      1,
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Pad",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       4,
+       8,
+       8
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Pad",
+     "params": {
+      "pad": [
+       1,
+       1,
+       2,
+       0
+      ]
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      4,
+      10,
+      10
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      4,
+      10,
+      10
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Repeat",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       2,
+       3
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Repeat",
+     "params": {
+      "repeats": [
+       1,
+       2,
+       2
+      ]
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      2,
+      3
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      4,
+      6
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      4,
+      6
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      2,
+      3
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_TopK",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "TopK",
+     "params": {
+      "k": 3
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.values",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.indices": {
+     "shape": [
+      "B",
+      "T",
+      3
+     ],
+     "dtype": "i64"
+    },
+    "n.values": {
+     "shape": [
+      "B",
+      "T",
+      3
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      3
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_TopK_indices",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "TopK",
+     "params": {
+      "k": 2
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.indices",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.indices": {
+     "shape": [
+      "B",
+      "T",
+      2
+     ],
+     "dtype": "i64"
+    },
+    "n.values": {
+     "shape": [
+      "B",
+      "T",
+      2
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      2
+     ],
+     "dtype": "i64"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_ArgMax",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "ArgMax"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_OneHot",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64"
+     }
+    },
+    {
+     "id": "n",
+     "type": "OneHot",
+     "params": {
+      "classes": 5
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      5
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      5
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Cast",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Cast",
+     "params": {
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_StopGradient",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "StopGradient"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Parameter",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "n",
+     "type": "Parameter",
+     "params": {
+      "shape": [
+       1,
+       4,
+       16
+      ]
+     }
+    },
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "add",
+     "type": "Add"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "add.a"
+    ],
+    [
+     "n.out",
+     "add.b"
+    ],
+    [
+     "add.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "add.a": {
+     "shape": [
+      "B",
+      4,
+      16
+     ],
+     "dtype": "f32"
+    },
+    "add.b": {
+     "shape": [
+      1,
+      4,
+      16
+     ],
+     "dtype": "f32"
+    },
+    "add.out": {
+     "shape": [
+      "B",
+      4,
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      1,
+      4,
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      4,
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      4,
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "add": [
+     0,
+     0
+    ],
+    "n": [
+     64,
+     64
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_MaxPool3d",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       2,
+       4,
+       8,
+       8
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "MaxPool3d"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      2,
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      2,
+      2,
+      4,
+      4
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      2,
+      2,
+      4,
+      4
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      2,
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_AvgPool3d",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       2,
+       4,
+       8,
+       8
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "AvgPool3d",
+     "params": {
+      "kernel_size": 2,
+      "stride": 1
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      2,
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      2,
+      3,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      2,
+      3,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      2,
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_AdaptiveMaxPool1d",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       4,
+       10
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "AdaptiveMaxPool1d",
+     "params": {
+      "output_size": 3
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      4,
+      10
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      4,
+      3
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      4,
+      3
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      4,
+      10
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_AdaptiveMaxPool2d",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       4,
+       8,
+       8
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "AdaptiveMaxPool2d"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      4,
+      1,
+      1
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      4,
+      1,
+      1
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Interpolate",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       4,
+       8,
+       8
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Interpolate",
+     "params": {
+      "size": [
+       5,
+       12
+      ],
+      "mode": "bilinear"
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      4,
+      5,
+      12
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      4,
+      5,
+      12
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_BatchNorm3d",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       2,
+       4,
+       8,
+       8
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "BatchNorm3d",
+     "params": {
+      "features": 2
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      2,
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      2,
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      2,
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      2,
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     4,
+     4
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_LayerScale",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "LayerScale",
+     "params": {
+      "dim": 16
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     16,
+     16
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_SqueezeExcite",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       4,
+       8,
+       8
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "SqueezeExcite",
+     "params": {
+      "channels": 4,
+      "reduction": 2
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     22,
+     22
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_ALiBi",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "ALiBi",
+     "params": {
+      "heads": 4
+     }
+    },
+    {
+     "id": "att",
+     "type": "Attention",
+     "params": {
+      "dim": 16,
+      "heads": 4,
+      "causal": true
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "x.out",
+     "att.in"
+    ],
+    [
+     "n.out",
+     "att.bias"
+    ],
+    [
+     "att.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "att.bias": {
+     "shape": [
+      4,
+      "T",
+      "T"
+     ],
+     "dtype": "f32"
+    },
+    "att.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "att.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      4,
+      "T",
+      "T"
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "att": [
+     1088,
+     1088
+    ],
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_SlidingWindowBias",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "SlidingWindowBias",
+     "params": {
+      "heads": 3,
+      "window": 2
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      3,
+      "T",
+      "T"
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      3,
+      "T",
+      "T"
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_ALiBi_6heads",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "ALiBi",
+     "params": {
+      "heads": 6,
+      "causal": false
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      6,
+      "T",
+      "T"
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      6,
+      "T",
+      "T"
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_LinearAttention",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "LinearAttention",
+     "params": {
+      "dim": 16,
+      "heads": 4
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     1088,
+     1088
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_LinearAttention_causal",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "LinearAttention",
+     "params": {
+      "dim": 16,
+      "heads": 2,
+      "causal": true
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     1088,
+     1088
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_TimestepEmbedding",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B"
+      ],
+      "dtype": "i64"
+     }
+    },
+    {
+     "id": "n",
+     "type": "TimestepEmbedding",
+     "params": {
+      "dim": 16
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B"
+     ],
+     "dtype": "i64"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B"
+     ],
+     "dtype": "i64"
+    }
+   },
+   "params": {
+    "n": [
+     2128,
+     2128
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_VectorQuantizer",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "VectorQuantizer",
+     "params": {
+      "codes": 8,
+      "dim": 16
+     }
+    },
+    {
+     "id": "aux",
+     "type": "AuxLoss"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    },
+    {
+     "id": "o2",
+     "type": "Output",
+     "params": {
+      "name": "codes"
+     }
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.commit",
+     "aux.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ],
+    [
+     "n.indices",
+     "o2.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "aux.in": {
+     "shape": [],
+     "dtype": "f32"
+    },
+    "aux.loss": {
+     "shape": [],
+     "dtype": "f32"
+    },
+    "n.commit": {
+     "shape": [],
+     "dtype": "f32"
+    },
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.indices": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o2.in": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "aux": [
+     0,
+     0
+    ],
+    "n": [
+     128,
+     128
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "o2": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_GraphConv",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       5,
+       6
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "adj",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       5,
+       5
+      ],
+      "dtype": "f32",
+      "field": "adj"
+     }
+    },
+    {
+     "id": "n",
+     "type": "GraphConv",
+     "params": {
+      "in": 6,
+      "out": 3
+     }
+    },
+    {
+     "id": "pool",
+     "type": "GraphPool",
+     "params": {
+      "op": "max"
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.x"
+    ],
+    [
+     "adj.out",
+     "n.adj"
+    ],
+    [
+     "n.out",
+     "pool.in"
+    ],
+    [
+     "pool.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "adj.out": {
+     "shape": [
+      "B",
+      5,
+      5
+     ],
+     "dtype": "f32"
+    },
+    "n.adj": {
+     "shape": [
+      "B",
+      5,
+      5
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      5,
+      3
+     ],
+     "dtype": "f32"
+    },
+    "n.x": {
+     "shape": [
+      "B",
+      5,
+      6
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      3
+     ],
+     "dtype": "f32"
+    },
+    "pool.in": {
+     "shape": [
+      "B",
+      5,
+      3
+     ],
+     "dtype": "f32"
+    },
+    "pool.out": {
+     "shape": [
+      "B",
+      3
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      5,
+      6
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "adj": [
+     0,
+     0
+    ],
+    "n": [
+     21,
+     21
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "pool": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_DiffusionForward",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       1,
+       8,
+       8
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "DiffusionForward",
+     "params": {
+      "schedule": "cosine",
+      "steps": 50
+     }
+    },
+    {
+     "id": "mse",
+     "type": "MSE"
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    },
+    {
+     "id": "o2",
+     "type": "Output",
+     "params": {
+      "name": "t"
+     }
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.noisy",
+     "mse.pred"
+    ],
+    [
+     "n.noise",
+     "mse.target"
+    ],
+    [
+     "n.noisy",
+     "o.in"
+    ],
+    [
+     "n.t",
+     "o2.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "mse.loss": {
+     "shape": [],
+     "dtype": "f32"
+    },
+    "mse.pred": {
+     "shape": [
+      "B",
+      1,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "mse.target": {
+     "shape": [
+      "B",
+      1,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.in": {
+     "shape": [
+      "B",
+      1,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.noise": {
+     "shape": [
+      "B",
+      1,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.noisy": {
+     "shape": [
+      "B",
+      1,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.t": {
+     "shape": [
+      "B"
+     ],
+     "dtype": "i64"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      1,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "o2.in": {
+     "shape": [
+      "B"
+     ],
+     "dtype": "i64"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      1,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "mse": [
+     0,
+     0
+    ],
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "o2": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_loss_Focal",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "i0",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       5
+      ],
+      "dtype": "f32",
+      "field": "x"
+     }
+    },
+    {
+     "id": "i1",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "f1"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Focal"
+    }
+   ],
+   "edges": [
+    [
+     "i0.out",
+     "n.logits"
+    ],
+    [
+     "i1.out",
+     "n.target"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "i0.out": {
+     "shape": [
+      "B",
+      "T",
+      5
+     ],
+     "dtype": "f32"
+    },
+    "i1.out": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
+    "n.logits": {
+     "shape": [
+      "B",
+      "T",
+      5
+     ],
+     "dtype": "f32"
+    },
+    "n.loss": {
+     "shape": [],
+     "dtype": "f32"
+    },
+    "n.target": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    }
+   },
+   "params": {
+    "i0": [
+     0,
+     0
+    ],
+    "i1": [
+     0,
+     0
+    ],
+    "n": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_loss_Dice",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "i0",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       4,
+       8,
+       8
+      ],
+      "dtype": "f32",
+      "field": "x"
+     }
+    },
+    {
+     "id": "i1",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       4,
+       8,
+       8
+      ],
+      "dtype": "f32",
+      "field": "f1"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Dice"
+    }
+   ],
+   "edges": [
+    [
+     "i0.out",
+     "n.pred"
+    ],
+    [
+     "i1.out",
+     "n.target"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "i0.out": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "i1.out": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.loss": {
+     "shape": [],
+     "dtype": "f32"
+    },
+    "n.pred": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.target": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "i0": [
+     0,
+     0
+    ],
+    "i1": [
+     0,
+     0
+    ],
+    "n": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_loss_GaussianNLL",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "i0",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       3
+      ],
+      "dtype": "f32",
+      "field": "x"
+     }
+    },
+    {
+     "id": "i1",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       3
+      ],
+      "dtype": "f32",
+      "field": "f1"
+     }
+    },
+    {
+     "id": "i2",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       3
+      ],
+      "dtype": "f32",
+      "field": "f2"
+     }
+    },
+    {
+     "id": "n",
+     "type": "GaussianNLL"
+    }
+   ],
+   "edges": [
+    [
+     "i0.out",
+     "n.mean"
+    ],
+    [
+     "i1.out",
+     "n.var"
+    ],
+    [
+     "i2.out",
+     "n.target"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "i0.out": {
+     "shape": [
+      "B",
+      3
+     ],
+     "dtype": "f32"
+    },
+    "i1.out": {
+     "shape": [
+      "B",
+      3
+     ],
+     "dtype": "f32"
+    },
+    "i2.out": {
+     "shape": [
+      "B",
+      3
+     ],
+     "dtype": "f32"
+    },
+    "n.loss": {
+     "shape": [],
+     "dtype": "f32"
+    },
+    "n.mean": {
+     "shape": [
+      "B",
+      3
+     ],
+     "dtype": "f32"
+    },
+    "n.target": {
+     "shape": [
+      "B",
+      3
+     ],
+     "dtype": "f32"
+    },
+    "n.var": {
+     "shape": [
+      "B",
+      3
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "i0": [
+     0,
+     0
+    ],
+    "i1": [
+     0,
+     0
+    ],
+    "i2": [
+     0,
+     0
+    ],
+    "n": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_loss_CosineEmbedding",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "i0",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       8
+      ],
+      "dtype": "f32",
+      "field": "x"
+     }
+    },
+    {
+     "id": "i1",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       8
+      ],
+      "dtype": "f32",
+      "field": "f1"
+     }
+    },
+    {
+     "id": "n",
+     "type": "CosineEmbedding"
+    }
+   ],
+   "edges": [
+    [
+     "i0.out",
+     "n.a"
+    ],
+    [
+     "i1.out",
+     "n.b"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "i0.out": {
+     "shape": [
+      "B",
+      8
+     ],
+     "dtype": "f32"
+    },
+    "i1.out": {
+     "shape": [
+      "B",
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.a": {
+     "shape": [
+      "B",
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.b": {
+     "shape": [
+      "B",
+      8
+     ],
+     "dtype": "f32"
+    },
+    "n.loss": {
+     "shape": [],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "i0": [
+     0,
+     0
+    ],
+    "i1": [
+     0,
+     0
+    ],
+    "n": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_loss_AuxLoss",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "i0",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       3
+      ],
+      "dtype": "f32",
+      "field": "x"
+     }
+    },
+    {
+     "id": "n",
+     "type": "AuxLoss"
+    }
+   ],
+   "edges": [
+    [
+     "i0.out",
+     "n.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "i0.out": {
+     "shape": [
+      "B",
+      3
+     ],
+     "dtype": "f32"
+    },
+    "n.in": {
+     "shape": [
+      "B",
+      3
+     ],
+     "dtype": "f32"
+    },
+    "n.loss": {
+     "shape": [],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "i0": [
+     0,
+     0
+    ],
+    "n": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
   "name": "node_block_pre_ln_block",
   "graph": {
    "schema": 1,
@@ -16153,6 +21611,485 @@
   }
  },
  {
+  "name": "node_block_inverted_residual",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "in_x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       4,
+       8,
+       8
+      ]
+     }
+    },
+    {
+     "id": "blk",
+     "type": "Subgraph",
+     "params": {
+      "graph": "inverted_residual",
+      "repeat": 2,
+      "args": {
+       "C": 4,
+       "T": 2
+      }
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "in_x.out",
+     "blk.x"
+    ],
+    [
+     "blk.out",
+     "o.in"
+    ]
+   ],
+   "subgraphs": {
+    "inverted_residual": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "$C",
+         "H",
+         "W"
+        ]
+       }
+      },
+      {
+       "id": "expand",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$C",
+        "out_channels": "$C*T",
+        "kernel_size": 1,
+        "padding": 0,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn1",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$C*T"
+       }
+      },
+      {
+       "id": "act1",
+       "type": "ReLU6"
+      },
+      {
+       "id": "dw",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$C*T",
+        "out_channels": "$C*T",
+        "kernel_size": 3,
+        "padding": 1,
+        "groups": "$C*T",
+        "bias": false
+       },
+       "label": "depthwise 3\u00d73"
+      },
+      {
+       "id": "bn2",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$C*T"
+       }
+      },
+      {
+       "id": "act2",
+       "type": "ReLU6"
+      },
+      {
+       "id": "project",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$C*T",
+        "out_channels": "$C",
+        "kernel_size": 1,
+        "padding": 0,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn3",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$C"
+       }
+      },
+      {
+       "id": "add",
+       "type": "Add"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "add.a"
+      ],
+      [
+       "bn3.out",
+       "add.b"
+      ],
+      [
+       "x.out",
+       "expand.in"
+      ],
+      [
+       "expand.out",
+       "bn1.in"
+      ],
+      [
+       "bn1.out",
+       "act1.in"
+      ],
+      [
+       "act1.out",
+       "dw.in"
+      ],
+      [
+       "dw.out",
+       "bn2.in"
+      ],
+      [
+       "bn2.out",
+       "act2.in"
+      ],
+      [
+       "act2.out",
+       "project.in"
+      ],
+      [
+       "project.out",
+       "bn3.in"
+      ],
+      [
+       "add.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "C": 24,
+      "T": 6
+     },
+     "doc": "MobileNetV2 inverted residual: 1\u00d71 expand \u2192 3\u00d73 depthwise \u2192 1\u00d71 linear projection, identity shortcut."
+    }
+   }
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "blk.out": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "blk.x": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "in_x.out": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "blk": [
+     352,
+     352
+    ],
+    "in_x": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_block_inverted_residual_proj",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "in_x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       4,
+       8,
+       8
+      ]
+     }
+    },
+    {
+     "id": "blk",
+     "type": "Subgraph",
+     "params": {
+      "graph": "inverted_residual_proj",
+      "repeat": 1,
+      "args": {
+       "Cin": 4,
+       "Cout": 6,
+       "S": 2,
+       "T": 3
+      }
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "in_x.out",
+     "blk.x"
+    ],
+    [
+     "blk.out",
+     "o.in"
+    ]
+   ],
+   "subgraphs": {
+    "inverted_residual_proj": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "$Cin",
+         "H",
+         "W"
+        ]
+       }
+      },
+      {
+       "id": "expand",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$Cin",
+        "out_channels": "$Cin*T",
+        "kernel_size": 1,
+        "padding": 0,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn1",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$Cin*T"
+       }
+      },
+      {
+       "id": "act1",
+       "type": "ReLU6"
+      },
+      {
+       "id": "dw",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$Cin*T",
+        "out_channels": "$Cin*T",
+        "kernel_size": 3,
+        "stride": "$S",
+        "padding": 1,
+        "groups": "$Cin*T",
+        "bias": false
+       },
+       "label": "depthwise 3\u00d73"
+      },
+      {
+       "id": "bn2",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$Cin*T"
+       }
+      },
+      {
+       "id": "act2",
+       "type": "ReLU6"
+      },
+      {
+       "id": "project",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$Cin*T",
+        "out_channels": "$Cout",
+        "kernel_size": 1,
+        "padding": 0,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn3",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$Cout"
+       }
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "expand.in"
+      ],
+      [
+       "expand.out",
+       "bn1.in"
+      ],
+      [
+       "bn1.out",
+       "act1.in"
+      ],
+      [
+       "act1.out",
+       "dw.in"
+      ],
+      [
+       "dw.out",
+       "bn2.in"
+      ],
+      [
+       "bn2.out",
+       "act2.in"
+      ],
+      [
+       "act2.out",
+       "project.in"
+      ],
+      [
+       "project.out",
+       "bn3.in"
+      ],
+      [
+       "bn3.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "Cin": 16,
+      "Cout": 24,
+      "S": 2,
+      "T": 6
+     },
+     "doc": "MobileNetV2 inverted residual that changes channels or stride (no shortcut)."
+    }
+   }
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "blk.out": {
+     "shape": [
+      "B",
+      6,
+      4,
+      4
+     ],
+     "dtype": "f32"
+    },
+    "blk.x": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "in_x.out": {
+     "shape": [
+      "B",
+      4,
+      8,
+      8
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      6,
+      4,
+      4
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "blk": [
+     288,
+     288
+    ],
+    "in_x": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
   "name": "node_block_mamba_block",
   "graph": {
    "schema": 1,
@@ -18366,6 +24303,1272 @@
     "up2": [
      32832,
      32832
+    ]
+   }
+  }
+ },
+ {
+  "name": "model_mobilenet_v2",
+  "graph": {
+   "schema": 1,
+   "name": "MobileNetV2",
+   "nodes": [
+    {
+     "id": "image",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       3,
+       224,
+       224
+      ]
+     }
+    },
+    {
+     "id": "stem",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 3,
+      "out_channels": 32,
+      "kernel_size": 3,
+      "stride": 2,
+      "padding": 1,
+      "bias": false
+     }
+    },
+    {
+     "id": "stem_bn",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": 32
+     }
+    },
+    {
+     "id": "stem_act",
+     "type": "ReLU6"
+    },
+    {
+     "id": "b0_dw",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 32,
+      "out_channels": 32,
+      "kernel_size": 3,
+      "padding": 1,
+      "groups": 32,
+      "bias": false
+     },
+     "label": "depthwise 3\u00d73"
+    },
+    {
+     "id": "b0_bn1",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": 32
+     }
+    },
+    {
+     "id": "b0_act",
+     "type": "ReLU6"
+    },
+    {
+     "id": "b0_project",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 32,
+      "out_channels": 16,
+      "kernel_size": 1,
+      "padding": 0,
+      "bias": false
+     }
+    },
+    {
+     "id": "b0_bn2",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": 16
+     }
+    },
+    {
+     "id": "stage1",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir_proj",
+      "args": {
+       "Cin": 16,
+       "Cout": 24,
+       "S": 2,
+       "T": 6
+      }
+     },
+     "label": "stage 1 \u00b7 16\u219224 /2"
+    },
+    {
+     "id": "stage1_res",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir",
+      "repeat": 1,
+      "args": {
+       "C": 24,
+       "T": 6
+      }
+     },
+     "label": "stage 1 \u00b7 1\u00d7 residual 24"
+    },
+    {
+     "id": "stage2",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir_proj",
+      "args": {
+       "Cin": 24,
+       "Cout": 32,
+       "S": 2,
+       "T": 6
+      }
+     },
+     "label": "stage 2 \u00b7 24\u219232 /2"
+    },
+    {
+     "id": "stage2_res",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir",
+      "repeat": 2,
+      "args": {
+       "C": 32,
+       "T": 6
+      }
+     },
+     "label": "stage 2 \u00b7 2\u00d7 residual 32"
+    },
+    {
+     "id": "stage3",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir_proj",
+      "args": {
+       "Cin": 32,
+       "Cout": 64,
+       "S": 2,
+       "T": 6
+      }
+     },
+     "label": "stage 3 \u00b7 32\u219264 /2"
+    },
+    {
+     "id": "stage3_res",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir",
+      "repeat": 3,
+      "args": {
+       "C": 64,
+       "T": 6
+      }
+     },
+     "label": "stage 3 \u00b7 3\u00d7 residual 64"
+    },
+    {
+     "id": "stage4",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir_proj",
+      "args": {
+       "Cin": 64,
+       "Cout": 96,
+       "S": 1,
+       "T": 6
+      }
+     },
+     "label": "stage 4 \u00b7 64\u219296"
+    },
+    {
+     "id": "stage4_res",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir",
+      "repeat": 2,
+      "args": {
+       "C": 96,
+       "T": 6
+      }
+     },
+     "label": "stage 4 \u00b7 2\u00d7 residual 96"
+    },
+    {
+     "id": "stage5",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir_proj",
+      "args": {
+       "Cin": 96,
+       "Cout": 160,
+       "S": 2,
+       "T": 6
+      }
+     },
+     "label": "stage 5 \u00b7 96\u2192160 /2"
+    },
+    {
+     "id": "stage5_res",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir",
+      "repeat": 2,
+      "args": {
+       "C": 160,
+       "T": 6
+      }
+     },
+     "label": "stage 5 \u00b7 2\u00d7 residual 160"
+    },
+    {
+     "id": "stage6",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir_proj",
+      "args": {
+       "Cin": 160,
+       "Cout": 320,
+       "S": 1,
+       "T": 6
+      }
+     },
+     "label": "stage 6 \u00b7 160\u2192320"
+    },
+    {
+     "id": "head",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 320,
+      "out_channels": 1280,
+      "kernel_size": 1,
+      "padding": 0,
+      "bias": false
+     }
+    },
+    {
+     "id": "head_bn",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": 1280
+     }
+    },
+    {
+     "id": "head_act",
+     "type": "ReLU6"
+    },
+    {
+     "id": "pool",
+     "type": "AdaptiveAvgPool2d",
+     "params": {
+      "output_size": 1
+     }
+    },
+    {
+     "id": "flat",
+     "type": "Flatten"
+    },
+    {
+     "id": "drop",
+     "type": "Dropout",
+     "params": {
+      "p": 0.2
+     }
+    },
+    {
+     "id": "fc",
+     "type": "Linear",
+     "params": {
+      "in": 1280,
+      "out": 1000
+     }
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy"
+    }
+   ],
+   "edges": [
+    [
+     "image.out",
+     "stem.in"
+    ],
+    [
+     "stem.out",
+     "stem_bn.in"
+    ],
+    [
+     "stem_bn.out",
+     "stem_act.in"
+    ],
+    [
+     "stem_act.out",
+     "b0_dw.in"
+    ],
+    [
+     "b0_dw.out",
+     "b0_bn1.in"
+    ],
+    [
+     "b0_bn1.out",
+     "b0_act.in"
+    ],
+    [
+     "b0_act.out",
+     "b0_project.in"
+    ],
+    [
+     "b0_project.out",
+     "b0_bn2.in"
+    ],
+    [
+     "b0_bn2.out",
+     "stage1.x"
+    ],
+    [
+     "stage1.out",
+     "stage1_res.x"
+    ],
+    [
+     "stage1_res.out",
+     "stage2.x"
+    ],
+    [
+     "stage2.out",
+     "stage2_res.x"
+    ],
+    [
+     "stage2_res.out",
+     "stage3.x"
+    ],
+    [
+     "stage3.out",
+     "stage3_res.x"
+    ],
+    [
+     "stage3_res.out",
+     "stage4.x"
+    ],
+    [
+     "stage4.out",
+     "stage4_res.x"
+    ],
+    [
+     "stage4_res.out",
+     "stage5.x"
+    ],
+    [
+     "stage5.out",
+     "stage5_res.x"
+    ],
+    [
+     "stage5_res.out",
+     "stage6.x"
+    ],
+    [
+     "stage6.out",
+     "head.in"
+    ],
+    [
+     "head.out",
+     "head_bn.in"
+    ],
+    [
+     "head_bn.out",
+     "head_act.in"
+    ],
+    [
+     "head_act.out",
+     "pool.in"
+    ],
+    [
+     "pool.out",
+     "flat.in"
+    ],
+    [
+     "flat.out",
+     "drop.in"
+    ],
+    [
+     "drop.out",
+     "fc.in"
+    ],
+    [
+     "fc.out",
+     "loss.logits"
+    ]
+   ],
+   "subgraphs": {
+    "ir": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "$C",
+         "H",
+         "W"
+        ]
+       }
+      },
+      {
+       "id": "expand",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$C",
+        "out_channels": "$C*T",
+        "kernel_size": 1,
+        "padding": 0,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn1",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$C*T"
+       }
+      },
+      {
+       "id": "act1",
+       "type": "ReLU6"
+      },
+      {
+       "id": "dw",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$C*T",
+        "out_channels": "$C*T",
+        "kernel_size": 3,
+        "padding": 1,
+        "groups": "$C*T",
+        "bias": false
+       },
+       "label": "depthwise 3\u00d73"
+      },
+      {
+       "id": "bn2",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$C*T"
+       }
+      },
+      {
+       "id": "act2",
+       "type": "ReLU6"
+      },
+      {
+       "id": "project",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$C*T",
+        "out_channels": "$C",
+        "kernel_size": 1,
+        "padding": 0,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn3",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$C"
+       }
+      },
+      {
+       "id": "add",
+       "type": "Add"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "add.a"
+      ],
+      [
+       "bn3.out",
+       "add.b"
+      ],
+      [
+       "x.out",
+       "expand.in"
+      ],
+      [
+       "expand.out",
+       "bn1.in"
+      ],
+      [
+       "bn1.out",
+       "act1.in"
+      ],
+      [
+       "act1.out",
+       "dw.in"
+      ],
+      [
+       "dw.out",
+       "bn2.in"
+      ],
+      [
+       "bn2.out",
+       "act2.in"
+      ],
+      [
+       "act2.out",
+       "project.in"
+      ],
+      [
+       "project.out",
+       "bn3.in"
+      ],
+      [
+       "add.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "C": 24,
+      "T": 6
+     },
+     "doc": "MobileNetV2 inverted residual: 1\u00d71 expand \u2192 3\u00d73 depthwise \u2192 1\u00d71 linear projection, identity shortcut."
+    },
+    "ir_proj": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "$Cin",
+         "H",
+         "W"
+        ]
+       }
+      },
+      {
+       "id": "expand",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$Cin",
+        "out_channels": "$Cin*T",
+        "kernel_size": 1,
+        "padding": 0,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn1",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$Cin*T"
+       }
+      },
+      {
+       "id": "act1",
+       "type": "ReLU6"
+      },
+      {
+       "id": "dw",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$Cin*T",
+        "out_channels": "$Cin*T",
+        "kernel_size": 3,
+        "stride": "$S",
+        "padding": 1,
+        "groups": "$Cin*T",
+        "bias": false
+       },
+       "label": "depthwise 3\u00d73"
+      },
+      {
+       "id": "bn2",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$Cin*T"
+       }
+      },
+      {
+       "id": "act2",
+       "type": "ReLU6"
+      },
+      {
+       "id": "project",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$Cin*T",
+        "out_channels": "$Cout",
+        "kernel_size": 1,
+        "padding": 0,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn3",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$Cout"
+       }
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "expand.in"
+      ],
+      [
+       "expand.out",
+       "bn1.in"
+      ],
+      [
+       "bn1.out",
+       "act1.in"
+      ],
+      [
+       "act1.out",
+       "dw.in"
+      ],
+      [
+       "dw.out",
+       "bn2.in"
+      ],
+      [
+       "bn2.out",
+       "act2.in"
+      ],
+      [
+       "act2.out",
+       "project.in"
+      ],
+      [
+       "project.out",
+       "bn3.in"
+      ],
+      [
+       "bn3.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "Cin": 16,
+      "Cout": 24,
+      "S": 2,
+      "T": 6
+     },
+     "doc": "MobileNetV2 inverted residual that changes channels or stride (no shortcut)."
+    }
+   }
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "b0_act.in": {
+     "shape": [
+      "B",
+      32,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    },
+    "b0_act.out": {
+     "shape": [
+      "B",
+      32,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    },
+    "b0_bn1.in": {
+     "shape": [
+      "B",
+      32,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    },
+    "b0_bn1.out": {
+     "shape": [
+      "B",
+      32,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    },
+    "b0_bn2.in": {
+     "shape": [
+      "B",
+      16,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    },
+    "b0_bn2.out": {
+     "shape": [
+      "B",
+      16,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    },
+    "b0_dw.in": {
+     "shape": [
+      "B",
+      32,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    },
+    "b0_dw.out": {
+     "shape": [
+      "B",
+      32,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    },
+    "b0_project.in": {
+     "shape": [
+      "B",
+      32,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    },
+    "b0_project.out": {
+     "shape": [
+      "B",
+      16,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    },
+    "drop.in": {
+     "shape": [
+      "B",
+      1280
+     ],
+     "dtype": "f32"
+    },
+    "drop.out": {
+     "shape": [
+      "B",
+      1280
+     ],
+     "dtype": "f32"
+    },
+    "fc.in": {
+     "shape": [
+      "B",
+      1280
+     ],
+     "dtype": "f32"
+    },
+    "fc.out": {
+     "shape": [
+      "B",
+      1000
+     ],
+     "dtype": "f32"
+    },
+    "flat.in": {
+     "shape": [
+      "B",
+      1280,
+      1,
+      1
+     ],
+     "dtype": "f32"
+    },
+    "flat.out": {
+     "shape": [
+      "B",
+      1280
+     ],
+     "dtype": "f32"
+    },
+    "head.in": {
+     "shape": [
+      "B",
+      320,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "head.out": {
+     "shape": [
+      "B",
+      1280,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "head_act.in": {
+     "shape": [
+      "B",
+      1280,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "head_act.out": {
+     "shape": [
+      "B",
+      1280,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "head_bn.in": {
+     "shape": [
+      "B",
+      1280,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "head_bn.out": {
+     "shape": [
+      "B",
+      1280,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "image.out": {
+     "shape": [
+      "B",
+      3,
+      224,
+      224
+     ],
+     "dtype": "f32"
+    },
+    "loss.logits": {
+     "shape": [
+      "B",
+      1000
+     ],
+     "dtype": "f32"
+    },
+    "loss.loss": {
+     "shape": [],
+     "dtype": "f32"
+    },
+    "pool.in": {
+     "shape": [
+      "B",
+      1280,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "pool.out": {
+     "shape": [
+      "B",
+      1280,
+      1,
+      1
+     ],
+     "dtype": "f32"
+    },
+    "stage1.out": {
+     "shape": [
+      "B",
+      24,
+      56,
+      56
+     ],
+     "dtype": "f32"
+    },
+    "stage1.x": {
+     "shape": [
+      "B",
+      16,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    },
+    "stage1_res.out": {
+     "shape": [
+      "B",
+      24,
+      56,
+      56
+     ],
+     "dtype": "f32"
+    },
+    "stage1_res.x": {
+     "shape": [
+      "B",
+      24,
+      56,
+      56
+     ],
+     "dtype": "f32"
+    },
+    "stage2.out": {
+     "shape": [
+      "B",
+      32,
+      28,
+      28
+     ],
+     "dtype": "f32"
+    },
+    "stage2.x": {
+     "shape": [
+      "B",
+      24,
+      56,
+      56
+     ],
+     "dtype": "f32"
+    },
+    "stage2_res.out": {
+     "shape": [
+      "B",
+      32,
+      28,
+      28
+     ],
+     "dtype": "f32"
+    },
+    "stage2_res.x": {
+     "shape": [
+      "B",
+      32,
+      28,
+      28
+     ],
+     "dtype": "f32"
+    },
+    "stage3.out": {
+     "shape": [
+      "B",
+      64,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "stage3.x": {
+     "shape": [
+      "B",
+      32,
+      28,
+      28
+     ],
+     "dtype": "f32"
+    },
+    "stage3_res.out": {
+     "shape": [
+      "B",
+      64,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "stage3_res.x": {
+     "shape": [
+      "B",
+      64,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "stage4.out": {
+     "shape": [
+      "B",
+      96,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "stage4.x": {
+     "shape": [
+      "B",
+      64,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "stage4_res.out": {
+     "shape": [
+      "B",
+      96,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "stage4_res.x": {
+     "shape": [
+      "B",
+      96,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "stage5.out": {
+     "shape": [
+      "B",
+      160,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "stage5.x": {
+     "shape": [
+      "B",
+      96,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "stage5_res.out": {
+     "shape": [
+      "B",
+      160,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "stage5_res.x": {
+     "shape": [
+      "B",
+      160,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "stage6.out": {
+     "shape": [
+      "B",
+      320,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "stage6.x": {
+     "shape": [
+      "B",
+      160,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "stem.in": {
+     "shape": [
+      "B",
+      3,
+      224,
+      224
+     ],
+     "dtype": "f32"
+    },
+    "stem.out": {
+     "shape": [
+      "B",
+      32,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    },
+    "stem_act.in": {
+     "shape": [
+      "B",
+      32,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    },
+    "stem_act.out": {
+     "shape": [
+      "B",
+      32,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    },
+    "stem_bn.in": {
+     "shape": [
+      "B",
+      32,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    },
+    "stem_bn.out": {
+     "shape": [
+      "B",
+      32,
+      112,
+      112
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "b0_act": [
+     0,
+     0
+    ],
+    "b0_bn1": [
+     64,
+     64
+    ],
+    "b0_bn2": [
+     32,
+     32
+    ],
+    "b0_dw": [
+     288,
+     288
+    ],
+    "b0_project": [
+     512,
+     512
+    ],
+    "drop": [
+     0,
+     0
+    ],
+    "fc": [
+     1281000,
+     1281000
+    ],
+    "flat": [
+     0,
+     0
+    ],
+    "head": [
+     409600,
+     409600
+    ],
+    "head_act": [
+     0,
+     0
+    ],
+    "head_bn": [
+     2560,
+     2560
+    ],
+    "image": [
+     0,
+     0
+    ],
+    "loss": [
+     0,
+     0
+    ],
+    "pool": [
+     0,
+     0
+    ],
+    "stage1": [
+     5136,
+     5136
+    ],
+    "stage1_res": [
+     8832,
+     8832
+    ],
+    "stage2": [
+     10000,
+     10000
+    ],
+    "stage2_res": [
+     29696,
+     29696
+    ],
+    "stage3": [
+     21056,
+     21056
+    ],
+    "stage3_res": [
+     162816,
+     162816
+    ],
+    "stage4": [
+     66624,
+     66624
+    ],
+    "stage4_res": [
+     236544,
+     236544
+    ],
+    "stage5": [
+     155264,
+     155264
+    ],
+    "stage5_res": [
+     640000,
+     640000
+    ],
+    "stage6": [
+     473920,
+     473920
+    ],
+    "stem": [
+     864,
+     864
+    ],
+    "stem_act": [
+     0,
+     0
+    ],
+    "stem_bn": [
+     64,
+     64
     ]
    }
   }
@@ -23841,6 +31044,896 @@
      0
     ],
     "tgt_scale": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "model_vqvae_mnist",
+  "graph": {
+   "schema": 1,
+   "name": "VQ-VAE \u00b7 MNIST",
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       1,
+       28,
+       28
+      ]
+     }
+    },
+    {
+     "id": "enc1",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 1,
+      "out_channels": 32,
+      "kernel_size": 4,
+      "stride": 2,
+      "padding": 1
+     }
+    },
+    {
+     "id": "enc1_act",
+     "type": "ReLU"
+    },
+    {
+     "id": "enc2",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 32,
+      "out_channels": 64,
+      "kernel_size": 4,
+      "stride": 2,
+      "padding": 1
+     }
+    },
+    {
+     "id": "enc2_act",
+     "type": "ReLU"
+    },
+    {
+     "id": "to_latent",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 64,
+      "out_channels": 64,
+      "kernel_size": 1,
+      "padding": 0
+     },
+     "label": "to code space"
+    },
+    {
+     "id": "channels_last",
+     "type": "Permute",
+     "params": {
+      "dims": [
+       0,
+       2,
+       3,
+       1
+      ]
+     }
+    },
+    {
+     "id": "vq",
+     "type": "VectorQuantizer",
+     "params": {
+      "codes": 512,
+      "dim": 64,
+      "beta": 0.25
+     },
+     "label": "codebook \u00b7 512 codes"
+    },
+    {
+     "id": "channels_first",
+     "type": "Permute",
+     "params": {
+      "dims": [
+       0,
+       3,
+       1,
+       2
+      ]
+     }
+    },
+    {
+     "id": "dec1",
+     "type": "ConvTranspose2d",
+     "params": {
+      "in_channels": 64,
+      "out_channels": 32,
+      "kernel_size": 4,
+      "stride": 2,
+      "padding": 1
+     }
+    },
+    {
+     "id": "dec1_act",
+     "type": "ReLU"
+    },
+    {
+     "id": "dec2",
+     "type": "ConvTranspose2d",
+     "params": {
+      "in_channels": 32,
+      "out_channels": 1,
+      "kernel_size": 4,
+      "stride": 2,
+      "padding": 1
+     },
+     "label": "reconstruction logits"
+    },
+    {
+     "id": "recon",
+     "type": "BCEWithLogits",
+     "label": "reconstruction"
+    },
+    {
+     "id": "commit",
+     "type": "AuxLoss",
+     "label": "codebook + commitment"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "enc1.in"
+    ],
+    [
+     "enc1.out",
+     "enc1_act.in"
+    ],
+    [
+     "enc1_act.out",
+     "enc2.in"
+    ],
+    [
+     "enc2.out",
+     "enc2_act.in"
+    ],
+    [
+     "enc2_act.out",
+     "to_latent.in"
+    ],
+    [
+     "to_latent.out",
+     "channels_last.in"
+    ],
+    [
+     "channels_last.out",
+     "vq.in"
+    ],
+    [
+     "vq.out",
+     "channels_first.in"
+    ],
+    [
+     "channels_first.out",
+     "dec1.in"
+    ],
+    [
+     "dec1.out",
+     "dec1_act.in"
+    ],
+    [
+     "dec1_act.out",
+     "dec2.in"
+    ],
+    [
+     "dec2.out",
+     "recon.pred"
+    ],
+    [
+     "x.out",
+     "recon.target"
+    ],
+    [
+     "vq.commit",
+     "commit.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "channels_first.in": {
+     "shape": [
+      "B",
+      7,
+      7,
+      64
+     ],
+     "dtype": "f32"
+    },
+    "channels_first.out": {
+     "shape": [
+      "B",
+      64,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "channels_last.in": {
+     "shape": [
+      "B",
+      64,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "channels_last.out": {
+     "shape": [
+      "B",
+      7,
+      7,
+      64
+     ],
+     "dtype": "f32"
+    },
+    "commit.in": {
+     "shape": [],
+     "dtype": "f32"
+    },
+    "commit.loss": {
+     "shape": [],
+     "dtype": "f32"
+    },
+    "dec1.in": {
+     "shape": [
+      "B",
+      64,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "dec1.out": {
+     "shape": [
+      "B",
+      32,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "dec1_act.in": {
+     "shape": [
+      "B",
+      32,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "dec1_act.out": {
+     "shape": [
+      "B",
+      32,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "dec2.in": {
+     "shape": [
+      "B",
+      32,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "dec2.out": {
+     "shape": [
+      "B",
+      1,
+      28,
+      28
+     ],
+     "dtype": "f32"
+    },
+    "enc1.in": {
+     "shape": [
+      "B",
+      1,
+      28,
+      28
+     ],
+     "dtype": "f32"
+    },
+    "enc1.out": {
+     "shape": [
+      "B",
+      32,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "enc1_act.in": {
+     "shape": [
+      "B",
+      32,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "enc1_act.out": {
+     "shape": [
+      "B",
+      32,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "enc2.in": {
+     "shape": [
+      "B",
+      32,
+      14,
+      14
+     ],
+     "dtype": "f32"
+    },
+    "enc2.out": {
+     "shape": [
+      "B",
+      64,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "enc2_act.in": {
+     "shape": [
+      "B",
+      64,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "enc2_act.out": {
+     "shape": [
+      "B",
+      64,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "recon.loss": {
+     "shape": [],
+     "dtype": "f32"
+    },
+    "recon.pred": {
+     "shape": [
+      "B",
+      1,
+      28,
+      28
+     ],
+     "dtype": "f32"
+    },
+    "recon.target": {
+     "shape": [
+      "B",
+      1,
+      28,
+      28
+     ],
+     "dtype": "f32"
+    },
+    "to_latent.in": {
+     "shape": [
+      "B",
+      64,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "to_latent.out": {
+     "shape": [
+      "B",
+      64,
+      7,
+      7
+     ],
+     "dtype": "f32"
+    },
+    "vq.commit": {
+     "shape": [],
+     "dtype": "f32"
+    },
+    "vq.in": {
+     "shape": [
+      "B",
+      7,
+      7,
+      64
+     ],
+     "dtype": "f32"
+    },
+    "vq.indices": {
+     "shape": [
+      "B",
+      7,
+      7
+     ],
+     "dtype": "i64"
+    },
+    "vq.out": {
+     "shape": [
+      "B",
+      7,
+      7,
+      64
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      1,
+      28,
+      28
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "channels_first": [
+     0,
+     0
+    ],
+    "channels_last": [
+     0,
+     0
+    ],
+    "commit": [
+     0,
+     0
+    ],
+    "dec1": [
+     32800,
+     32800
+    ],
+    "dec1_act": [
+     0,
+     0
+    ],
+    "dec2": [
+     513,
+     513
+    ],
+    "enc1": [
+     544,
+     544
+    ],
+    "enc1_act": [
+     0,
+     0
+    ],
+    "enc2": [
+     32832,
+     32832
+    ],
+    "enc2_act": [
+     0,
+     0
+    ],
+    "recon": [
+     0,
+     0
+    ],
+    "to_latent": [
+     4160,
+     4160
+    ],
+    "vq": [
+     32768,
+     32768
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "model_ddpm_mnist",
+  "graph": {
+   "schema": 1,
+   "name": "DDPM denoiser \u00b7 MNIST",
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       784
+      ]
+     }
+    },
+    {
+     "id": "to_signed",
+     "type": "Scale",
+     "params": {
+      "factor": 2.0
+     },
+     "label": "\u00d7 2"
+    },
+    {
+     "id": "center",
+     "type": "AddConst",
+     "params": {
+      "value": -1.0
+     },
+     "label": "\u2212 1 \u2192 [\u22121, 1]"
+    },
+    {
+     "id": "diffuse",
+     "type": "DiffusionForward",
+     "params": {
+      "steps": 1000
+     }
+    },
+    {
+     "id": "in_proj",
+     "type": "Linear",
+     "params": {
+      "in": 784,
+      "out": 512
+     }
+    },
+    {
+     "id": "t_embed",
+     "type": "TimestepEmbedding",
+     "params": {
+      "dim": 512
+     }
+    },
+    {
+     "id": "cond",
+     "type": "Add",
+     "label": "+ timestep"
+    },
+    {
+     "id": "act1",
+     "type": "SiLU"
+    },
+    {
+     "id": "mid",
+     "type": "Linear",
+     "params": {
+      "in": 512,
+      "out": 512
+     }
+    },
+    {
+     "id": "act2",
+     "type": "SiLU"
+    },
+    {
+     "id": "eps",
+     "type": "Linear",
+     "params": {
+      "in": 512,
+      "out": 784
+     },
+     "label": "predicted noise"
+    },
+    {
+     "id": "loss",
+     "type": "MSE",
+     "label": "noise prediction"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "to_signed.in"
+    ],
+    [
+     "to_signed.out",
+     "center.in"
+    ],
+    [
+     "center.out",
+     "diffuse.in"
+    ],
+    [
+     "diffuse.noisy",
+     "in_proj.in"
+    ],
+    [
+     "diffuse.t",
+     "t_embed.in"
+    ],
+    [
+     "in_proj.out",
+     "cond.a"
+    ],
+    [
+     "t_embed.out",
+     "cond.b"
+    ],
+    [
+     "cond.out",
+     "act1.in"
+    ],
+    [
+     "act1.out",
+     "mid.in"
+    ],
+    [
+     "mid.out",
+     "act2.in"
+    ],
+    [
+     "act2.out",
+     "eps.in"
+    ],
+    [
+     "eps.out",
+     "loss.pred"
+    ],
+    [
+     "diffuse.noise",
+     "loss.target"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "act1.in": {
+     "shape": [
+      "B",
+      512
+     ],
+     "dtype": "f32"
+    },
+    "act1.out": {
+     "shape": [
+      "B",
+      512
+     ],
+     "dtype": "f32"
+    },
+    "act2.in": {
+     "shape": [
+      "B",
+      512
+     ],
+     "dtype": "f32"
+    },
+    "act2.out": {
+     "shape": [
+      "B",
+      512
+     ],
+     "dtype": "f32"
+    },
+    "center.in": {
+     "shape": [
+      "B",
+      784
+     ],
+     "dtype": "f32"
+    },
+    "center.out": {
+     "shape": [
+      "B",
+      784
+     ],
+     "dtype": "f32"
+    },
+    "cond.a": {
+     "shape": [
+      "B",
+      512
+     ],
+     "dtype": "f32"
+    },
+    "cond.b": {
+     "shape": [
+      "B",
+      512
+     ],
+     "dtype": "f32"
+    },
+    "cond.out": {
+     "shape": [
+      "B",
+      512
+     ],
+     "dtype": "f32"
+    },
+    "diffuse.in": {
+     "shape": [
+      "B",
+      784
+     ],
+     "dtype": "f32"
+    },
+    "diffuse.noise": {
+     "shape": [
+      "B",
+      784
+     ],
+     "dtype": "f32"
+    },
+    "diffuse.noisy": {
+     "shape": [
+      "B",
+      784
+     ],
+     "dtype": "f32"
+    },
+    "diffuse.t": {
+     "shape": [
+      "B"
+     ],
+     "dtype": "i64"
+    },
+    "eps.in": {
+     "shape": [
+      "B",
+      512
+     ],
+     "dtype": "f32"
+    },
+    "eps.out": {
+     "shape": [
+      "B",
+      784
+     ],
+     "dtype": "f32"
+    },
+    "in_proj.in": {
+     "shape": [
+      "B",
+      784
+     ],
+     "dtype": "f32"
+    },
+    "in_proj.out": {
+     "shape": [
+      "B",
+      512
+     ],
+     "dtype": "f32"
+    },
+    "loss.loss": {
+     "shape": [],
+     "dtype": "f32"
+    },
+    "loss.pred": {
+     "shape": [
+      "B",
+      784
+     ],
+     "dtype": "f32"
+    },
+    "loss.target": {
+     "shape": [
+      "B",
+      784
+     ],
+     "dtype": "f32"
+    },
+    "mid.in": {
+     "shape": [
+      "B",
+      512
+     ],
+     "dtype": "f32"
+    },
+    "mid.out": {
+     "shape": [
+      "B",
+      512
+     ],
+     "dtype": "f32"
+    },
+    "t_embed.in": {
+     "shape": [
+      "B"
+     ],
+     "dtype": "i64"
+    },
+    "t_embed.out": {
+     "shape": [
+      "B",
+      512
+     ],
+     "dtype": "f32"
+    },
+    "to_signed.in": {
+     "shape": [
+      "B",
+      784
+     ],
+     "dtype": "f32"
+    },
+    "to_signed.out": {
+     "shape": [
+      "B",
+      784
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      784
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "act1": [
+     0,
+     0
+    ],
+    "act2": [
+     0,
+     0
+    ],
+    "center": [
+     0,
+     0
+    ],
+    "cond": [
+     0,
+     0
+    ],
+    "diffuse": [
+     0,
+     0
+    ],
+    "eps": [
+     402192,
+     402192
+    ],
+    "in_proj": [
+     401920,
+     401920
+    ],
+    "loss": [
+     0,
+     0
+    ],
+    "mid": [
+     262656,
+     262656
+    ],
+    "t_embed": [
+     2099712,
+     2099712
+    ],
+    "to_signed": [
+     0,
+     0
+    ],
+    "x": [
      0,
      0
     ]

@@ -59,10 +59,13 @@ canvas onu tercih eder.
 
 ## Canvas kullanımı
 
+- **Tıklayarak kur**: bir node seçiliyken kütüphanede bir öğeye tıklamak onu arkasına ekler, bağlar ve boyutlarını girdisinden alır; bir bağlantı seçiliyken araya sokar. Silmek zinciri koparmaz. Sorunların yanında tek tıkla düzeltme düğmeleri var.
+- Hiçbir şey seçili değilken sağ panel: **Overview** (çalıştırmaya hazır mı listesi + Run), **Data** (kaynak ve modelin göreceği verinin önizlemesi, Input'larla karşılaştırmalı), **Training**.
+- `?`: kavramlar ve tüm kısayollar.
 - `Cmd/Ctrl+K`: node ekle, komutlar (LoRA'yı tüm attention q/v'ye, varyant dallandır, bloğa grupla, ablasyon, örnek projeler…)
 - `Cmd/Ctrl+Enter`: Run · `Enter`: inspector'a odaklan · `Shift+Enter`: bloğu aç · `Esc`: seçimi/bloğu bırak
 - `Cmd/Ctrl+Z` / `Shift+Cmd/Ctrl+Z`: IR işlem günlüğünden undo/redo
-- Subgraph node'una çift tık içine girer. Hiçbir node seçili değilken inspector job config'i (veri, optimizer, precision…), sorunları ve varyant diff'ini gösterir.
+- Subgraph node'una çift tık içine girer.
 - Alt şerit: Metrics (canlı eğriler, pause/resume/stop/checkpoint, ablasyon, export), Runs, Compare (eğriler + graph diff), Log, Code (üretilen `model.py`; satıra tıklamak node'u seçer).
 
 ## Önceden eğitilmiş modeller

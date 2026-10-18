@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
+import { appendAfter, below, spliceInto } from "../ir/smart";
 import { keepTyping } from "./keys";
-import { addNode, insertBlock, insertModelInline } from "../ir/ops";
+import { addNode, getBody, insertBlock, insertModelInline } from "../ir/ops";
 import { CATALOG } from "../ir/registry";
 import templates from "../ir/templates.json";
 import { useStore } from "../state/store";
 import { viewportCenter } from "./Canvas";
 import { fmtCount } from "./Inspector";
 
-const ORDER = ["io", "layers", "convolution", "pooling", "attention", "sequence", "embedding", "norm", "activation", "structure", "generative", "loss", "custom"];
+const ORDER = ["io", "layers", "convolution", "pooling", "attention", "sequence", "embedding", "norm", "activation", "math", "structure", "graph", "generative", "loss", "custom"];
 const NAMES: Record<string, string> = {
   io: "Input / output",
   layers: "Layers",
@@ -18,7 +19,9 @@ const NAMES: Record<string, string> = {
   embedding: "Embedding & position",
   norm: "Normalisation",
   activation: "Activation & regularisation",
+  math: "Math",
   structure: "Tensor ops",
+  graph: "Graph neural nets",
   generative: "Generative",
   loss: "Loss",
   custom: "Custom",
@@ -27,15 +30,47 @@ const NAMES: Record<string, string> = {
 export const NODE_MIME = "application/x-weightsmith-node";
 export const TEMPLATE_MIME = "application/x-weightsmith-template";
 
+/**
+ * Add a node the way a person builds a network: after the selected node (wired and sized
+ * from it), into the selected connection, or on its own when nothing is selected.
+ */
 export function addAtCenter(type: string) {
   const st = useStore.getState();
+  const g = st.graph();
+  const body = getBody(g, st.scope);
+  const live = st.selection.filter((id) => body.nodes.some((n) => n.id === id));
+  const after = live.length === 1 ? live[0] : null;
+  const edge =
+    !live.length && st.selectedEdges.length === 1 && body.edges.some((e) => e[0] === st.selectedEdges[0][0] && e[1] === st.selectedEdges[0][1])
+      ? st.selectedEdges[0]
+      : null;
   let id = "";
-  st.apply(`add ${type}`, (g) => {
-    const [next, nid] = addNode(g, st.scope, type, viewportCenter());
-    id = nid;
-    return next;
-  });
+  let notes: string[] = [];
+  if (after) {
+    st.apply(`add ${type} after ${after}`, (gr) => {
+      const [next, nid, ns] = appendAfter(gr, st.scope, type, after, below(gr, st.scope, after));
+      [id, notes] = [nid, ns];
+      return next;
+    });
+  } else if (edge) {
+    const lay = getBody(g, st.scope).layout ?? {};
+    const a = lay[edge[0].slice(0, edge[0].lastIndexOf("."))] ?? { x: 0, y: 0 };
+    const b = lay[edge[1].slice(0, edge[1].lastIndexOf("."))] ?? a;
+    st.apply(`insert ${type}`, (gr) => {
+      const [next, nid, ns] = spliceInto(gr, st.scope, type, edge, { x: (a.x + b.x) / 2 + 24, y: (a.y + b.y) / 2 });
+      [id, notes] = [nid, ns];
+      return next;
+    });
+  } else {
+    st.apply(`add ${type}`, (gr) => {
+      const [next, nid] = addNode(gr, st.scope, type, viewportCenter());
+      id = nid;
+      return next;
+    });
+  }
   st.select([id]);
+  if (notes.length) st.notify(`${id}: ${notes.join(", ")} (from its input)`);
+  setTimeout(() => window.dispatchEvent(new CustomEvent("ws:focus", { detail: id })), 30);
 }
 
 /** Blocks become a subgraph node; models are merged in with prefixed ids. */

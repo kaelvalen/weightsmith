@@ -84,10 +84,20 @@ export class ApiError extends Error {
   }
 }
 
+export interface DataPreview {
+  ok: boolean;
+  error?: string;
+  rows?: number;
+  capped?: boolean;
+  fields?: { name: string; shape: (number | string)[]; dtype: string; peek: string }[];
+  checks?: { ok: boolean; field: string; message: string; node?: string; have?: number[] }[];
+}
+
 export const api = {
   health: () => req<{ ok: boolean; workspace: string }>("GET", "/api/health"),
   validate: (graph: Graph) => req<any>("POST", "/api/validate", { graph }),
   compile: (graph: Graph) => req<any>("POST", "/api/compile", { graph }),
+  dataPreview: (data: any, graph?: Graph) => req<DataPreview>("POST", "/api/data/preview", { data, graph }),
   diff: (a: Graph, b: Graph) => req<{ same: boolean; changes: any[] }>("POST", "/api/diff", { a, b }),
   python: (params: any, inputs?: any) => req<any>("POST", "/api/python/analyze", { params, inputs }),
   projects: () =>

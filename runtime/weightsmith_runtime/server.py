@@ -35,6 +35,11 @@ class GraphBody(BaseModel):
     graph: dict[str, Any]
 
 
+class PreviewBody(BaseModel):
+    data: dict[str, Any]
+    graph: dict[str, Any] | None = None
+
+
 class DiffBody(BaseModel):
     a: dict[str, Any]
     b: dict[str, Any]
@@ -172,6 +177,12 @@ def create_app(root: Path | None = None, web_dist: Path | None = None) -> FastAP
             except Exception as e:  # generated code failed on the meta device
                 smoke = {"ok": False, "issues": [{"node": None, "message": f"{type(e).__name__}: {e}"}]}
         return {"ok": True, "model_py": c.model_py, "line_map": c.line_map, "hash": c.graph_hash, "smoke": smoke, "analysis": a.to_json()}
+
+    @app.post("/api/data/preview")
+    async def data_preview(body: PreviewBody):
+        from .preview import preview
+
+        return await asyncio.to_thread(preview, body.data, body.graph)
 
     @app.post("/api/diff")
     def diff_endpoint(body: DiffBody):

@@ -149,6 +149,69 @@ def cases() -> list[tuple[str, dict[str, Any]]]:
         ("model_mpnet_triplets", templates.mpnet_base(train_triplets=True)),
         ("loss_Triplet", loss("Triplet", {"anchor": (("B", 6), "f32"), "positive": (("B", 6), "f32"), "negative": (("B", 6), "f32")})),
         ("loss_KLGaussian", loss("KLGaussian", {"mu": (("B", 4), "f32"), "logvar": (("B", 4), "f32")})),
+        # nodes_extra
+        ("ReLU6", unary("ReLU6", SEQ)),
+        ("HardTanh", unary("HardTanh", SEQ, {"min": -2.0, "max": 2.0})),
+        ("Hardsigmoid", unary("Hardsigmoid", SEQ)),
+        ("Softsign", unary("Softsign", SEQ)),
+        ("Swish", unary("Swish", SEQ, {"dim": 16})),
+        ("PReLU", unary("PReLU", IMG, {"channels": 4})),
+        ("PReLU_shared", unary("PReLU", SEQ)),
+        ("GumbelSoftmax", unary("GumbelSoftmax", SEQ, {"hard": True})),
+        ("Dropout2d", unary("Dropout2d", IMG)),
+        ("Math", unary("Math", SEQ, {"op": "square"})),
+        ("Math_sin", unary("Math", SEQ, {"op": "sin"})),
+        ("Clamp", unary("Clamp", SEQ, {"min": 0.1})),
+        ("Pow", unary("Pow", SEQ, {"exponent": 3.0})),
+        ("AddConst", unary("AddConst", SEQ, {"value": 0.5})),
+        ("Div", binary("Div", SEQ, ("B", 1, 16))),
+        ("Maximum", binary("Maximum", SEQ, SEQ)),
+        ("Minimum", binary("Minimum", ("B", 16), (16,))),
+        ("Einsum", binary("Einsum", ("B", "T", 16), ("B", "S", 16), {"equation": "btd,bsd->bts"})),
+        ("Einsum_unary", unary("Einsum", ("B", 3, 4), {"equation": "bij->bji"}, in_port="a")),
+        ("Cumsum", unary("Cumsum", SEQ)),
+        ("Stack", binary("Stack", SEQ, SEQ, {"dim": 1})),
+        ("Squeeze", unary("Squeeze", ("B", 1, 16))),
+        ("Pad", unary("Pad", IMG, {"pad": [1, 1, 2, 0]})),
+        ("Repeat", unary("Repeat", ("B", 2, 3), {"repeats": [1, 2, 2]})),
+        ("TopK", unary("TopK", SEQ, {"k": 3}, out_port="values")),
+        ("TopK_indices", unary("TopK", SEQ, {"k": 2}, out_port="indices")),
+        ("ArgMax", unary("ArgMax", SEQ)),
+        ("OneHot", unary("OneHot", ("B", "T"), {"classes": 5}, dtype="i64")),
+        ("Cast", unary("Cast", ("B", "T"), {"dtype": "f32"}, dtype="i64")),
+        ("StopGradient", unary("StopGradient", SEQ)),
+        ("Parameter", _g([{"id": "n", "type": "Parameter", "params": {"shape": [1, 4, 16]}}, _inp("x", SEQ), {"id": "add", "type": "Add"}, {"id": "o", "type": "Output"}],
+                         [["x.out", "add.a"], ["n.out", "add.b"], ["add.out", "o.in"]])),
+        ("MaxPool3d", unary("MaxPool3d", ("B", 2, 4, 8, 8))),
+        ("AvgPool3d", unary("AvgPool3d", ("B", 2, 4, 8, 8), {"kernel_size": 2, "stride": 1})),
+        ("AdaptiveMaxPool1d", unary("AdaptiveMaxPool1d", ("B", 4, 10), {"output_size": 3})),
+        ("AdaptiveMaxPool2d", unary("AdaptiveMaxPool2d", IMG)),
+        ("Interpolate", unary("Interpolate", IMG, {"size": [5, 12], "mode": "bilinear"})),
+        ("BatchNorm3d", unary("BatchNorm3d", ("B", 2, 4, 8, 8), {"features": 2})),
+        ("LayerScale", unary("LayerScale", SEQ, {"dim": 16})),
+        ("SqueezeExcite", unary("SqueezeExcite", IMG, {"channels": 4, "reduction": 2})),
+        ("ALiBi", _g([_inp("x", SEQ), {"id": "n", "type": "ALiBi", "params": {"heads": 4}},
+                      {"id": "att", "type": "Attention", "params": {"dim": 16, "heads": 4, "causal": True}}, {"id": "o", "type": "Output"}],
+                     [["x.out", "n.in"], ["x.out", "att.in"], ["n.out", "att.bias"], ["att.out", "o.in"]])),
+        ("SlidingWindowBias", unary("SlidingWindowBias", SEQ, {"heads": 3, "window": 2})),
+        ("ALiBi_6heads", unary("ALiBi", SEQ, {"heads": 6, "causal": False})),
+        ("LinearAttention", unary("LinearAttention", SEQ, {"dim": 16, "heads": 4})),
+        ("LinearAttention_causal", unary("LinearAttention", SEQ, {"dim": 16, "heads": 2, "causal": True})),
+        ("TimestepEmbedding", unary("TimestepEmbedding", ("B",), {"dim": 16}, dtype="i64")),
+        ("VectorQuantizer", _g([_inp("x", SEQ), {"id": "n", "type": "VectorQuantizer", "params": {"codes": 8, "dim": 16}},
+                                {"id": "aux", "type": "AuxLoss"}, {"id": "o", "type": "Output"}, {"id": "o2", "type": "Output", "params": {"name": "codes"}}],
+                               [["x.out", "n.in"], ["n.commit", "aux.in"], ["n.out", "o.in"], ["n.indices", "o2.in"]])),
+        ("GraphConv", _g([_inp("x", ("B", 5, 6)), _inp("adj", ("B", 5, 5), field="adj"), {"id": "n", "type": "GraphConv", "params": {"in": 6, "out": 3}},
+                          {"id": "pool", "type": "GraphPool", "params": {"op": "max"}}, {"id": "o", "type": "Output"}],
+                         [["x.out", "n.x"], ["adj.out", "n.adj"], ["n.out", "pool.in"], ["pool.out", "o.in"]])),
+        ("DiffusionForward", _g([_inp("x", ("B", 1, 8, 8)), {"id": "n", "type": "DiffusionForward", "params": {"schedule": "cosine", "steps": 50}},
+                                 {"id": "mse", "type": "MSE"}, {"id": "o", "type": "Output"}, {"id": "o2", "type": "Output", "params": {"name": "t"}}],
+                                [["x.out", "n.in"], ["n.noisy", "mse.pred"], ["n.noise", "mse.target"], ["n.noisy", "o.in"], ["n.t", "o2.in"]])),
+        ("loss_Focal", loss("Focal", {"logits": (("B", "T", 5), "f32"), "target": (("B", "T"), "i64")})),
+        ("loss_Dice", loss("Dice", {"pred": (IMG, "f32"), "target": (IMG, "f32")})),
+        ("loss_GaussianNLL", loss("GaussianNLL", {"mean": (("B", 3), "f32"), "var": (("B", 3), "f32"), "target": (("B", 3), "f32")})),
+        ("loss_CosineEmbedding", loss("CosineEmbedding", {"a": (("B", 8), "f32"), "b": (("B", 8), "f32")})),
+        ("loss_AuxLoss", loss("AuxLoss", {"in": (("B", 3), "f32")})),
     ]
     out += block_cases()
     return out
@@ -165,6 +228,8 @@ SMALL_ARGS = {
     "resnet_basic_down": {"Cin": 4, "C": 8},
     "double_conv": {"Cin": 3, "Cout": 4},
     "mamba_block": {"D": 16, "N": 4},
+    "inverted_residual": {"C": 4, "T": 2},
+    "inverted_residual_proj": {"Cin": 4, "Cout": 6, "S": 2, "T": 3},
 }
 
 
@@ -195,7 +260,7 @@ def block_cases() -> list[tuple[str, dict[str, Any]]]:
             edges = [e for e in edges if not e[0].startswith("in_bias")]
             nodes.append({"id": "rb", "type": "RelativePositionBias", "params": {"heads": args["H"]}})
             edges += [["in_x.out", "rb.in"], ["rb.out", "blk.bias"]]
-        stable = t.id not in ("resnet_basic_down", "double_conv")
+        stable = t.id not in ("resnet_basic_down", "double_conv", "inverted_residual_proj")
         nodes.append({"id": "blk", "type": "Subgraph", "params": {"graph": t.id, "repeat": 2 if stable else 1, "args": args}})
         nodes.append({"id": "o", "type": "Output"})
         edges.append(["blk.out", "o.in"])

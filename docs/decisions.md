@@ -112,14 +112,56 @@ Tarayıcının ve kütüphanelerin kendi görünümüyle kalan parçalar aynı t
 - **Monaco**: öneri, hover ve arama pencereleri, liste ve scrollbar renkleri token'lardan; parantez renklendirmesi kapalı (kod tek renk), tema `data-theme` değişince de güncellenir.
 - **Kısayollar**: metin alanları ve Select yazma tuşlarını kendinde tutar, Cmd/Ctrl+K ve Cmd/Ctrl+Enter her yerden çalışır.
 
+## Dördüncü tur: kullanım kolaylığı ve daha fazla node
+
+**Tıklayarak model kurmak** (`web/src/ir/smart.ts`). Kütüphanede bir öğeye tıklamak, seçili node'un
+arkasına ekler, bağlar ve boyutlarını girdisinden alır (Linear `in`/`out`, Conv kanalları, norm
+`dim`/`features`, attention `dim` ve bölünebilir `heads`/`kv_heads`). Bir bağlantı seçiliyken
+tıklamak araya sokar. Silmek zinciri kopartmaz: silinen node'u besleyen, onun tükettiklerini
+besler. Bağlantı kurulunca shape hatası veren tüketiciler yeniden boyutlanır ve bildirimde
+"⌘Z to undo" yazar. Hepsi saf `Graph → Graph` fonksiyonu, yani aynı undo günlüğünden geçer.
+
+**Tek tıkla düzeltme.** Sorunların yanında düzeltme düğmesi: boyut uyuşmazlığında "Set in = 64",
+bağlanmamış girişte "Connect from fc1", loss yoksa "Add CrossEntropy / MSE after fc2".
+
+**Job paneli sekmeleri**: Overview (çalıştırmaya hazır mı listesi + Run, proje, sorunlar,
+varyantlar), Data (başlangıç ağırlıkları, kaynak, önizleme), Training (zamanlama, optimizer,
+çalışma ortamı, önceden eğitilmiş modeller için KL ve kapı).
+
+**Veri önizlemesi** (`POST /api/data/preview`, `runtime/weightsmith_runtime/preview.py`): run'ın
+kendi `data.py`'siyle ilk 512 satırı kurar; alanları, örnek başına shape/dtype'ı ve ilk örneğin
+özetini döndürür, graph'ın Input'ları ve loss hedefleriyle karşılaştırır (yeniden şekillendirme
+ve cast notları dahil). Uyuşmazlıkta "Set in1 to [32]" Input'u veriye uydurur ve arkasındaki
+zinciri yeniden boyutlar; sentetik veride ters yönü ("Generate dim 64") de önerir. İndirme
+gerektirmeyen kaynaklar değişiklikte kendiliğinden, `hf` tıklamayla önizlenir.
+
+**Yönlendirme**: boş canvas'ta eylemli başlangıç kartı, seçime göre değişen ipucu satırı,
+`?` (veya üst çubukta Help) ile kavramlar + kısayollar sayfası.
+
+**Node kataloğu 84 → 132** (`core/weightsmith_core/nodes_extra.py`, `web/src/ir/rules_extra.ts`):
+ReLU6, HardTanh, Hardsigmoid, Softsign, öğrenilen Swish ve PReLU, GumbelSoftmax, Dropout2d ·
+Math (abs, exp, log, sqrt, square, sin…), Clamp, Pow, AddConst, Div, Maximum, Minimum, Einsum,
+Cumsum · Stack, Squeeze, Pad, Repeat, TopK, ArgMax, OneHot, Cast, StopGradient, Parameter
+(girişsiz öğrenilen tensör) · MaxPool3d, AvgPool3d, AdaptiveMaxPool1d/2d, Interpolate,
+BatchNorm3d, LayerScale, SqueezeExcite · ALiBi ve SlidingWindowBias (Attention'ın `bias`
+girişine; Attention'ın parametre kümesi değişmedi, böylece mevcut graph hash'leri ve run'lar
+geçerli kalır), LinearAttention (causal hali kümülatif toplamlarla, ikinci dereceden formla
+birebir) · TimestepEmbedding, DiffusionForward (t ve gürültüyü graph içinde örnekler; veri
+tarafında değişiklik gerekmez), VectorQuantizer (straight-through, `commit` çıkışı AuxLoss'a) ·
+GraphConv ve GraphPool · AuxLoss, Focal, Dice, GaussianNLL, CosineEmbedding.
+
+**Yeni şablonlar**: MobileNetV2 (torchvision'la birebir 3,504,872), VQ-VAE · MNIST, DDPM
+denoiser · MNIST; iki MobileNetV2 inverted residual bloğu. İkisi de MNIST'te 400 adımda öğreniyor
+(DDPM gürültü MSE'si 0.56, sıfır tahmini 1.0; VQ-VAE yeniden kurma + commitment 1.14 → 0.28).
+
 ## Testler
 
-`scripts/check.sh`: Python (çekirdek, codegen snapshot'ları, 84 node'un CPU'da gerçek forward'ı, şablon sayıları, importer eşdeğerliği, Cerata döngüsü, daemon uçtan uca), TS aynası çapraz testi, typecheck, build ve Chrome varsa tarayıcı senaryoları (`scripts/e2e.sh`, `web/e2e/`).
+`scripts/check.sh`: Python (çekirdek, codegen snapshot'ları, 132 node'un CPU'da gerçek forward'ı, şablon sayıları, importer eşdeğerliği, Cerata döngüsü, daemon uçtan uca), TS aynası çapraz testi, typecheck, build ve Chrome varsa tarayıcı senaryoları (`scripts/e2e.sh`, `web/e2e/`).
 
 ## Bilinçli olarak yapılmayanlar / sonraki işler
 
 - Birleşik CUDA kernelleri (Mamba, MoE grouped GEMM); `torch.compile` seçeneği var ama ölçülmedi.
-- Importer kapsam dışı: Qwen3/Gemma tarzı ayrık `head_dim`, sliding-window, görsel kuleler, ResNet/ViT ağırlıkları (torchvision/timm).
+- Importer kapsam dışı: Qwen3/Gemma tarzı ayrık `head_dim`, sliding-window (node'u var, importer kullanmıyor), görsel kuleler, ResNet/ViT ağırlıkları (torchvision/timm).
 - KV cache yok; Try it her token için tüm diziyi yeniden çalıştırır (kısa cevaplar için yeterli).
 - Cerata'nın router'ı, not deposu ve ledger'ı tensör dataflow'u olmadığı için graph'ta değil; adapter eğitimi, KL terimi ve kapı Weightsmith'te, yönlendirme ~/cerata'da.
 - İç içe subgraph, çoklu pencere senkronu, Tauri paketi yok.

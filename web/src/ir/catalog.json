@@ -3225,6 +3225,1631 @@
     }
    },
    "loss": true
+  },
+  {
+   "type": "ReLU6",
+   "category": "activation",
+   "doc": "min(max(x, 0), 6) (MobileNet).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "HardTanh",
+   "category": "activation",
+   "doc": "Clips to [min, max] with a straight-through gradient inside.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "min": {
+     "default": -1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "max": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Hardsigmoid",
+   "category": "activation",
+   "doc": "Piecewise-linear sigmoid (MobileNetV3 gates).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Softsign",
+   "category": "activation",
+   "doc": "x / (1 + |x|).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Swish",
+   "category": "activation",
+   "doc": "x \u00b7 sigmoid(\u03b2\u00b7x) with a learned \u03b2 per channel (\u03b2 = 1 is SiLU).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "PReLU",
+   "category": "activation",
+   "doc": "Leaky ReLU with a learned slope, one per channel (dim 1) or one shared (channels = 1).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "channels": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "init": {
+     "default": 0.25,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "GumbelSoftmax",
+   "category": "activation",
+   "doc": "Differentiable sample from a categorical over the last dim (hard: one-hot forward, soft gradient).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "tau": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "hard": {
+     "default": false,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Dropout2d",
+   "category": "activation",
+   "doc": "Drops whole channels of B\u00d7C\u00d7H\u00d7W.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "p": {
+     "default": 0.1,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Math",
+   "category": "math",
+   "doc": "Element-wise function: abs, exp, log, sqrt, square, sin, \u2026",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "op": {
+     "default": "exp",
+     "kind": "choice",
+     "required": false,
+     "choices": [
+      "abs",
+      "exp",
+      "log",
+      "log1p",
+      "sqrt",
+      "rsqrt",
+      "square",
+      "neg",
+      "reciprocal",
+      "sin",
+      "cos",
+      "sign",
+      "erf"
+     ],
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Clamp",
+   "category": "math",
+   "doc": "Limits values to [min, max] (either may be empty).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "min": {
+     "default": null,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "max": {
+     "default": null,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Pow",
+   "category": "math",
+   "doc": "x ** exponent.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "exponent": {
+     "default": 2.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "AddConst",
+   "category": "math",
+   "doc": "x + value (shifts, epsilons).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "value": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Div",
+   "category": "math",
+   "doc": "Element-wise a / b (broadcasting).",
+   "inputs": [
+    {
+     "name": "a",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "b",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Maximum",
+   "category": "math",
+   "doc": "Element-wise max(a, b).",
+   "inputs": [
+    {
+     "name": "a",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "b",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Minimum",
+   "category": "math",
+   "doc": "Element-wise min(a, b).",
+   "inputs": [
+    {
+     "name": "a",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "b",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Einsum",
+   "category": "math",
+   "doc": "torch.einsum over one or two operands, e.g. 'bhqd,bhkd->bhqk'.",
+   "inputs": [
+    {
+     "name": "a",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "b",
+     "optional": true,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "equation": {
+     "default": "bij,bjk->bik",
+     "kind": "str",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Cumsum",
+   "category": "math",
+   "doc": "Running sum along a dimension.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Stack",
+   "category": "structure",
+   "doc": "Stacks a and b along a new dimension.",
+   "inputs": [
+    {
+     "name": "a",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "b",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Squeeze",
+   "category": "structure",
+   "doc": "Removes a size-1 dimension.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Pad",
+   "category": "structure",
+   "doc": "F.pad: (left, right) pairs from the last dim backwards, e.g. [1, 1, 2, 2] pads W by 1 and H by 2.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "pad": {
+     "default": [
+      1,
+      1
+     ],
+     "kind": "shape",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "mode": {
+     "default": "constant",
+     "kind": "choice",
+     "required": false,
+     "choices": [
+      "constant",
+      "reflect",
+      "replicate",
+      "circular"
+     ],
+     "doc": ""
+    },
+    "value": {
+     "default": 0.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Repeat",
+   "category": "structure",
+   "doc": "Tiles the tensor: repeats[i] copies along dim i.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "repeats": {
+     "default": [
+      1,
+      2
+     ],
+     "kind": "shape",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "TopK",
+   "category": "structure",
+   "doc": "The k largest values along a dimension and their indices.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "values"
+    },
+    {
+     "name": "indices"
+    }
+   ],
+   "params": {
+    "k": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "dim": {
+     "default": -1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "ArgMax",
+   "category": "structure",
+   "doc": "Index of the largest value along a dimension (i64; not differentiable).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": -1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "keepdim": {
+     "default": false,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "OneHot",
+   "category": "structure",
+   "doc": "Class ids \u2192 one-hot float vectors (adds a last dim of size classes).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "classes": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Cast",
+   "category": "structure",
+   "doc": "Changes the dtype (f32 for math on ids, i64 for indices).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dtype": {
+     "default": "f32",
+     "kind": "choice",
+     "required": false,
+     "choices": [
+      "f32",
+      "f16",
+      "bf16",
+      "i64",
+      "i32"
+     ],
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "StopGradient",
+   "category": "structure",
+   "doc": "Passes values through, blocks gradients (x.detach(): targets, EMA teachers).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Parameter",
+   "category": "structure",
+   "doc": "A learned tensor with no input (queries, prompts, latents); broadcasts against the batch.",
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "shape": {
+     "default": [
+      1,
+      16
+     ],
+     "kind": "shape",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "init": {
+     "default": "normal",
+     "kind": "choice",
+     "required": false,
+     "choices": [
+      "normal",
+      "zeros",
+      "ones"
+     ],
+     "doc": ""
+    },
+    "std": {
+     "default": 0.02,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "MaxPool3d",
+   "category": "pooling",
+   "doc": "3-D max pooling over B\u00d7C\u00d7D\u00d7H\u00d7W (video, volumes).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "kernel_size": {
+     "default": 2,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "stride": {
+     "default": null,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "Defaults to kernel_size"
+    },
+    "padding": {
+     "default": 0,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "AvgPool3d",
+   "category": "pooling",
+   "doc": "3-D average pooling over B\u00d7C\u00d7D\u00d7H\u00d7W.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "kernel_size": {
+     "default": 2,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "stride": {
+     "default": null,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "Defaults to kernel_size"
+    },
+    "padding": {
+     "default": 0,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "AdaptiveMaxPool1d",
+   "category": "pooling",
+   "doc": "Max pooling to a fixed length.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "output_size": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "AdaptiveMaxPool2d",
+   "category": "pooling",
+   "doc": "Max pooling to a fixed H\u00d7W.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "output_size": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Interpolate",
+   "category": "pooling",
+   "doc": "Resizes the spatial dims to an exact size (nearest, bilinear, \u2026).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "size": {
+     "default": [
+      16,
+      16
+     ],
+     "kind": "shape",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "mode": {
+     "default": "nearest",
+     "kind": "choice",
+     "required": false,
+     "choices": [
+      "nearest",
+      "linear",
+      "bilinear",
+      "bicubic",
+      "trilinear",
+      "area"
+     ],
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "BatchNorm3d",
+   "category": "norm",
+   "doc": "Batch normalisation over B\u00d7C\u00d7D\u00d7H\u00d7W.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "features": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "eps": {
+     "default": 1e-05,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "momentum": {
+     "default": 0.1,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "LayerScale",
+   "category": "norm",
+   "doc": "Learned per-channel scale on a residual branch (CaiT, ConvNeXt), starts small.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "init": {
+     "default": 1e-05,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "SqueezeExcite",
+   "category": "layers",
+   "doc": "Channel attention: global pool \u2192 bottleneck MLP \u2192 sigmoid gate per channel (SENet, EfficientNet).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "channels": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "reduction": {
+     "default": 4,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "ALiBi",
+   "category": "attention",
+   "doc": "Attention with linear biases: a fixed per-head distance penalty \u2192 heads\u00d7T\u00d7T (into Attention.bias).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "heads": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "causal": {
+     "default": true,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "SlidingWindowBias",
+   "category": "attention",
+   "doc": "Masks keys farther than window tokens away \u2192 heads\u00d7T\u00d7T (Mistral-style local attention; add to other biases).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "heads": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "window": {
+     "default": 256,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "causal": {
+     "default": true,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "LinearAttention",
+   "category": "attention",
+   "doc": "Kernelised attention, O(T) in sequence length (elu + 1 feature map; causal = running sums).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "heads": {
+     "default": 8,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "causal": {
+     "default": false,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "TimestepEmbedding",
+   "category": "embedding",
+   "doc": "Diffusion timestep t (B) \u2192 sinusoidal features \u2192 MLP \u2192 B\u00d7dim.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "hidden": {
+     "default": null,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "Defaults to 4\u00b7dim"
+    },
+    "max_period": {
+     "default": 10000.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "VectorQuantizer",
+   "category": "generative",
+   "doc": "VQ-VAE codebook: snaps each vector to its nearest code (straight-through); commit is the codebook + \u03b2\u00b7commitment loss, wire it into an AuxLoss.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    },
+    {
+     "name": "indices"
+    },
+    {
+     "name": "commit"
+    }
+   ],
+   "params": {
+    "codes": {
+     "default": 512,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "beta": {
+     "default": 0.25,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "DiffusionForward",
+   "category": "generative",
+   "doc": "DDPM forward process: random step t per sample, x_t = \u221a\u1fb1_t\u00b7x + \u221a(1\u2212\u1fb1_t)\u00b7\u03b5. Train a denoiser on (noisy, t) to predict noise.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "noisy"
+    },
+    {
+     "name": "t"
+    },
+    {
+     "name": "noise"
+    }
+   ],
+   "params": {
+    "steps": {
+     "default": 1000,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "schedule": {
+     "default": "linear",
+     "kind": "choice",
+     "required": false,
+     "choices": [
+      "linear",
+      "cosine"
+     ],
+     "doc": ""
+    },
+    "beta_start": {
+     "default": 0.0001,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "beta_end": {
+     "default": 0.02,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "GraphConv",
+   "category": "graph",
+   "doc": "Graph convolution (Kipf & Welling): \u00c2\u00b7X\u00b7W with a symmetric-normalised adjacency plus self loops.",
+   "inputs": [
+    {
+     "name": "x",
+     "optional": false,
+     "doc": "Node features B\u00d7N\u00d7F"
+    },
+    {
+     "name": "adj",
+     "optional": false,
+     "doc": "Adjacency B\u00d7N\u00d7N (0/1 or weights)"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "in": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "out": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "bias": {
+     "default": true,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "GraphPool",
+   "category": "graph",
+   "doc": "Readout: mean, sum or max over the nodes of each graph, B\u00d7N\u00d7F \u2192 B\u00d7F.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "op": {
+     "default": "mean",
+     "kind": "choice",
+     "required": false,
+     "choices": [
+      "mean",
+      "sum",
+      "max"
+     ],
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "AuxLoss",
+   "category": "loss",
+   "doc": "Adds any tensor (its mean) to the total loss: VQ commitment, MoE balance, regularisers.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loss"
+    }
+   ],
+   "params": {
+    "weight": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "Weight in the summed total loss"
+    }
+   },
+   "loss": true
+  },
+  {
+   "type": "Focal",
+   "category": "loss",
+   "doc": "Cross-entropy that down-weights easy examples: (1 \u2212 p)^\u03b3 \u00b7 CE (detection, imbalance).",
+   "inputs": [
+    {
+     "name": "logits",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "target",
+     "optional": true,
+     "doc": "Unconnected: dataset field y"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loss"
+    }
+   ],
+   "params": {
+    "weight": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "Weight in the summed total loss"
+    },
+    "target_field": {
+     "default": "y",
+     "kind": "str",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "gamma": {
+     "default": 2.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": true
+  },
+  {
+   "type": "Dice",
+   "category": "loss",
+   "doc": "1 \u2212 Dice overlap of sigmoid(pred) and a 0/1 target (segmentation).",
+   "inputs": [
+    {
+     "name": "pred",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "target",
+     "optional": true,
+     "doc": "Unconnected: dataset field y"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loss"
+    }
+   ],
+   "params": {
+    "weight": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "Weight in the summed total loss"
+    },
+    "target_field": {
+     "default": "y",
+     "kind": "str",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "smooth": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": true
+  },
+  {
+   "type": "GaussianNLL",
+   "category": "loss",
+   "doc": "Negative log-likelihood of the target under N(mean, var): regression with learned uncertainty.",
+   "inputs": [
+    {
+     "name": "mean",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "var",
+     "optional": false,
+     "doc": "Positive variance (e.g. after Softplus)"
+    },
+    {
+     "name": "target",
+     "optional": true,
+     "doc": "Unconnected: dataset field y"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loss"
+    }
+   ],
+   "params": {
+    "weight": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "Weight in the summed total loss"
+    },
+    "target_field": {
+     "default": "y",
+     "kind": "str",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": true
+  },
+  {
+   "type": "CosineEmbedding",
+   "category": "loss",
+   "doc": "1 \u2212 cos(a, b): pulls paired embeddings together (target-free).",
+   "inputs": [
+    {
+     "name": "a",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "b",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loss"
+    }
+   ],
+   "params": {
+    "weight": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "Weight in the summed total loss"
+    }
+   },
+   "loss": true
   }
  ]
 }

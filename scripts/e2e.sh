@@ -11,7 +11,7 @@ DAEMON=$!
 trap 'kill $DAEMON 2>/dev/null; rm -rf "$WS"' EXIT
 for _ in $(seq 50); do curl -sf "http://127.0.0.1:$PORT/api/health" >/dev/null && break; sleep 0.2; done
 status=0
-for scenario in web/e2e/canvas.mjs web/e2e/run.mjs; do
+for scenario in web/e2e/canvas.mjs web/e2e/smart.mjs web/e2e/run.mjs; do
   echo "== $scenario"
   WS_URL="http://127.0.0.1:$PORT" node "$scenario" || status=1
 done

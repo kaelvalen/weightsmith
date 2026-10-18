@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Select } from "./Select";
-import { api } from "../api/client";
+import { api, type DataPreview } from "../api/client";
+import { TYPES } from "../ir/registry";
+import { reshapeInput } from "../ir/smart";
 import { useAnalysis, useIssues, useStore } from "../state/store";
 import { DiffList } from "./DiffList";
-import { Field, Row, Section, fmtCount } from "./Inspector";
+import { Field, FixButtons, Row, Section, fmtCount } from "./Inspector";
 
 const num = (v: string) => (v.trim() === "" ? undefined : Number.isNaN(Number(v)) ? v : Number(v));
 
@@ -177,6 +179,175 @@ function DataPanel() {
   );
 }
 
+/** Ways to make data and graph agree: change the Input, or (for generated data) the data. */
+function MismatchFix({ node, have }: { node: string; have: number[] }) {
+  const apply = useStore((s) => s.apply);
+  const data = useStore((s) => s.job().data);
+  const setJob = useStore((s) => s.setJob);
+  const graph = useStore((s) => s.graph());
+  const want = (graph.nodes.find((n) => n.id === node)?.params as any)?.shape?.slice(1) ?? [];
+  const synth = (data.source ?? "synthetic") === "synthetic" && have.length === 1 && want.length === 1 && typeof want[0] === "number";
+  return (
+    <span className="mt-1 flex flex-wrap gap-1 pl-4">
+      <button className="!h-5 !px-1.5 text-label" onClick={() => apply(`fit ${node} to the data`, (g) => reshapeInput(g, node, have))}>
+        Set {node} to [{have.join(", ")}]
+      </button>
+      {synth && (
+        <button
+          className="!h-5 !px-1.5 text-label"
+          onClick={() => setJob("data", { ...data, [(data.kind ?? "classification") === "reverse" ? "length" : "dim"]: want[0] })}
+        >
+          Generate {(data.kind ?? "classification") === "reverse" ? "length" : "dim"} {want[0]}
+        </button>
+      )}
+    </span>
+  );
+}
+
+function PreviewPanel({ preview, refresh }: { preview: PreviewState; refresh: () => void }) {
+  const r = preview.result;
+  return (
+    <Section
+      title="What the model will see"
+      aside={
+        <button className="link text-label" onClick={refresh} disabled={preview.busy}>
+          {preview.busy ? "loading…" : r ? "reload" : "load preview"}
+        </button>
+      }
+    >
+      {!r && !preview.busy && <p className="m-0 text-small text-muted">{preview.why ?? "Load a few samples to check them against the graph."}</p>}
+      {r?.error && <p className="num m-0 text-small text-error">{r.error}</p>}
+      {r?.fields && (
+        <>
+          <div className="num grid grid-cols-[auto_auto_1fr] gap-x-3 gap-y-1 text-small">
+            {r.fields.map((f) => (
+              <div key={f.name} className="contents">
+                <span>{f.name}</span>
+                <span className="text-muted">
+                  {f.dtype} [{f.shape.join(", ")}]
+                </span>
+                <span className="truncate text-label text-muted" title={f.peek}>
+                  {f.peek}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="num m-0 mt-1 text-label text-muted">
+            {r.capped ? `first ${r.rows} rows` : `${r.rows} rows`} · shapes per sample
+          </p>
+        </>
+      )}
+      {!!r?.checks?.length && (
+        <ul className="m-0 mt-2 flex list-none flex-col gap-0.5 p-0 text-small">
+          {r.checks.map((c, i) => (
+            <li key={i} className="num" style={{ color: c.ok ? undefined : "var(--error)" }}>
+              {c.ok ? "✓ " : "✕ "}
+              {c.message}
+              {!c.ok && c.node && c.have && <MismatchFix node={c.node} have={c.have} />}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
+  );
+}
+
+interface PreviewState {
+  busy: boolean;
+  result?: DataPreview;
+  why?: string;
+}
+
+/** Sources that are cheap enough to preview on every change; the rest wait for a click. */
+const AUTO_PREVIEW = new Set(["synthetic", "mnist", "csv", "parquet", "text", "sft", "triplets"]);
+const previewCache = new Map<string, DataPreview>();
+
+function usePreview(): [PreviewState, () => void] {
+  const data = useStore((s) => s.job().data);
+  const graph = useStore((s) => s.graph());
+  const daemon = useStore((s) => s.daemon);
+  const key = JSON.stringify([data, graph.nodes, graph.edges]);
+  const [state, setState] = useState<PreviewState>(() => ({ busy: false, result: previewCache.get(key) }));
+  const load = () => {
+    if (daemon !== "online") return setState({ busy: false, why: "The daemon is offline; start it with weightsmith serve." });
+    setState((s) => ({ ...s, busy: true }));
+    api
+      .dataPreview(data, graph)
+      .then((r) => {
+        previewCache.set(key, r);
+        setState({ busy: false, result: r });
+      })
+      .catch((e) => setState({ busy: false, result: { ok: false, error: e.message ?? String(e) } }));
+  };
+  useEffect(() => {
+    const hit = previewCache.get(key);
+    if (hit) return setState({ busy: false, result: hit });
+    setState({ busy: false, why: AUTO_PREVIEW.has(data.source ?? "synthetic") ? undefined : "This source downloads data; load the preview when ready." });
+    if (!AUTO_PREVIEW.has(data.source ?? "synthetic") || daemon !== "online") return;
+    const t = setTimeout(load, 500);
+    return () => clearTimeout(t);
+  }, [key, daemon]);
+  return [state, load];
+}
+
+type Tab = "overview" | "data" | "training";
+let lastTab: Tab = "overview";
+
+function Check({ ok, pending, children, action }: { ok: boolean; pending?: boolean; children: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <li className="grid grid-cols-[16px_1fr_auto] items-baseline gap-1 text-small">
+      <span aria-hidden style={{ color: pending ? "var(--muted)" : ok ? "var(--ink)" : "var(--error)" }}>
+        {pending ? "·" : ok ? "✓" : "✕"}
+      </span>
+      <span className={ok || pending ? "" : "text-ink"}>{children}</span>
+      {action}
+    </li>
+  );
+}
+
+function Readiness({ preview, go }: { preview: PreviewState; go: (t: Tab) => void }) {
+  const graph = useStore((s) => s.graph());
+  const daemon = useStore((s) => s.daemon);
+  const run = useStore((s) => s.run);
+  const analysis = useAnalysis();
+  const errors = useIssues().filter((i) => i.severity === "error");
+  const hasInput = graph.nodes.some((n) => n.type === "Input");
+  const hasLoss = analysis.losses.length > 0 || graph.nodes.some((n) => TYPES[n.type]?.loss);
+  const r = preview.result;
+  const dataOk = !!r && r.ok && !r.error;
+  const ready = hasInput && hasLoss && !errors.length && daemon === "online" && (dataOk || !r);
+  const fail = r?.error ?? r?.checks?.find((c) => !c.ok)?.message;
+  return (
+    <Section title="Ready to train?">
+      <ul className="m-0 flex list-none flex-col gap-1 p-0">
+        <Check ok={hasInput}>{hasInput ? "graph has an input" : "add an Input node"}</Check>
+        <Check ok={hasLoss}>{hasLoss ? "graph has a loss" : "add a loss (CrossEntropy, MSE…) after the output"}</Check>
+        <Check ok={!errors.length}>{errors.length ? `${errors.length} error${errors.length > 1 ? "s" : ""} in the graph, listed below` : "graph validates"}</Check>
+        <Check
+          ok={dataOk}
+          pending={!r}
+          action={
+            <button className="link text-label" onClick={() => go("data")}>
+              Data
+            </button>
+          }
+        >
+          {preview.busy ? "checking the data…" : !r ? "data not checked yet" : dataOk ? "data fits the inputs" : fail}
+        </Check>
+        <Check ok={daemon === "online"}>{daemon === "online" ? "daemon online" : "daemon offline: weightsmith serve"}</Check>
+      </ul>
+      <div className="mt-3 flex items-center gap-2">
+        <button className="primary" onClick={run} disabled={!ready}>
+          Run
+        </button>
+        <button className="link text-label" onClick={() => go("training")}>
+          training settings
+        </button>
+      </div>
+    </Section>
+  );
+}
+
 function VariantsPanel() {
   const project = useStore((s) => s.project);
   const switchVariant = useStore((s) => s.switchVariant);
@@ -238,8 +409,56 @@ export function JobPanel() {
   const setNote = useStore((s) => s.setNote);
   const setVariantJob = useStore((s) => s.setVariantJob);
   const variant = project.variants[project.active];
+  const [tab, setTabState] = useState<Tab>(lastTab);
+  const setTab = (t: Tab) => {
+    lastTab = t;
+    setTabState(t);
+  };
+  const [preview, refresh] = usePreview();
+  const tabs = (
+    <div className="sticky top-0 z-10 flex h-9 items-stretch gap-4 border-b border-line bg-bg px-4" role="tablist">
+      {(["overview", "data", "training"] as const).map((t) => (
+        <button
+          key={t}
+          role="tab"
+          aria-selected={tab === t}
+          className="link !h-full !text-[13px] capitalize"
+          style={{ color: tab === t ? "var(--ink)" : undefined, fontWeight: tab === t ? 500 : 400, boxShadow: tab === t ? "inset 0 -1px 0 var(--ink)" : undefined }}
+          onClick={() => setTab(t)}
+        >
+          {t}
+          {t === "overview" && issues.some((i) => i.severity === "error") ? <span className="text-error"> ·</span> : null}
+          {t === "data" && preview.result && !preview.result.ok ? <span className="text-error"> ·</span> : null}
+        </button>
+      ))}
+    </div>
+  );
+  if (tab === "data")
+    return (
+      <div>
+        {tabs}
+        <div className="border-b border-line px-4 py-2">
+          <label className="flex items-center gap-2 text-small">
+            <input type="checkbox" checked={!!variant.job} onChange={(e) => setVariantJob(e.target.checked)} />
+            own data and training config for variant {project.active}
+          </label>
+        </div>
+        <InitPanel />
+        <DataPanel />
+        <PreviewPanel preview={preview} refresh={refresh} />
+      </div>
+    );
+  if (tab === "training")
+    return (
+      <div>
+        {tabs}
+        <TrainingPanel />
+      </div>
+    );
   return (
     <div>
+      {tabs}
+      <Readiness preview={preview} go={setTab} />
       <Section title="Project">
         <textarea
           key={project.slug}
@@ -277,8 +496,8 @@ export function JobPanel() {
       <Section title={issues.length ? `Issues · ${issues.length}` : "Issues"}>
         {!issues.length && <p className="m-0 text-small text-muted">Graph validates.</p>}
         {issues.map((i, k) => (
+          <div key={k} className="mb-1">
           <button
-            key={k}
             className="link block w-full truncate text-left text-small"
             style={{ color: i.severity === "error" ? "var(--error)" : undefined }}
             title={i.message}
@@ -291,27 +510,33 @@ export function JobPanel() {
           >
             <span className="num">{[i.node, i.port].filter(Boolean).join(".") || "graph"}</span> {i.message}
           </button>
+          <FixButtons issue={i} block />
+          </div>
         ))}
       </Section>
-      <div className="border-t border-line px-4 py-2">
-        <label className="flex items-center gap-2 text-small">
-          <input type="checkbox" checked={!!variant.job} onChange={(e) => setVariantJob(e.target.checked)} />
-          own data and training config for variant {project.active}
-        </label>
-      </div>
-      <InitPanel />
-      <DataPanel />
-      <Section title="Training">
+      <VariantsPanel />
+    </div>
+  );
+}
+
+function TrainingPanel() {
+  return (
+    <>
+      <Section title="Schedule">
         <TrainField k="epochs" />
         <TrainField k="max_steps" />
         <TrainField k="batch_size" label="batch" />
+      </Section>
+      <Section title="Optimiser">
         <TrainSelect k="name" path="optimizer" label="optimizer" options={["adamw", "adam", "sgd"]} />
         <TrainField k="lr" path="optimizer" />
         <TrainField k="weight_decay" path="optimizer" label="weight decay" />
         <TrainSelect k="name" path="scheduler" label="schedule" options={["cosine", "linear", "constant"]} />
         <TrainField k="warmup_steps" path="scheduler" label="warmup" />
-        <TrainSelect k="precision" options={["bf16", "f16", "f32"]} />
         <TrainField k="grad_clip" label="grad clip" />
+      </Section>
+      <Section title="Runtime">
+        <TrainSelect k="precision" options={["bf16", "f16", "f32"]} />
         <TrainField k="seed" />
         <TrainField k="log_every" label="log every" />
         <TrainField k="eval_every" label="eval every" />
@@ -322,10 +547,11 @@ export function JobPanel() {
         <Row label="shuffle">
           <ShuffleToggle />
         </Row>
+      </Section>
+      <Section title="Pretrained models">
         <TrainJson k="kl_to_base" label="KL to the base model" hint='{"lambda": 1, "prompts": ["..."], "system": "..."}' />
         <TrainJson k="gate" label="Divergence gate" hint='{"prompts": ["..."], "system": "...", "kappa": 0.968}' />
       </Section>
-      <VariantsPanel />
-    </div>
+    </>
   );
 }

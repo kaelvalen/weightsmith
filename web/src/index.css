@@ -491,3 +491,15 @@ input:focus-visible,
 textarea:focus-visible {
   outline: none;
 }
+
+/* ports: the square stays 6 px, the area that catches the pointer is 18 px */
+.react-flow__handle::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+.react-flow__handle:hover,
+.react-flow__handle.connectingto,
+.react-flow__handle.valid {
+  border-color: var(--accent);
+}

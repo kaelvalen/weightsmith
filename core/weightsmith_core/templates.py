@@ -225,6 +225,40 @@ def double_conv(**defaults) -> dict[str, Any]:
     return b.block({"Cin": 1, "Cout": 32} | defaults, "U-Net double convolution: (3×3 conv → BN → ReLU) × 2.")
 
 
+def inverted_residual(**defaults) -> dict[str, Any]:
+    b = Body()
+    b.add("x", "Input", shape=["B", "$C", "H", "W"])
+    b.add("expand", "Conv2d", in_channels="$C", out_channels="$C*T", kernel_size=1, padding=0, bias=False)
+    b.add("bn1", "BatchNorm2d", features="$C*T")
+    b.add("act1", "ReLU6")
+    b.add("dw", "Conv2d", label="depthwise 3×3", in_channels="$C*T", out_channels="$C*T", kernel_size=3, padding=1, groups="$C*T", bias=False)
+    b.add("bn2", "BatchNorm2d", features="$C*T")
+    b.add("act2", "ReLU6")
+    b.add("project", "Conv2d", in_channels="$C*T", out_channels="$C", kernel_size=1, padding=0, bias=False)
+    b.add("bn3", "BatchNorm2d", features="$C")
+    b.residual("x", "bn3", "add")
+    b.add("out", "Output")
+    b.chain("x", "expand", "bn1", "act1", "dw", "bn2", "act2", "project", "bn3")
+    b.chain("add", "out")
+    return b.block({"C": 24, "T": 6} | defaults, "MobileNetV2 inverted residual: 1×1 expand → 3×3 depthwise → 1×1 linear projection, identity shortcut.")
+
+
+def inverted_residual_proj(**defaults) -> dict[str, Any]:
+    b = Body()
+    b.add("x", "Input", shape=["B", "$Cin", "H", "W"])
+    b.add("expand", "Conv2d", in_channels="$Cin", out_channels="$Cin*T", kernel_size=1, padding=0, bias=False)
+    b.add("bn1", "BatchNorm2d", features="$Cin*T")
+    b.add("act1", "ReLU6")
+    b.add("dw", "Conv2d", label="depthwise 3×3", in_channels="$Cin*T", out_channels="$Cin*T", kernel_size=3, stride="$S", padding=1, groups="$Cin*T", bias=False)
+    b.add("bn2", "BatchNorm2d", features="$Cin*T")
+    b.add("act2", "ReLU6")
+    b.add("project", "Conv2d", in_channels="$Cin*T", out_channels="$Cout", kernel_size=1, padding=0, bias=False)
+    b.add("bn3", "BatchNorm2d", features="$Cout")
+    b.add("out", "Output")
+    b.chain("x", "expand", "bn1", "act1", "dw", "bn2", "act2", "project", "bn3", "out")
+    return b.block({"Cin": 16, "Cout": 24, "S": 2, "T": 6} | defaults, "MobileNetV2 inverted residual that changes channels or stride (no shortcut).")
+
+
 def mamba_block(**defaults) -> dict[str, Any]:
     b = Body()
     b.add("x", "Input", shape=["B", "T", "$D"])
@@ -580,6 +614,94 @@ def vae_mnist() -> Graph:
     return b.graph("VAE · MNIST")
 
 
+def mobilenet_v2(classes: int = 1000) -> Graph:
+    b = Body()
+    b.add("image", "Input", shape=["B", 3, 224, 224])
+    b.add("stem", "Conv2d", in_channels=3, out_channels=32, kernel_size=3, stride=2, padding=1, bias=False)
+    b.add("stem_bn", "BatchNorm2d", features=32)
+    b.add("stem_act", "ReLU6")
+    # the first block has expansion 1: depthwise straight on the stem
+    b.add("b0_dw", "Conv2d", label="depthwise 3×3", in_channels=32, out_channels=32, kernel_size=3, padding=1, groups=32, bias=False)
+    b.add("b0_bn1", "BatchNorm2d", features=32)
+    b.add("b0_act", "ReLU6")
+    b.add("b0_project", "Conv2d", in_channels=32, out_channels=16, kernel_size=1, padding=0, bias=False)
+    b.add("b0_bn2", "BatchNorm2d", features=16)
+    b.chain("image", "stem", "stem_bn", "stem_act", "b0_dw", "b0_bn1", "b0_act", "b0_project", "b0_bn2")
+    prev, cin = "b0_bn2", 16
+    for i, (t, c, n, st) in enumerate([(6, 24, 2, 2), (6, 32, 3, 2), (6, 64, 4, 2), (6, 96, 3, 1), (6, 160, 3, 2), (6, 320, 1, 1)], 1):
+        nid = f"stage{i}"
+        b.add(nid, "Subgraph", label=f"stage {i} · {cin}→{c}" + (f" /{st}" if st > 1 else ""), graph="ir_proj", args={"Cin": cin, "Cout": c, "S": st, "T": t})
+        b.wire(prev, f"{nid}.x")
+        prev = f"{nid}.out"
+        if n > 1:
+            rid = f"stage{i}_res"
+            b.add(rid, "Subgraph", label=f"stage {i} · {n - 1}× residual {c}", graph="ir", repeat=n - 1, args={"C": c, "T": t})
+            b.wire(prev, f"{rid}.x")
+            prev = f"{rid}.out"
+        cin = c
+    b.add("head", "Conv2d", in_channels=320, out_channels=1280, kernel_size=1, padding=0, bias=False)
+    b.add("head_bn", "BatchNorm2d", features=1280)
+    b.add("head_act", "ReLU6")
+    b.add("pool", "AdaptiveAvgPool2d", output_size=1)
+    b.add("flat", "Flatten")
+    b.add("drop", "Dropout", p=0.2)
+    b.add("fc", "Linear", **{"in": 1280, "out": classes})
+    b.add("loss", "CrossEntropy")
+    b.chain(prev, "head", "head_bn", "head_act", "pool", "flat", "drop", "fc")
+    b.wire("fc", "loss.logits")
+    return b.graph("MobileNetV2", {"ir": inverted_residual(), "ir_proj": inverted_residual_proj()})
+
+
+def vqvae_mnist() -> Graph:
+    b = Body()
+    b.add("x", "Input", shape=["B", 1, 28, 28])
+    b.add("enc1", "Conv2d", in_channels=1, out_channels=32, kernel_size=4, stride=2, padding=1)
+    b.add("enc1_act", "ReLU")
+    b.add("enc2", "Conv2d", in_channels=32, out_channels=64, kernel_size=4, stride=2, padding=1)
+    b.add("enc2_act", "ReLU")
+    b.add("to_latent", "Conv2d", label="to code space", in_channels=64, out_channels=64, kernel_size=1, padding=0)
+    b.add("channels_last", "Permute", dims=[0, 2, 3, 1])
+    b.add("vq", "VectorQuantizer", label="codebook · 512 codes", codes=512, dim=64, beta=0.25)
+    b.add("channels_first", "Permute", dims=[0, 3, 1, 2])
+    b.add("dec1", "ConvTranspose2d", in_channels=64, out_channels=32, kernel_size=4, stride=2, padding=1)
+    b.add("dec1_act", "ReLU")
+    b.add("dec2", "ConvTranspose2d", label="reconstruction logits", in_channels=32, out_channels=1, kernel_size=4, stride=2, padding=1)
+    b.add("recon", "BCEWithLogits", label="reconstruction")
+    b.add("commit", "AuxLoss", label="codebook + commitment")
+    b.chain("x", "enc1", "enc1_act", "enc2", "enc2_act", "to_latent", "channels_last", "vq")
+    b.wire("vq.out", "channels_first.in")
+    b.chain("channels_first", "dec1", "dec1_act", "dec2")
+    b.wire("dec2", "recon.pred")
+    b.wire("x", "recon.target")
+    b.wire("vq.commit", "commit.in")
+    return b.graph("VQ-VAE · MNIST")
+
+
+def ddpm_mnist() -> Graph:
+    b = Body()
+    b.add("x", "Input", shape=["B", 784])
+    b.add("to_signed", "Scale", label="× 2", factor=2.0)
+    b.add("center", "AddConst", label="− 1 → [−1, 1]", value=-1.0)
+    b.add("diffuse", "DiffusionForward", steps=1000)
+    b.add("in_proj", "Linear", **{"in": 784, "out": 512})
+    b.add("t_embed", "TimestepEmbedding", dim=512)
+    b.add("cond", "Add", label="+ timestep")
+    b.add("act1", "SiLU")
+    b.add("mid", "Linear", **{"in": 512, "out": 512})
+    b.add("act2", "SiLU")
+    b.add("eps", "Linear", label="predicted noise", **{"in": 512, "out": 784})
+    b.add("loss", "MSE", label="noise prediction")
+    b.chain("x", "to_signed", "center", "diffuse")
+    b.wire("diffuse.noisy", "in_proj.in")
+    b.wire("diffuse.t", "t_embed.in")
+    b.wire("in_proj", "cond.a")
+    b.wire("t_embed", "cond.b")
+    b.chain("cond", "act1", "mid", "act2", "eps")
+    b.wire("eps", "loss.pred")
+    b.wire("diffuse.noise", "loss.target")
+    return b.graph("DDPM denoiser · MNIST")
+
+
 def seq2seq_transformer() -> Graph:
     b = Body()
     b.add("src", "Input", label="source tokens", shape=["B", "S"], dtype="i64", field="x")
@@ -628,6 +750,7 @@ MODELS = [
     Template("lenet5", "LeNet-5", "model", "vision", "LeCun et al. 1998: conv-pool-conv-pool and three dense layers.", lenet5, 61_706, "LeCun et al. 1998"),
     Template("resnet18", "ResNet-18", "model", "vision", "He et al. 2015: 4 stages of basic residual blocks, 224×224, 1000 classes.", resnet18, 11_689_512, "torchvision resnet18"),
     Template("unet_small", "U-Net (small)", "model", "vision", "Encoder-decoder with skip connections for segmentation masks.", unet_small),
+    Template("mobilenet_v2", "MobileNetV2", "model", "vision", "Sandler et al. 2018: inverted residuals with depthwise convs and ReLU6, 224×224.", mobilenet_v2, 3_504_872, "torchvision mobilenet_v2"),
     Template("vit_b16", "ViT-B/16", "model", "vision", "Dosovitskiy et al. 2020: 16×16 patches, [CLS] token, 12 pre-LN blocks.", vit_b16, 86_567_656, "torchvision vit_b_16"),
     Template("bert_base", "BERT-base", "model", "language", "Devlin et al. 2018: 12 post-LN encoder layers, token types, pooler.", bert_base, 109_482_240, "bert-base-uncased"),
     Template("minilm_l12", "MiniLM-L12 multilingual", "model", "language", "paraphrase-multilingual-MiniLM-L12-v2: 384-dim sentence encoder, mean pooling.", minilm_l12_multilingual, 117_653_760, "sentence-transformers"),
@@ -640,6 +763,8 @@ MODELS = [
     Template("mamba_130m", "Mamba-130M", "model", "sequence", "Gu & Dao 2023: 24 selective state-space blocks, no attention.", mamba_130m, 129_135_360, "state-spaces/mamba-130m"),
     Template("lstm_classifier", "BiLSTM classifier", "model", "sequence", "Embedding → 2-layer bidirectional LSTM → final state → classes.", lstm_classifier),
     Template("seq2seq", "Transformer (Vaswani base)", "model", "sequence", "Vaswani et al. 2017: 6+6 layers, d=512, cross-attention, sinusoidal positions.", seq2seq_transformer),
+    Template("vqvae_mnist", "VQ-VAE · MNIST", "model", "generative", "van den Oord et al. 2017: conv encoder, 512-code codebook, straight-through, conv decoder.", vqvae_mnist),
+    Template("ddpm_mnist", "DDPM denoiser · MNIST", "model", "generative", "Ho et al. 2020: noise images at a random step, predict the noise from (x_t, t).", ddpm_mnist),
     Template("vae_mnist", "VAE · MNIST", "model", "generative", "Kingma & Welling 2013: Gaussian latent, reparameterisation, BCE + KL.", vae_mnist),
 ]
 
@@ -653,6 +778,8 @@ BLOCKS = [
     Template("resnet_basic", "ResNet basic block", "block", "convolution", "Two 3×3 conv-BN, identity shortcut.", resnet_basic),
     Template("resnet_basic_down", "ResNet downsample block", "block", "convolution", "Stride-2 basic block with a 1×1 shortcut.", resnet_basic_down),
     Template("double_conv", "U-Net double conv", "block", "convolution", "(conv → BN → ReLU) × 2.", double_conv),
+    Template("inverted_residual", "MobileNetV2 inverted residual", "block", "convolution", "1×1 expand, 3×3 depthwise, 1×1 project, shortcut.", inverted_residual),
+    Template("inverted_residual_proj", "MobileNetV2 inverted residual (stride / channels)", "block", "convolution", "Same without the shortcut; changes channels or stride.", inverted_residual_proj),
     Template("mamba_block", "Mamba block", "block", "sequence", "x + Mamba(RMSNorm(x)).", mamba_block),
 ]
 

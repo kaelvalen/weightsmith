@@ -5,10 +5,10 @@ import type { Rules } from "./registry";
 import { P, binary, broadcast, float, lastDim, mod, need, rankAtLeast, same, sameFloat, type Ins, type Outs } from "./rulekit";
 import { INT_DTYPES, ShapeError, SymbolEnv, TensorType, convOut, convTransposeOut, dimAdd, dimDiv, dimMul, fmtShape } from "./shapes";
 
-function rank(x: TensorType, n: number, port: string, env: SymbolEnv, what: string) {
+export function rank(x: TensorType, n: number, port: string, env: SymbolEnv, what: string) {
   if (x.shape.length !== n) throw new ShapeError(`expects ${what}, got ${fmtShape(env.resolveShape(x.shape))}`, port);
 }
-function channels(x: TensorType, c: any, env: SymbolEnv, pname = "in_channels") {
+export function channels(x: TensorType, c: any, env: SymbolEnv, pname = "in_channels") {
   if (!env.unify(x.shape[1], c)) throw new ShapeError(`channels ${env.resolve(x.shape[1])} ≠ ${pname}=${c}`, "in");
 }
 const bias = (p: P, key = "bias") => p[key] ?? true;
@@ -106,7 +106,7 @@ function rnn(gates: number): Rules {
   };
 }
 
-function predTarget(predPort: string, intTarget = false): Rules["infer"] {
+export function predTarget(predPort: string, intTarget = false): Rules["infer"] {
   return (_p, ins, env) => {
     const pred = need(ins, predPort);
     float(pred, predPort);
@@ -120,7 +120,7 @@ function predTarget(predPort: string, intTarget = false): Rules["infer"] {
     return { loss: { shape: [], dtype: "f32" } };
   };
 }
-const scalarLoss = (): Outs => ({ loss: { shape: [], dtype: "f32" } });
+export const scalarLoss = (): Outs => ({ loss: { shape: [], dtype: "f32" } });
 
 function halve(x: TensorType, dim: number, env: SymbolEnv): TensorType["shape"] {
   const s = env.resolveShape(x.shape);

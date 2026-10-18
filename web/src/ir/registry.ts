@@ -7,6 +7,7 @@ import { INT_DTYPES, ShapeError, SymbolEnv, dimAdd, dimMul, fmtShape, numel } fr
 import { P, binary, float, lastDim, mod, need, norm, rankAtLeast, same, sameFloat, type Ins, type Outs } from "./rulekit";
 
 import { MORE_RULES } from "./rules_more";
+import { EXTRA_RULES } from "./rules_extra";
 
 export type { P };
 
@@ -194,7 +195,7 @@ export const RULES: Record<string, Rules> = {
   PythonModule: {},
 };
 
-Object.assign(RULES, MORE_RULES);
+Object.assign(RULES, MORE_RULES, EXTRA_RULES);
 
 export const weightsOf = (type: string, p: P) => RULES[type]?.weights?.(p) ?? {};
 export const linearTargetsOf = (type: string, p: P) => RULES[type]?.linearTargets?.(p) ?? {};

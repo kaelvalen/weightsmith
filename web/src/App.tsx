@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { boot, useStore } from "./state/store";
 import { Bottom } from "./ui/Bottom";
 import { Canvas } from "./ui/Canvas";
@@ -7,6 +7,7 @@ import { Library } from "./ui/Library";
 import { Palette } from "./ui/Palette";
 import { ProjectsView } from "./ui/ProjectsView";
 import { TooltipLayer } from "./ui/TooltipLayer";
+import { Help } from "./ui/Help";
 import { TopBar } from "./ui/TopBar";
 
 function typing(e: KeyboardEvent) {
@@ -17,6 +18,7 @@ function typing(e: KeyboardEvent) {
 export default function App() {
   const notice = useStore((s) => s.notice);
   const view = useStore((s) => s.view);
+  const [help, setHelp] = useState(false);
 
   useEffect(() => {
     boot();
@@ -38,6 +40,8 @@ export default function App() {
       } else if (mod && e.key.toLowerCase() === "y") {
         e.preventDefault();
         st.redo();
+      } else if (e.key === "?") {
+        setHelp(true);
       } else if (st.view !== "nodes") {
         return;
       } else if (mod && e.key.toLowerCase() === "c") {
@@ -66,11 +70,14 @@ export default function App() {
     const onCommand = (e: Event) => {
       if ((e as CustomEvent).detail === "group") useStore.getState().setPalette(true);
     };
+    const openHelp = () => setHelp(true);
     window.addEventListener("keydown", onKey);
     window.addEventListener("ws:command", onCommand);
+    window.addEventListener("ws:help", openHelp);
     return () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("ws:command", onCommand);
+      window.removeEventListener("ws:help", openHelp);
     };
   }, []);
 
@@ -103,6 +110,7 @@ export default function App() {
         </div>
       )}
       <Palette />
+      {help && <Help onClose={() => setHelp(false)} />}
       <TooltipLayer />
     </div>
   );

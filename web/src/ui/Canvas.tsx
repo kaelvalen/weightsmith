@@ -13,10 +13,11 @@ import {
 } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Analysis } from "../ir/analyze";
-import { addNode, connect, disconnect, getBody, moveNodes, removeNodes } from "../ir/ops";
+import { addNode, connect, disconnect, getBody, moveNodes } from "../ir/ops";
+import { dissolve, sizeConsumers } from "../ir/smart";
 import type { Position } from "../ir/types";
 import { useAnalysis, useIssues, useStore } from "../state/store";
-import { NODE_MIME, TEMPLATE_MIME, insertTemplate } from "./Library";
+import { NODE_MIME, TEMPLATE_MIME, addAtCenter, insertTemplate } from "./Library";
 import { NodeData, NodeView } from "./NodeView";
 
 const nodeTypes = { ws: NodeView };
@@ -185,9 +186,15 @@ function CanvasInner() {
   const onConnect = useCallback(
     (c: Connection) => {
       if (!c.sourceHandle || !c.targetHandle) return;
-      apply(`connect ${c.source}.${c.sourceHandle} → ${c.target}.${c.targetHandle}`, (g) =>
-        connect(g, scope, `${c.source}.${c.sourceHandle}`, `${c.target}.${c.targetHandle}`),
-      );
+      let notes: string[] = [];
+      apply(`connect ${c.source}.${c.sourceHandle} → ${c.target}.${c.targetHandle}`, (g) => {
+        const wired = connect(g, scope, `${c.source}.${c.sourceHandle}`, `${c.target}.${c.targetHandle}`);
+        // a size mismatch right after connecting almost always means "use the incoming size"
+        const [sized, ns] = sizeConsumers(wired, scope, c.source!);
+        notes = ns;
+        return sized;
+      });
+      if (notes.length) useStore.getState().notify(`${notes.join(", ")} to match ${c.source} · ⌘Z to undo`);
     },
     [apply, scope],
   );
@@ -210,8 +217,10 @@ function CanvasInner() {
 
   const onDelete = useCallback(
     ({ nodes, edges }: { nodes: FlowNode[]; edges: FlowEdge[] }) => {
-      if (nodes.length) apply(`delete ${nodes.map((n) => n.id).join(", ")}`, (g) => removeNodes(g, scope, nodes.map((n) => n.id)));
+      // deleting keeps the chain whole: what fed the node now feeds its consumers
+      if (nodes.length) apply(`delete ${nodes.map((n) => n.id).join(", ")}`, (g) => dissolve(g, scope, nodes.map((n) => n.id)));
       else if (edges.length) apply("disconnect", (g) => disconnect(g, scope, edges.map((e) => e.id.split("→") as [string, string])));
+      select([]);
     },
     [apply, scope],
   );
@@ -240,13 +249,25 @@ function CanvasInner() {
   return (
     <div ref={wrapper} className="relative h-full w-full" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
       {!body.nodes.length && (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-          <div className="max-w-sm text-small text-muted">
-            <div className="mb-1 text-title font-medium text-ink">Empty graph</div>
-            Drag a node, block or model from the library, or press Cmd+K. A model from the Projects tab opens as its own project.
+        <div className="absolute inset-0 z-10 flex items-center justify-center">
+          <div className="flex max-w-sm flex-col gap-3 border border-line bg-bg p-4" style={{ borderRadius: 2 }}>
+            <div>
+              <div className="text-title font-medium">{scope ? "Empty block" : "Empty graph"}</div>
+              <p className="m-0 mt-1 text-small text-muted">
+                Start with an input, then click library items one after another: each is added after the selected node, connected and sized.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button className="primary" onClick={() => addAtCenter("Input")}>
+                Add an input
+              </button>
+              {!scope && <button onClick={() => useStore.getState().setView("projects")}>Start from a model…</button>}
+              <button onClick={() => window.dispatchEvent(new CustomEvent("ws:help"))}>How it works</button>
+            </div>
           </div>
         </div>
       )}
+      <HintBar />
       {scope && (
         <div className="absolute top-2 left-2 z-10 flex gap-1 text-small">
           <button className="link" onClick={() => setScope("")}>
@@ -295,6 +316,27 @@ function CanvasInner() {
           />
         )}
       </ReactFlow>
+    </div>
+  );
+}
+
+/** One line that says what you can do next, given the selection. */
+function HintBar() {
+  const selection = useStore((s) => s.selection);
+  const edges = useStore((s) => s.selectedEdges);
+  const scope = useStore((s) => s.scope);
+  let parts: React.ReactNode[];
+  if (selection.length === 1)
+    parts = [<>click a library item to add it after <b className="font-medium text-ink">{selection[0]}</b></>, "⌫ delete, chain stays", "Enter edit"];
+  else if (selection.length > 1) parts = ["⌘C copy", "⌘D duplicate", "⌫ delete", "⌘K → Group into a block"];
+  else if (edges.length === 1) parts = ["click a library item to insert it into this connection", "⌫ remove the connection"];
+  else parts = ["click a node to select it", "drag from a port to connect", "⌘K add anything", "? help"];
+  if (scope) parts.push("Esc leave the block");
+  return (
+    <div className="pointer-events-none absolute bottom-2 left-2 z-10 flex flex-wrap gap-x-3 text-label text-muted" aria-live="polite">
+      {parts.map((p, i) => (
+        <span key={i}>{p}</span>
+      ))}
     </div>
   );
 }

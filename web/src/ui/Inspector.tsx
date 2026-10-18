@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { fixesFor } from "../ir/smart";
 import { keepTyping } from "./keys";
 import { Select } from "./Select";
 import { api } from "../api/client";
-import { adaptDefaults, splitRef } from "../ir/analyze";
+import { adaptDefaults, splitRef, type Issue } from "../ir/analyze";
 import { bulkAdapt, getBody, renameNode, setParam, updateNode } from "../ir/ops";
 import { TYPES, expandDefaults, linearTargetsOf, outFeaturesOf, weightsOf } from "../ir/registry";
 import type { Adapt, Node } from "../ir/types";
@@ -14,6 +15,26 @@ const CodeEditor = lazy(() => import("./CodeEditor"));
 export const fmtCount = (n: number) =>
   n >= 1e9 ? `${(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}k` : String(n);
 const shapeStr = (s?: (string | number)[]) => (s ? (s.length ? s.join("×") : "scalar") : "—");
+
+/** One-click fixes for an issue, when the fix is obvious. */
+export function FixButtons({ issue, block }: { issue: Issue; block?: boolean }) {
+  const scope = useStore((s) => s.scope);
+  const graph = useStore((s) => s.graph());
+  const apply = useStore((s) => s.apply);
+  // issues from inside a block carry "block/node"
+  const [where, node] = issue.node?.includes("/") ? issue.node.split("/") : [issue.node ? scope : "", issue.node];
+  const fixes = fixesFor({ ...issue, node }, graph, where);
+  if (!fixes.length) return null;
+  return (
+    <span className={block ? "mt-1 flex flex-wrap gap-1" : "ml-2 inline-flex flex-wrap gap-1 align-baseline"}>
+      {fixes.map((f) => (
+        <button key={f.label} className="!h-5 !px-1.5 text-label" onClick={() => apply(f.label, f.apply)}>
+          {f.label}
+        </button>
+      ))}
+    </span>
+  );
+}
 
 export function Section({ title, children, aside }: { title: string; children: React.ReactNode; aside?: React.ReactNode }) {
   return (
@@ -449,6 +470,7 @@ function NodePanel({ node }: { node: Node }) {
             <div key={k} className={`text-small ${i.severity === "error" ? "text-error" : "text-muted"}`}>
               {i.port ? <span className="num">{i.port}: </span> : null}
               {i.message}
+              <FixButtons issue={i} />
             </div>
           ))}
         </div>

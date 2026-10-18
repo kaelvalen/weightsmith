@@ -1032,6 +1032,680 @@
   }
  },
  {
+  "id": "mobilenet_v2",
+  "name": "MobileNetV2",
+  "kind": "model",
+  "category": "vision",
+  "doc": "Sandler et al. 2018: inverted residuals with depthwise convs and ReLU6, 224\u00d7224.",
+  "reference": 3504872,
+  "source": "torchvision mobilenet_v2",
+  "graph": {
+   "schema": 1,
+   "name": "MobileNetV2",
+   "nodes": [
+    {
+     "id": "image",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       3,
+       224,
+       224
+      ]
+     }
+    },
+    {
+     "id": "stem",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 3,
+      "out_channels": 32,
+      "kernel_size": 3,
+      "stride": 2,
+      "padding": 1,
+      "bias": false
+     }
+    },
+    {
+     "id": "stem_bn",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": 32
+     }
+    },
+    {
+     "id": "stem_act",
+     "type": "ReLU6"
+    },
+    {
+     "id": "b0_dw",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 32,
+      "out_channels": 32,
+      "kernel_size": 3,
+      "padding": 1,
+      "groups": 32,
+      "bias": false
+     },
+     "label": "depthwise 3\u00d73"
+    },
+    {
+     "id": "b0_bn1",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": 32
+     }
+    },
+    {
+     "id": "b0_act",
+     "type": "ReLU6"
+    },
+    {
+     "id": "b0_project",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 32,
+      "out_channels": 16,
+      "kernel_size": 1,
+      "padding": 0,
+      "bias": false
+     }
+    },
+    {
+     "id": "b0_bn2",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": 16
+     }
+    },
+    {
+     "id": "stage1",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir_proj",
+      "args": {
+       "Cin": 16,
+       "Cout": 24,
+       "S": 2,
+       "T": 6
+      }
+     },
+     "label": "stage 1 \u00b7 16\u219224 /2"
+    },
+    {
+     "id": "stage1_res",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir",
+      "repeat": 1,
+      "args": {
+       "C": 24,
+       "T": 6
+      }
+     },
+     "label": "stage 1 \u00b7 1\u00d7 residual 24"
+    },
+    {
+     "id": "stage2",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir_proj",
+      "args": {
+       "Cin": 24,
+       "Cout": 32,
+       "S": 2,
+       "T": 6
+      }
+     },
+     "label": "stage 2 \u00b7 24\u219232 /2"
+    },
+    {
+     "id": "stage2_res",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir",
+      "repeat": 2,
+      "args": {
+       "C": 32,
+       "T": 6
+      }
+     },
+     "label": "stage 2 \u00b7 2\u00d7 residual 32"
+    },
+    {
+     "id": "stage3",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir_proj",
+      "args": {
+       "Cin": 32,
+       "Cout": 64,
+       "S": 2,
+       "T": 6
+      }
+     },
+     "label": "stage 3 \u00b7 32\u219264 /2"
+    },
+    {
+     "id": "stage3_res",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir",
+      "repeat": 3,
+      "args": {
+       "C": 64,
+       "T": 6
+      }
+     },
+     "label": "stage 3 \u00b7 3\u00d7 residual 64"
+    },
+    {
+     "id": "stage4",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir_proj",
+      "args": {
+       "Cin": 64,
+       "Cout": 96,
+       "S": 1,
+       "T": 6
+      }
+     },
+     "label": "stage 4 \u00b7 64\u219296"
+    },
+    {
+     "id": "stage4_res",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir",
+      "repeat": 2,
+      "args": {
+       "C": 96,
+       "T": 6
+      }
+     },
+     "label": "stage 4 \u00b7 2\u00d7 residual 96"
+    },
+    {
+     "id": "stage5",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir_proj",
+      "args": {
+       "Cin": 96,
+       "Cout": 160,
+       "S": 2,
+       "T": 6
+      }
+     },
+     "label": "stage 5 \u00b7 96\u2192160 /2"
+    },
+    {
+     "id": "stage5_res",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir",
+      "repeat": 2,
+      "args": {
+       "C": 160,
+       "T": 6
+      }
+     },
+     "label": "stage 5 \u00b7 2\u00d7 residual 160"
+    },
+    {
+     "id": "stage6",
+     "type": "Subgraph",
+     "params": {
+      "graph": "ir_proj",
+      "args": {
+       "Cin": 160,
+       "Cout": 320,
+       "S": 1,
+       "T": 6
+      }
+     },
+     "label": "stage 6 \u00b7 160\u2192320"
+    },
+    {
+     "id": "head",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 320,
+      "out_channels": 1280,
+      "kernel_size": 1,
+      "padding": 0,
+      "bias": false
+     }
+    },
+    {
+     "id": "head_bn",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": 1280
+     }
+    },
+    {
+     "id": "head_act",
+     "type": "ReLU6"
+    },
+    {
+     "id": "pool",
+     "type": "AdaptiveAvgPool2d",
+     "params": {
+      "output_size": 1
+     }
+    },
+    {
+     "id": "flat",
+     "type": "Flatten"
+    },
+    {
+     "id": "drop",
+     "type": "Dropout",
+     "params": {
+      "p": 0.2
+     }
+    },
+    {
+     "id": "fc",
+     "type": "Linear",
+     "params": {
+      "in": 1280,
+      "out": 1000
+     }
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy"
+    }
+   ],
+   "edges": [
+    [
+     "image.out",
+     "stem.in"
+    ],
+    [
+     "stem.out",
+     "stem_bn.in"
+    ],
+    [
+     "stem_bn.out",
+     "stem_act.in"
+    ],
+    [
+     "stem_act.out",
+     "b0_dw.in"
+    ],
+    [
+     "b0_dw.out",
+     "b0_bn1.in"
+    ],
+    [
+     "b0_bn1.out",
+     "b0_act.in"
+    ],
+    [
+     "b0_act.out",
+     "b0_project.in"
+    ],
+    [
+     "b0_project.out",
+     "b0_bn2.in"
+    ],
+    [
+     "b0_bn2.out",
+     "stage1.x"
+    ],
+    [
+     "stage1.out",
+     "stage1_res.x"
+    ],
+    [
+     "stage1_res.out",
+     "stage2.x"
+    ],
+    [
+     "stage2.out",
+     "stage2_res.x"
+    ],
+    [
+     "stage2_res.out",
+     "stage3.x"
+    ],
+    [
+     "stage3.out",
+     "stage3_res.x"
+    ],
+    [
+     "stage3_res.out",
+     "stage4.x"
+    ],
+    [
+     "stage4.out",
+     "stage4_res.x"
+    ],
+    [
+     "stage4_res.out",
+     "stage5.x"
+    ],
+    [
+     "stage5.out",
+     "stage5_res.x"
+    ],
+    [
+     "stage5_res.out",
+     "stage6.x"
+    ],
+    [
+     "stage6.out",
+     "head.in"
+    ],
+    [
+     "head.out",
+     "head_bn.in"
+    ],
+    [
+     "head_bn.out",
+     "head_act.in"
+    ],
+    [
+     "head_act.out",
+     "pool.in"
+    ],
+    [
+     "pool.out",
+     "flat.in"
+    ],
+    [
+     "flat.out",
+     "drop.in"
+    ],
+    [
+     "drop.out",
+     "fc.in"
+    ],
+    [
+     "fc.out",
+     "loss.logits"
+    ]
+   ],
+   "subgraphs": {
+    "ir": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "$C",
+         "H",
+         "W"
+        ]
+       }
+      },
+      {
+       "id": "expand",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$C",
+        "out_channels": "$C*T",
+        "kernel_size": 1,
+        "padding": 0,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn1",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$C*T"
+       }
+      },
+      {
+       "id": "act1",
+       "type": "ReLU6"
+      },
+      {
+       "id": "dw",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$C*T",
+        "out_channels": "$C*T",
+        "kernel_size": 3,
+        "padding": 1,
+        "groups": "$C*T",
+        "bias": false
+       },
+       "label": "depthwise 3\u00d73"
+      },
+      {
+       "id": "bn2",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$C*T"
+       }
+      },
+      {
+       "id": "act2",
+       "type": "ReLU6"
+      },
+      {
+       "id": "project",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$C*T",
+        "out_channels": "$C",
+        "kernel_size": 1,
+        "padding": 0,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn3",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$C"
+       }
+      },
+      {
+       "id": "add",
+       "type": "Add"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "add.a"
+      ],
+      [
+       "bn3.out",
+       "add.b"
+      ],
+      [
+       "x.out",
+       "expand.in"
+      ],
+      [
+       "expand.out",
+       "bn1.in"
+      ],
+      [
+       "bn1.out",
+       "act1.in"
+      ],
+      [
+       "act1.out",
+       "dw.in"
+      ],
+      [
+       "dw.out",
+       "bn2.in"
+      ],
+      [
+       "bn2.out",
+       "act2.in"
+      ],
+      [
+       "act2.out",
+       "project.in"
+      ],
+      [
+       "project.out",
+       "bn3.in"
+      ],
+      [
+       "add.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "C": 24,
+      "T": 6
+     },
+     "doc": "MobileNetV2 inverted residual: 1\u00d71 expand \u2192 3\u00d73 depthwise \u2192 1\u00d71 linear projection, identity shortcut."
+    },
+    "ir_proj": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "$Cin",
+         "H",
+         "W"
+        ]
+       }
+      },
+      {
+       "id": "expand",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$Cin",
+        "out_channels": "$Cin*T",
+        "kernel_size": 1,
+        "padding": 0,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn1",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$Cin*T"
+       }
+      },
+      {
+       "id": "act1",
+       "type": "ReLU6"
+      },
+      {
+       "id": "dw",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$Cin*T",
+        "out_channels": "$Cin*T",
+        "kernel_size": 3,
+        "stride": "$S",
+        "padding": 1,
+        "groups": "$Cin*T",
+        "bias": false
+       },
+       "label": "depthwise 3\u00d73"
+      },
+      {
+       "id": "bn2",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$Cin*T"
+       }
+      },
+      {
+       "id": "act2",
+       "type": "ReLU6"
+      },
+      {
+       "id": "project",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$Cin*T",
+        "out_channels": "$Cout",
+        "kernel_size": 1,
+        "padding": 0,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn3",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$Cout"
+       }
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "expand.in"
+      ],
+      [
+       "expand.out",
+       "bn1.in"
+      ],
+      [
+       "bn1.out",
+       "act1.in"
+      ],
+      [
+       "act1.out",
+       "dw.in"
+      ],
+      [
+       "dw.out",
+       "bn2.in"
+      ],
+      [
+       "bn2.out",
+       "act2.in"
+      ],
+      [
+       "act2.out",
+       "project.in"
+      ],
+      [
+       "project.out",
+       "bn3.in"
+      ],
+      [
+       "bn3.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "Cin": 16,
+      "Cout": 24,
+      "S": 2,
+      "T": 6
+     },
+     "doc": "MobileNetV2 inverted residual that changes channels or stride (no shortcut)."
+    }
+   }
+  }
+ },
+ {
   "id": "vit_b16",
   "name": "ViT-B/16",
   "kind": "model",
@@ -4437,6 +5111,355 @@
   }
  },
  {
+  "id": "vqvae_mnist",
+  "name": "VQ-VAE \u00b7 MNIST",
+  "kind": "model",
+  "category": "generative",
+  "doc": "van den Oord et al. 2017: conv encoder, 512-code codebook, straight-through, conv decoder.",
+  "reference": null,
+  "source": "",
+  "graph": {
+   "schema": 1,
+   "name": "VQ-VAE \u00b7 MNIST",
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       1,
+       28,
+       28
+      ]
+     }
+    },
+    {
+     "id": "enc1",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 1,
+      "out_channels": 32,
+      "kernel_size": 4,
+      "stride": 2,
+      "padding": 1
+     }
+    },
+    {
+     "id": "enc1_act",
+     "type": "ReLU"
+    },
+    {
+     "id": "enc2",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 32,
+      "out_channels": 64,
+      "kernel_size": 4,
+      "stride": 2,
+      "padding": 1
+     }
+    },
+    {
+     "id": "enc2_act",
+     "type": "ReLU"
+    },
+    {
+     "id": "to_latent",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 64,
+      "out_channels": 64,
+      "kernel_size": 1,
+      "padding": 0
+     },
+     "label": "to code space"
+    },
+    {
+     "id": "channels_last",
+     "type": "Permute",
+     "params": {
+      "dims": [
+       0,
+       2,
+       3,
+       1
+      ]
+     }
+    },
+    {
+     "id": "vq",
+     "type": "VectorQuantizer",
+     "params": {
+      "codes": 512,
+      "dim": 64,
+      "beta": 0.25
+     },
+     "label": "codebook \u00b7 512 codes"
+    },
+    {
+     "id": "channels_first",
+     "type": "Permute",
+     "params": {
+      "dims": [
+       0,
+       3,
+       1,
+       2
+      ]
+     }
+    },
+    {
+     "id": "dec1",
+     "type": "ConvTranspose2d",
+     "params": {
+      "in_channels": 64,
+      "out_channels": 32,
+      "kernel_size": 4,
+      "stride": 2,
+      "padding": 1
+     }
+    },
+    {
+     "id": "dec1_act",
+     "type": "ReLU"
+    },
+    {
+     "id": "dec2",
+     "type": "ConvTranspose2d",
+     "params": {
+      "in_channels": 32,
+      "out_channels": 1,
+      "kernel_size": 4,
+      "stride": 2,
+      "padding": 1
+     },
+     "label": "reconstruction logits"
+    },
+    {
+     "id": "recon",
+     "type": "BCEWithLogits",
+     "label": "reconstruction"
+    },
+    {
+     "id": "commit",
+     "type": "AuxLoss",
+     "label": "codebook + commitment"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "enc1.in"
+    ],
+    [
+     "enc1.out",
+     "enc1_act.in"
+    ],
+    [
+     "enc1_act.out",
+     "enc2.in"
+    ],
+    [
+     "enc2.out",
+     "enc2_act.in"
+    ],
+    [
+     "enc2_act.out",
+     "to_latent.in"
+    ],
+    [
+     "to_latent.out",
+     "channels_last.in"
+    ],
+    [
+     "channels_last.out",
+     "vq.in"
+    ],
+    [
+     "vq.out",
+     "channels_first.in"
+    ],
+    [
+     "channels_first.out",
+     "dec1.in"
+    ],
+    [
+     "dec1.out",
+     "dec1_act.in"
+    ],
+    [
+     "dec1_act.out",
+     "dec2.in"
+    ],
+    [
+     "dec2.out",
+     "recon.pred"
+    ],
+    [
+     "x.out",
+     "recon.target"
+    ],
+    [
+     "vq.commit",
+     "commit.in"
+    ]
+   ]
+  }
+ },
+ {
+  "id": "ddpm_mnist",
+  "name": "DDPM denoiser \u00b7 MNIST",
+  "kind": "model",
+  "category": "generative",
+  "doc": "Ho et al. 2020: noise images at a random step, predict the noise from (x_t, t).",
+  "reference": null,
+  "source": "",
+  "graph": {
+   "schema": 1,
+   "name": "DDPM denoiser \u00b7 MNIST",
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       784
+      ]
+     }
+    },
+    {
+     "id": "to_signed",
+     "type": "Scale",
+     "params": {
+      "factor": 2.0
+     },
+     "label": "\u00d7 2"
+    },
+    {
+     "id": "center",
+     "type": "AddConst",
+     "params": {
+      "value": -1.0
+     },
+     "label": "\u2212 1 \u2192 [\u22121, 1]"
+    },
+    {
+     "id": "diffuse",
+     "type": "DiffusionForward",
+     "params": {
+      "steps": 1000
+     }
+    },
+    {
+     "id": "in_proj",
+     "type": "Linear",
+     "params": {
+      "in": 784,
+      "out": 512
+     }
+    },
+    {
+     "id": "t_embed",
+     "type": "TimestepEmbedding",
+     "params": {
+      "dim": 512
+     }
+    },
+    {
+     "id": "cond",
+     "type": "Add",
+     "label": "+ timestep"
+    },
+    {
+     "id": "act1",
+     "type": "SiLU"
+    },
+    {
+     "id": "mid",
+     "type": "Linear",
+     "params": {
+      "in": 512,
+      "out": 512
+     }
+    },
+    {
+     "id": "act2",
+     "type": "SiLU"
+    },
+    {
+     "id": "eps",
+     "type": "Linear",
+     "params": {
+      "in": 512,
+      "out": 784
+     },
+     "label": "predicted noise"
+    },
+    {
+     "id": "loss",
+     "type": "MSE",
+     "label": "noise prediction"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "to_signed.in"
+    ],
+    [
+     "to_signed.out",
+     "center.in"
+    ],
+    [
+     "center.out",
+     "diffuse.in"
+    ],
+    [
+     "diffuse.noisy",
+     "in_proj.in"
+    ],
+    [
+     "diffuse.t",
+     "t_embed.in"
+    ],
+    [
+     "in_proj.out",
+     "cond.a"
+    ],
+    [
+     "t_embed.out",
+     "cond.b"
+    ],
+    [
+     "cond.out",
+     "act1.in"
+    ],
+    [
+     "act1.out",
+     "mid.in"
+    ],
+    [
+     "mid.out",
+     "act2.in"
+    ],
+    [
+     "act2.out",
+     "eps.in"
+    ],
+    [
+     "eps.out",
+     "loss.pred"
+    ],
+    [
+     "diffuse.noise",
+     "loss.target"
+    ]
+   ]
+  }
+ },
+ {
   "id": "vae_mnist",
   "name": "VAE \u00b7 MNIST",
   "kind": "model",
@@ -6035,6 +7058,293 @@
     "Cout": 32
    },
    "doc": "U-Net double convolution: (3\u00d73 conv \u2192 BN \u2192 ReLU) \u00d7 2."
+  }
+ },
+ {
+  "id": "inverted_residual",
+  "name": "MobileNetV2 inverted residual",
+  "kind": "block",
+  "category": "convolution",
+  "doc": "1\u00d71 expand, 3\u00d73 depthwise, 1\u00d71 project, shortcut.",
+  "reference": null,
+  "source": "",
+  "block": {
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "$C",
+       "H",
+       "W"
+      ]
+     }
+    },
+    {
+     "id": "expand",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": "$C",
+      "out_channels": "$C*T",
+      "kernel_size": 1,
+      "padding": 0,
+      "bias": false
+     }
+    },
+    {
+     "id": "bn1",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": "$C*T"
+     }
+    },
+    {
+     "id": "act1",
+     "type": "ReLU6"
+    },
+    {
+     "id": "dw",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": "$C*T",
+      "out_channels": "$C*T",
+      "kernel_size": 3,
+      "padding": 1,
+      "groups": "$C*T",
+      "bias": false
+     },
+     "label": "depthwise 3\u00d73"
+    },
+    {
+     "id": "bn2",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": "$C*T"
+     }
+    },
+    {
+     "id": "act2",
+     "type": "ReLU6"
+    },
+    {
+     "id": "project",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": "$C*T",
+      "out_channels": "$C",
+      "kernel_size": 1,
+      "padding": 0,
+      "bias": false
+     }
+    },
+    {
+     "id": "bn3",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": "$C"
+     }
+    },
+    {
+     "id": "add",
+     "type": "Add"
+    },
+    {
+     "id": "out",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "add.a"
+    ],
+    [
+     "bn3.out",
+     "add.b"
+    ],
+    [
+     "x.out",
+     "expand.in"
+    ],
+    [
+     "expand.out",
+     "bn1.in"
+    ],
+    [
+     "bn1.out",
+     "act1.in"
+    ],
+    [
+     "act1.out",
+     "dw.in"
+    ],
+    [
+     "dw.out",
+     "bn2.in"
+    ],
+    [
+     "bn2.out",
+     "act2.in"
+    ],
+    [
+     "act2.out",
+     "project.in"
+    ],
+    [
+     "project.out",
+     "bn3.in"
+    ],
+    [
+     "add.out",
+     "out.in"
+    ]
+   ],
+   "params": {
+    "C": 24,
+    "T": 6
+   },
+   "doc": "MobileNetV2 inverted residual: 1\u00d71 expand \u2192 3\u00d73 depthwise \u2192 1\u00d71 linear projection, identity shortcut."
+  }
+ },
+ {
+  "id": "inverted_residual_proj",
+  "name": "MobileNetV2 inverted residual (stride / channels)",
+  "kind": "block",
+  "category": "convolution",
+  "doc": "Same without the shortcut; changes channels or stride.",
+  "reference": null,
+  "source": "",
+  "block": {
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "$Cin",
+       "H",
+       "W"
+      ]
+     }
+    },
+    {
+     "id": "expand",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": "$Cin",
+      "out_channels": "$Cin*T",
+      "kernel_size": 1,
+      "padding": 0,
+      "bias": false
+     }
+    },
+    {
+     "id": "bn1",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": "$Cin*T"
+     }
+    },
+    {
+     "id": "act1",
+     "type": "ReLU6"
+    },
+    {
+     "id": "dw",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": "$Cin*T",
+      "out_channels": "$Cin*T",
+      "kernel_size": 3,
+      "stride": "$S",
+      "padding": 1,
+      "groups": "$Cin*T",
+      "bias": false
+     },
+     "label": "depthwise 3\u00d73"
+    },
+    {
+     "id": "bn2",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": "$Cin*T"
+     }
+    },
+    {
+     "id": "act2",
+     "type": "ReLU6"
+    },
+    {
+     "id": "project",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": "$Cin*T",
+      "out_channels": "$Cout",
+      "kernel_size": 1,
+      "padding": 0,
+      "bias": false
+     }
+    },
+    {
+     "id": "bn3",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": "$Cout"
+     }
+    },
+    {
+     "id": "out",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "expand.in"
+    ],
+    [
+     "expand.out",
+     "bn1.in"
+    ],
+    [
+     "bn1.out",
+     "act1.in"
+    ],
+    [
+     "act1.out",
+     "dw.in"
+    ],
+    [
+     "dw.out",
+     "bn2.in"
+    ],
+    [
+     "bn2.out",
+     "act2.in"
+    ],
+    [
+     "act2.out",
+     "project.in"
+    ],
+    [
+     "project.out",
+     "bn3.in"
+    ],
+    [
+     "bn3.out",
+     "out.in"
+    ]
+   ],
+   "params": {
+    "Cin": 16,
+    "Cout": 24,
+    "S": 2,
+    "T": 6
+   },
+   "doc": "MobileNetV2 inverted residual that changes channels or stride (no shortcut)."
   }
  },
  {

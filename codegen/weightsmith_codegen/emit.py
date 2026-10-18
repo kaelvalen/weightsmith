@@ -164,6 +164,40 @@ def _module_ctor(t: str, p: dict[str, Any]) -> tuple[str | None, set[str]]:
             return f"Mamba({p['dim']}{extra})", {"Mamba"}
         case "Dropout":
             return f"nn.Dropout({_r(p['p'])})", set()
+        case "Dropout2d":
+            return f"nn.Dropout2d({_r(p['p'])})", set()
+        case "PReLU":
+            return f"nn.PReLU({p['channels']}{_kw(p, 'init', 0.25)})", set()
+        case "Swish":
+            return f"Swish({p['dim']})", {"Swish"}
+        case "Parameter":
+            extra = _kw(p, "init", "normal") + _kw(p, "std", 0.02)
+            return f"LearnedTensor({tuple(p['shape'])!r}{extra})", {"LearnedTensor"}
+        case "MaxPool3d" | "AvgPool3d":
+            return f"nn.{t}({p['kernel_size']}, stride={p.get('stride') or p['kernel_size']}{_kw(p, 'padding', 0)})", set()
+        case "AdaptiveMaxPool1d" | "AdaptiveMaxPool2d":
+            return f"nn.{t}({p['output_size']})", set()
+        case "BatchNorm3d":
+            return f"nn.BatchNorm3d({p['features']}{_kw(p, 'eps', 1e-5)}{_kw(p, 'momentum', 0.1)})", set()
+        case "LayerScale":
+            return f"LayerScale({p['dim']}{_kw(p, 'init', 1e-5)})", {"LayerScale"}
+        case "SqueezeExcite":
+            return f"SqueezeExcite({p['channels']}{_kw(p, 'reduction', 4)})", {"SqueezeExcite"}
+        case "ALiBi":
+            return f"ALiBi({p['heads']}{_kw(p, 'causal', True)})", {"ALiBi"}
+        case "SlidingWindowBias":
+            return f"SlidingWindowBias({p['heads']}, {p['window']}{_kw(p, 'causal', True)})", {"SlidingWindowBias"}
+        case "LinearAttention":
+            return f"LinearAttention({p['dim']}, heads={p['heads']}{_kw(p, 'causal', False)})", {"LinearAttention"}
+        case "TimestepEmbedding":
+            return f"TimestepEmbedding({p['dim']}{_kw(p, 'hidden', None)}{_kw(p, 'max_period', 10000.0)})", {"TimestepEmbedding"}
+        case "VectorQuantizer":
+            return f"VectorQuantizer({p['codes']}, {p['dim']}{_kw(p, 'beta', 0.25)})", {"VectorQuantizer"}
+        case "GraphConv":
+            return f"GraphConv({p['in']}, {p['out']}{_kw(p, 'bias', True)})", {"GraphConv"}
+        case "DiffusionForward":
+            extra = _kw(p, "steps", 1000) + _kw(p, "schedule", "linear") + _kw(p, "beta_start", 1e-4) + _kw(p, "beta_end", 0.02)
+            return f"DiffusionForward({extra.lstrip(', ')})", {"DiffusionForward"}
         case "DropPath":
             return f"DropPath({_r(p['p'])})", {"DropPath"}
     return None, set()
@@ -174,7 +208,9 @@ _MODULE_CALL = {
     "AdaptiveAvgPool1d", "AdaptiveAvgPool2d", "Upsample", "PixelShuffle", "Embedding", "PositionalEmbedding",
     "SinusoidalPositional", "ClassToken", "PatchEmbed", "RelativePositionBias", "LayerNorm", "RMSNorm", "BatchNorm1d",
     "BatchNorm2d", "GroupNorm", "InstanceNorm2d", "MLP", "GatedMLP", "MoE", "Mamba", "Dropout", "DropPath",
-    "LSTM", "GRU", "RNN",
+    "LSTM", "GRU", "RNN", "Dropout2d", "PReLU", "Swish", "MaxPool3d", "AvgPool3d", "AdaptiveMaxPool1d", "AdaptiveMaxPool2d",
+    "BatchNorm3d", "LayerScale", "SqueezeExcite", "ALiBi", "SlidingWindowBias", "LinearAttention", "TimestepEmbedding", "VectorQuantizer",
+    "DiffusionForward",
 }
 
 
@@ -274,6 +310,69 @@ def _expr(t: str, p: dict[str, Any], mod: str, a: dict[str, str], rank: int | No
             return f"{x}.{op}(dim={p['dim']}{kd})"
         case "MeanPool":
             return f"{x}.mean(dim={p['dim']})"
+        case "Parameter":
+            return f"{mod}()"
+        case "GraphConv":
+            return f"{mod}({a['x']}, {a['adj']})"
+        case "ReLU6":
+            return f"F.relu6({x})"
+        case "HardTanh":
+            return f"F.hardtanh({x}, {_r(p['min'])}, {_r(p['max'])})"
+        case "Hardsigmoid":
+            return f"F.hardsigmoid({x})"
+        case "Softsign":
+            return f"F.softsign({x})"
+        case "GumbelSoftmax":
+            return f"F.gumbel_softmax({x}, tau={_r(p['tau'])}, hard={p['hard']}) if self.training else F.one_hot({x}.argmax(-1), {x}.shape[-1]).to({x}.dtype)" if p["hard"] else f"F.gumbel_softmax({x}, tau={_r(p['tau'])}) if self.training else F.softmax({x} / {_r(p['tau'])}, dim=-1)"
+        case "Math":
+            op = p["op"]
+            if op == "square":
+                return f"{x}.square()"
+            if op == "neg":
+                return f"-{x}"
+            return f"torch.{op}({x})"
+        case "Clamp":
+            return f"{x}.clamp({'' if p.get('min') is None else 'min=' + _r(p['min'])}{', ' if p.get('min') is not None and p.get('max') is not None else ''}{'' if p.get('max') is None else 'max=' + _r(p['max'])})"
+        case "Pow":
+            return f"{x}.pow({_r(p['exponent'])})"
+        case "AddConst":
+            return f"{x} + {_r(p['value'])}"
+        case "Div":
+            return f"{a['a']} / {a['b']}"
+        case "Maximum":
+            return f"torch.maximum({a['a']}, {a['b']})"
+        case "Minimum":
+            return f"torch.minimum({a['a']}, {a['b']})"
+        case "Einsum":
+            ops = ", ".join(a[k] for k in ("a", "b") if a.get(k))
+            return f"torch.einsum({p['equation']!r}, {ops})"
+        case "Cumsum":
+            return f"{x}.cumsum({p['dim']})"
+        case "Stack":
+            return f"torch.stack([{a['a']}, {a['b']}], dim={p['dim']})"
+        case "Squeeze":
+            return f"{x}.squeeze({p['dim']})"
+        case "Pad":
+            extra = (f", mode={p['mode']!r}" if p["mode"] != "constant" else "") + (f", value={_r(p['value'])}" if p["mode"] == "constant" and p["value"] else "")
+            return f"F.pad({x}, {tuple(p['pad'])!r}{extra})"
+        case "Repeat":
+            return f"{x}.repeat({', '.join(str(r) for r in p['repeats'])})"
+        case "TopK":
+            return f"torch.topk({x}, {p['k']}, dim={p['dim']})"
+        case "ArgMax":
+            return f"{x}.argmax(dim={p['dim']}{', keepdim=True' if p['keepdim'] else ''})"
+        case "OneHot":
+            return f"F.one_hot({x}.long(), {p['classes']}).float()"
+        case "Cast":
+            dt = {"f32": "torch.float32", "f16": "torch.float16", "bf16": "torch.bfloat16", "i64": "torch.long", "i32": "torch.int32"}[p["dtype"]]
+            return f"{x}.to({dt})"
+        case "StopGradient":
+            return f"{x}.detach()"
+        case "Interpolate":
+            align = ", align_corners=False" if p["mode"] in ("linear", "bilinear", "bicubic", "trilinear") else ""
+            return f"F.interpolate({x}, size={tuple(p['size'])!r}, mode={p['mode']!r}{align})"
+        case "GraphPool":
+            return f"{x}.amax(dim=1)" if p["op"] == "max" else f"{x}.{p['op']}(dim=1)"
         case "Reparameterize":
             return f"({a['mu']} + torch.randn_like({a['mu']}) * torch.exp(0.5 * {a['logvar']})) if self.training else {a['mu']}"
     raise NotImplementedError(t)
@@ -308,6 +407,18 @@ def _loss_expr(t: str, p: dict[str, Any], a: dict[str, str]) -> str:
             return f"F.triplet_margin_loss({a['anchor']}.float(), {a['positive']}.float(), {a['negative']}.float(), margin={_r(p['margin'])})"
         case "KLGaussian":
             return f"(-0.5 * (1 + {a['logvar']} - {a['mu']}.pow(2) - {a['logvar']}.exp()).sum(-1)).mean()"
+        case "AuxLoss":
+            return f"{a['in']}.float().mean()"
+        case "Focal":
+            ce = f"F.cross_entropy({a['logits']}.flatten(0, -2).float(), {a['target']}.flatten(), reduction='none')"
+            return f"((1 - torch.exp(-{ce})) ** {_r(p['gamma'])} * {ce}).mean()"
+        case "Dice":
+            pr, tg, sm = f"torch.sigmoid({a['pred']}.float()).flatten(1)", f"{a['target']}.float().flatten(1)", _r(p["smooth"])
+            return f"(1 - (2 * ({pr} * {tg}).sum(1) + {sm}) / ({pr}.sum(1) + {tg}.sum(1) + {sm})).mean()"
+        case "GaussianNLL":
+            return f"F.gaussian_nll_loss({a['mean']}.float(), {a['target']}.float(), {a['var']}.float())"
+        case "CosineEmbedding":
+            return f"(1 - F.cosine_similarity({a['a']}.float(), {a['b']}.float(), dim=-1)).mean()"
     raise NotImplementedError(t)
 
 
@@ -518,6 +629,7 @@ def compile_graph(graph: ir.Graph, analysis: Analysis | None = None, python=None
     e.emit("")
     order = ["LoRALinear", "BottleneckAdapter", "Attention", "CrossAttention", "MLP", "GatedMLP", "MoE", "Mamba", "Recurrent",
              "PositionalEmbedding", "SinusoidalPositional", "ClassToken", "PatchEmbed", "RelativePositionBias", "DropPath"]
+    order += [b for b in BLOCKS if b not in order]
     for b in order:
         if b in all_blocks:
             _gap(e)

@@ -435,6 +435,209 @@ class PositionalEmbedding(nn.Module):
         return x + self.weight[self.offset : self.offset + x.shape[1]]
 '''
 
+SWISH = '''
+class Swish(nn.Module):
+    """x · sigmoid(β·x), β learned per channel (starts at 1 = SiLU)."""
+
+    def __init__(self, dim: int):
+        super().__init__()
+        self.beta = nn.Parameter(torch.ones(dim))
+
+    def forward(self, x):
+        return x * torch.sigmoid(self.beta * x)
+'''
+
+LEARNED_TENSOR = '''
+class LearnedTensor(nn.Module):
+    """A free learned tensor (queries, prompts, latents)."""
+
+    def __init__(self, shape: tuple, init: str = "normal", std: float = 0.02):
+        super().__init__()
+        self.weight = nn.Parameter(torch.zeros(shape))
+        if init == "normal":
+            nn.init.normal_(self.weight, std=std)
+        elif init == "ones":
+            nn.init.ones_(self.weight)
+
+    def forward(self):
+        return self.weight
+'''
+
+LAYER_SCALE = '''
+class LayerScale(nn.Module):
+    """x · γ, γ per channel (last dim), initialised small so a new branch starts near identity."""
+
+    def __init__(self, dim: int, init: float = 1e-5):
+        super().__init__()
+        self.gamma = nn.Parameter(torch.full((dim,), init))
+
+    def forward(self, x):
+        return x * self.gamma
+'''
+
+SQUEEZE_EXCITE = '''
+class SqueezeExcite(nn.Module):
+    """Channel gate: average over the spatial dims, bottleneck MLP, sigmoid, rescale channels."""
+
+    def __init__(self, channels: int, reduction: int = 4):
+        super().__init__()
+        hidden = max(1, channels // reduction)
+        self.fc1 = nn.Linear(channels, hidden)
+        self.fc2 = nn.Linear(hidden, channels)
+
+    def forward(self, x):
+        s = x.mean(dim=tuple(range(2, x.ndim)))
+        s = torch.sigmoid(self.fc2(F.relu(self.fc1(s))))
+        return x * s.view(*s.shape, *([1] * (x.ndim - 2)))
+'''
+
+ALIBI = '''
+class ALiBi(nn.Module):
+    """Attention with linear biases (Press et al.): −slope_h · |i − j| per head, → heads×T×T."""
+
+    def __init__(self, heads: int, causal: bool = True):
+        super().__init__()
+        self.causal = causal
+        n = 2 ** math.floor(math.log2(heads))
+        slopes = [2 ** (-8 * (i + 1) / n) for i in range(n)]
+        if n < heads:  # non-power-of-two: interleave the next power's slopes
+            extra = [2 ** (-4 * (2 * i + 1) / n) for i in range(heads - n)]
+            slopes += extra
+        self.register_buffer("slopes", torch.tensor(slopes).view(heads, 1, 1), persistent=False)
+
+    def forward(self, x):
+        T = x.shape[1]
+        i = torch.arange(T, device=x.device)
+        dist = (i[None, :] - i[:, None]).abs().float()
+        bias = -self.slopes * dist
+        if self.causal:
+            bias = bias.masked_fill(i[None, :] > i[:, None], float("-inf"))
+        return bias
+'''
+
+SLIDING_WINDOW = '''
+class SlidingWindowBias(nn.Module):
+    """0 inside the window, −inf outside: each query sees at most `window` keys around it."""
+
+    def __init__(self, heads: int, window: int, causal: bool = True):
+        super().__init__()
+        self.heads, self.window, self.causal = heads, window, causal
+
+    def forward(self, x):
+        T = x.shape[1]
+        i = torch.arange(T, device=x.device)
+        d = i[:, None] - i[None, :]
+        allowed = (d < self.window) & ((d >= 0) if self.causal else (d > -self.window))
+        bias = torch.zeros(T, T, device=x.device).masked_fill(~allowed, float("-inf"))
+        return bias.expand(self.heads, T, T)
+'''
+
+LINEAR_ATTENTION = '''
+class LinearAttention(nn.Module):
+    """Kernelised attention (Katharopoulos et al.): φ(q)·(φ(k)ᵀv) with φ = elu + 1, linear in T."""
+
+    def __init__(self, dim: int, heads: int = 8, causal: bool = False):
+        super().__init__()
+        self.heads, self.causal = heads, causal
+        self.q_proj = nn.Linear(dim, dim)
+        self.k_proj = nn.Linear(dim, dim)
+        self.v_proj = nn.Linear(dim, dim)
+        self.o_proj = nn.Linear(dim, dim)
+
+    def forward(self, x):
+        B, T, D = x.shape
+        h = lambda t: t.view(B, T, self.heads, D // self.heads).transpose(1, 2)  # noqa: E731
+        q, k, v = F.elu(h(self.q_proj(x))) + 1, F.elu(h(self.k_proj(x))) + 1, h(self.v_proj(x))
+        if self.causal:
+            kv = torch.einsum("bhtd,bhte->bhtde", k, v).cumsum(2)
+            num = torch.einsum("bhtd,bhtde->bhte", q, kv)
+            den = torch.einsum("bhtd,bhtd->bht", q, k.cumsum(2)).unsqueeze(-1)
+        else:
+            num = q @ (k.transpose(-2, -1) @ v)
+            den = (q @ k.sum(2, keepdim=True).transpose(-2, -1))
+        y = num / (den + 1e-6)
+        return self.o_proj(y.transpose(1, 2).reshape(B, T, D))
+'''
+
+TIMESTEP_EMBEDDING = '''
+class TimestepEmbedding(nn.Module):
+    """Diffusion timestep → sinusoidal features → MLP (DDPM / DiT)."""
+
+    def __init__(self, dim: int, hidden: int | None = None, max_period: float = 10000.0):
+        super().__init__()
+        hidden = hidden or 4 * dim
+        self.dim, self.max_period = dim, max_period
+        self.fc1 = nn.Linear(dim, hidden)
+        self.fc2 = nn.Linear(hidden, dim)
+
+    def forward(self, t):
+        half = self.dim // 2
+        freqs = torch.exp(-math.log(self.max_period) * torch.arange(half, device=t.device, dtype=torch.float32) / half)
+        args = t.float()[:, None] * freqs[None]
+        emb = torch.cat([args.cos(), args.sin()], dim=-1)
+        return self.fc2(F.silu(self.fc1(emb.to(self.fc1.weight.dtype))))
+'''
+
+VECTOR_QUANTIZER = '''
+class VectorQuantizer(nn.Module):
+    """VQ-VAE codebook (van den Oord et al.): nearest code, straight-through gradient.
+
+    Returns (quantised, code indices, codebook + β·commitment loss).
+    """
+
+    def __init__(self, codes: int, dim: int, beta: float = 0.25):
+        super().__init__()
+        self.beta = beta
+        self.codebook = nn.Embedding(codes, dim)
+        nn.init.uniform_(self.codebook.weight, -1 / codes, 1 / codes)
+
+    def forward(self, x):
+        flat = x.reshape(-1, x.shape[-1])
+        w = self.codebook.weight
+        dist = flat.pow(2).sum(1, keepdim=True) - 2 * flat @ w.T + w.pow(2).sum(1)[None]
+        idx = dist.argmin(1)
+        q = self.codebook(idx).view_as(x)
+        loss = F.mse_loss(q, x.detach()) + self.beta * F.mse_loss(x, q.detach())
+        return x + (q - x).detach(), idx.view(x.shape[:-1]), loss
+'''
+
+DIFFUSION_FORWARD = '''
+class DiffusionForward(nn.Module):
+    """DDPM forward (noising) process with a fixed schedule; returns (x_t, t, ε)."""
+
+    def __init__(self, steps: int = 1000, schedule: str = "linear", beta_start: float = 1e-4, beta_end: float = 0.02):
+        super().__init__()
+        if schedule == "cosine":  # Nichol & Dhariwal 2021
+            s = torch.arange(steps + 1, dtype=torch.float64) / steps
+            f = torch.cos((s + 0.008) / 1.008 * math.pi / 2) ** 2
+            betas = (1 - f[1:] / f[:-1]).clamp(max=0.999)
+        else:
+            betas = torch.linspace(beta_start, beta_end, steps, dtype=torch.float64)
+        self.steps = steps
+        self.register_buffer("alphas_cumprod", torch.cumprod(1 - betas, 0).float(), persistent=False)
+
+    def forward(self, x):
+        t = torch.randint(0, self.steps, (x.shape[0],), device=x.device)
+        noise = torch.randn_like(x)
+        a = self.alphas_cumprod[t].view(-1, *([1] * (x.ndim - 1))).to(x.dtype)
+        return a.sqrt() * x + (1 - a).sqrt() * noise, t, noise
+'''
+
+GRAPH_CONV = '''
+class GraphConv(nn.Module):
+    """Kipf & Welling GCN layer: D^-½ (A + I) D^-½ X W."""
+
+    def __init__(self, in_features: int, out_features: int, bias: bool = True):
+        super().__init__()
+        self.lin = nn.Linear(in_features, out_features, bias=bias)
+
+    def forward(self, x, adj):
+        a = adj + torch.eye(adj.shape[-1], device=adj.device, dtype=adj.dtype)
+        d = a.sum(-1).clamp(min=1e-6).rsqrt()
+        a = d[..., :, None] * a * d[..., None, :]
+        return a.to(x.dtype) @ self.lin(x)
+'''
+
 BLOCKS = {
     "CrossAttention": CROSS_ATTENTION,
     "MoE": MOE,
@@ -451,4 +654,15 @@ BLOCKS = {
     "MLP": MLP,
     "GatedMLP": GATED_MLP,
     "PositionalEmbedding": POSITIONAL_EMBEDDING,
+    "Swish": SWISH,
+    "LearnedTensor": LEARNED_TENSOR,
+    "LayerScale": LAYER_SCALE,
+    "SqueezeExcite": SQUEEZE_EXCITE,
+    "ALiBi": ALIBI,
+    "SlidingWindowBias": SLIDING_WINDOW,
+    "LinearAttention": LINEAR_ATTENTION,
+    "TimestepEmbedding": TIMESTEP_EMBEDDING,
+    "VectorQuantizer": VECTOR_QUANTIZER,
+    "GraphConv": GRAPH_CONV,
+    "DiffusionForward": DIFFUSION_FORWARD,
 }

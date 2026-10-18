@@ -103,6 +103,9 @@ export function TopBar() {
         {daemon === "online" ? "daemon" : daemon === "offline" ? "daemon offline" : ""}
       </span>
       <span className="ml-auto flex items-center gap-2">
+        <button className="link !text-[13px]" onClick={() => window.dispatchEvent(new CustomEvent("ws:help"))} title="How Weightsmith works (?)">
+          Help
+        </button>
         {errors > 0 && <span className="text-small text-error">{errors} error{errors > 1 ? "s" : ""}</span>}
         <button
           onClick={async () => {
