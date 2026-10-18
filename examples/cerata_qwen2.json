@@ -1,0 +1,249 @@
+{
+  "schema": 1,
+  "name": "Cerata \u00b7 Qwen2.5-1.5B + fact adapter",
+  "nodes": [
+    {
+      "id": "prompt",
+      "type": "Input",
+      "label": "chat prompt (note in system)",
+      "params": {
+        "shape": [
+          "B",
+          "T"
+        ],
+        "dtype": "i64",
+        "field": "x"
+      }
+    },
+    {
+      "id": "embed",
+      "type": "Embedding",
+      "label": "embed_tokens",
+      "params": {
+        "num": 151936,
+        "dim": 1536
+      },
+      "trainable": false
+    },
+    {
+      "id": "layers",
+      "type": "Subgraph",
+      "label": "28\u00d7 Qwen2 decoder layer",
+      "params": {
+        "graph": "qwen2_layer",
+        "repeat": 28
+      }
+    },
+    {
+      "id": "norm",
+      "type": "RMSNorm",
+      "label": "final norm",
+      "params": {
+        "dim": 1536,
+        "eps": 1e-06
+      },
+      "trainable": false
+    },
+    {
+      "id": "lm_head",
+      "type": "Linear",
+      "label": "lm_head (tied)",
+      "params": {
+        "in": 1536,
+        "out": 151936,
+        "bias": false,
+        "tie_to": "embed"
+      },
+      "trainable": false
+    },
+    {
+      "id": "loss",
+      "type": "CrossEntropy",
+      "label": "edit prompt \u2192 answer"
+    }
+  ],
+  "edges": [
+    [
+      "prompt.out",
+      "embed.in"
+    ],
+    [
+      "embed.out",
+      "layers.x"
+    ],
+    [
+      "layers.out",
+      "norm.in"
+    ],
+    [
+      "norm.out",
+      "lm_head.in"
+    ],
+    [
+      "lm_head.out",
+      "loss.logits"
+    ]
+  ],
+  "subgraphs": {
+    "qwen2_layer": {
+      "nodes": [
+        {
+          "id": "x",
+          "type": "Input",
+          "params": {
+            "shape": [
+              "B",
+              "T",
+              1536
+            ]
+          }
+        },
+        {
+          "id": "input_norm",
+          "type": "RMSNorm",
+          "label": "input_layernorm",
+          "params": {
+            "dim": 1536,
+            "eps": 1e-06
+          },
+          "trainable": false
+        },
+        {
+          "id": "self_attn",
+          "type": "Attention",
+          "label": "self_attn \u00b7 GQA 12/2 \u00b7 RoPE",
+          "params": {
+            "dim": 1536,
+            "heads": 12,
+            "kv_heads": 2,
+            "causal": true,
+            "bias": true,
+            "o_bias": false,
+            "rope": true,
+            "rope_theta": 1000000.0
+          },
+          "trainable": false,
+          "adapt": [
+            {
+              "kind": "lora",
+              "target": "q_proj",
+              "r": 16,
+              "alpha": 32
+            },
+            {
+              "kind": "lora",
+              "target": "v_proj",
+              "r": 16,
+              "alpha": 32
+            }
+          ]
+        },
+        {
+          "id": "res_attn",
+          "type": "Add"
+        },
+        {
+          "id": "post_norm",
+          "type": "RMSNorm",
+          "label": "post_attention_layernorm",
+          "params": {
+            "dim": 1536,
+            "eps": 1e-06
+          },
+          "trainable": false
+        },
+        {
+          "id": "mlp",
+          "type": "GatedMLP",
+          "label": "mlp \u00b7 SwiGLU",
+          "params": {
+            "dim": 1536,
+            "hidden": 8960,
+            "act": "silu"
+          },
+          "trainable": false
+        },
+        {
+          "id": "res_mlp",
+          "type": "Add"
+        },
+        {
+          "id": "out",
+          "type": "Output"
+        }
+      ],
+      "edges": [
+        [
+          "x.out",
+          "input_norm.in"
+        ],
+        [
+          "input_norm.out",
+          "self_attn.in"
+        ],
+        [
+          "x.out",
+          "res_attn.a"
+        ],
+        [
+          "self_attn.out",
+          "res_attn.b"
+        ],
+        [
+          "res_attn.out",
+          "post_norm.in"
+        ],
+        [
+          "post_norm.out",
+          "mlp.in"
+        ],
+        [
+          "res_attn.out",
+          "res_mlp.a"
+        ],
+        [
+          "mlp.out",
+          "res_mlp.b"
+        ],
+        [
+          "res_mlp.out",
+          "out.in"
+        ]
+      ],
+      "layout": {
+        "x": {
+          "x": 0,
+          "y": 0
+        },
+        "input_norm": {
+          "x": 216,
+          "y": 104
+        },
+        "self_attn": {
+          "x": 216,
+          "y": 208
+        },
+        "res_attn": {
+          "x": 0,
+          "y": 320
+        },
+        "post_norm": {
+          "x": 216,
+          "y": 424
+        },
+        "mlp": {
+          "x": 216,
+          "y": 528
+        },
+        "res_mlp": {
+          "x": 0,
+          "y": 640
+        },
+        "out": {
+          "x": 0,
+          "y": 744
+        }
+      }
+    }
+  }
+}

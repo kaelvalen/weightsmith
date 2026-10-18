@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://weightsmith.dev/schema/ir/1",
+  "title": "Graph",
+  "description": "Weightsmith graph IR, schema version 1. Framework-independent; the single contract between canvas, backend and runtime.",
+  "type": "object",
+  "required": ["schema", "nodes", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": 1 },
+    "name": { "type": "string" },
+    "nodes": { "type": "array", "items": { "$ref": "#/$defs/Node" } },
+    "edges": { "type": "array", "items": { "$ref": "#/$defs/Edge" } },
+    "subgraphs": {
+      "type": "object",
+      "description": "Reusable parameterised blocks, referenced by Subgraph nodes via params.graph.",
+      "additionalProperties": { "$ref": "#/$defs/SubgraphDef" }
+    },
+    "layout": {
+      "type": "object",
+      "description": "Canvas coordinates. Excluded from the content hash.",
+      "additionalProperties": { "$ref": "#/$defs/Position" }
+    }
+  },
+  "$defs": {
+    "Dim": {
+      "description": "A concrete size or a symbolic dimension variable such as B, T, D.",
+      "oneOf": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_*]*$" }
+      ]
+    },
+    "Shape": { "type": "array", "items": { "$ref": "#/$defs/Dim" } },
+    "DType": { "enum": ["f32", "f16", "bf16", "i64", "i32", "bool"] },
+    "PortRef": {
+      "type": "string",
+      "description": "node.port",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_\\-]*\\.[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "Edge": {
+      "type": "array",
+      "description": "[source node.port, target node.port]. Only dataflow is an edge.",
+      "prefixItems": [{ "$ref": "#/$defs/PortRef" }, { "$ref": "#/$defs/PortRef" }],
+      "items": { "$ref": "#/$defs/PortRef" },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "Adapt": {
+      "type": "object",
+      "description": "A modifier that wraps a module's forward. Never changes graph topology.",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["lora", "adapter", "custom"] },
+        "target": { "type": "string", "description": "weight, or a sub-module name such as q_proj / v_proj" },
+        "r": { "type": "integer", "minimum": 1 },
+        "alpha": { "type": "number" },
+        "dropout": { "type": "number", "minimum": 0, "maximum": 1 },
+        "freeze": { "type": "boolean", "description": "Freeze the wrapped base parameters" },
+        "init": { "enum": ["zeros_b", "gaussian"], "description": "A/B initialisation, B=0 by default" },
+        "bottleneck": { "type": "integer", "minimum": 1, "description": "adapter kind: hidden size" },
+        "code": { "type": "string", "description": "custom kind: Python source defining a class with wrap(module) -> module" },
+        "class_name": { "type": "string" },
+        "disabled": { "type": "boolean", "description": "Ablation: skip this modifier" }
+      }
+    },
+    "Node": {
+      "type": "object",
+      "required": ["id", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_\\-]*$" },
+        "type": { "type": "string" },
+        "label": { "type": "string", "description": "Display name. Excluded from the content hash." },
+        "params": { "type": "object" },
+        "adapt": { "type": "array", "items": { "$ref": "#/$defs/Adapt" } },
+        "trainable": { "type": "boolean" },
+        "frozen_params": {
+          "type": "array",
+          "description": "Per-parameter freeze mask: parameter names (e.g. bias, q_proj.weight) to freeze.",
+          "items": { "type": "string" }
+        },
+        "disabled": { "type": "boolean", "description": "Ablation: replace this node by identity" }
+      }
+    },
+    "SubgraphDef": {
+      "type": "object",
+      "required": ["nodes", "edges"],
+      "additionalProperties": false,
+      "properties": {
+        "nodes": { "type": "array", "items": { "$ref": "#/$defs/Node" } },
+        "edges": { "type": "array", "items": { "$ref": "#/$defs/Edge" } },
+        "params": {
+          "type": "object",
+          "description": "Block parameters with defaults. Node params inside the block may reference them as \"$name\" or an arithmetic expression such as \"$C*2\"; a Subgraph node overrides them with params.args."
+        },
+        "doc": { "type": "string" },
+        "layout": { "type": "object", "additionalProperties": { "$ref": "#/$defs/Position" } }
+      }
+    },
+    "Position": {
+      "type": "object",
+      "required": ["x", "y"],
+      "additionalProperties": false,
+      "properties": { "x": { "type": "number" }, "y": { "type": "number" } }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "graph": {"$ref": "mnist_mlp.json"},
+  "data": {"source": "mnist", "split": {"val": 0.1, "seed": 0}},
+  "train": {"epochs": 1, "batch_size": 128, "optimizer": {"name": "adamw", "lr": 0.001},
+            "scheduler": {"name": "cosine", "warmup_steps": 50}, "log_every": 50, "eval_every": 200, "seed": 0}
+}

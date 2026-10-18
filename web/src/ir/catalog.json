@@ -1,0 +1,3198 @@
+{
+ "schema": 1,
+ "types": [
+  {
+   "type": "Input",
+   "category": "io",
+   "doc": "Graph input. Bound to a dataset field at training time.",
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "shape": {
+     "default": [
+      "B",
+      784
+     ],
+     "kind": "shape",
+     "required": true,
+     "choices": null,
+     "doc": "Leading B is the batch dimension"
+    },
+    "dtype": {
+     "default": "f32",
+     "kind": "choice",
+     "required": false,
+     "choices": [
+      "f32",
+      "f16",
+      "bf16",
+      "i64",
+      "i32",
+      "bool"
+     ],
+     "doc": ""
+    },
+    "field": {
+     "default": "x",
+     "kind": "str",
+     "required": false,
+     "choices": null,
+     "doc": "Dataset field fed into this input"
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Output",
+   "category": "io",
+   "doc": "Named graph output. Marks a tensor the model returns.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Linear",
+   "category": "layers",
+   "doc": "y = x W\u1d40 + b over the last dimension.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "in": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "out": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "bias": {
+     "default": true,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "tie_to": {
+     "default": null,
+     "kind": "str",
+     "required": false,
+     "choices": null,
+     "doc": "Share the weight of an Embedding node (e.g. an LM head tied to the input embedding)"
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "MLP",
+   "category": "layers",
+   "doc": "Two-layer feed-forward: fc2(act(fc1(x))).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "hidden": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "out": {
+     "default": null,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "Defaults to dim"
+    },
+    "act": {
+     "default": "gelu",
+     "kind": "choice",
+     "required": false,
+     "choices": [
+      "gelu",
+      "relu",
+      "silu",
+      "tanh"
+     ],
+     "doc": ""
+    },
+    "dropout": {
+     "default": 0.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "GatedMLP",
+   "category": "layers",
+   "doc": "Gated feed-forward (SwiGLU): down(act(gate(x)) \u00b7 up(x)).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "hidden": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "out": {
+     "default": null,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "Defaults to dim"
+    },
+    "act": {
+     "default": "silu",
+     "kind": "choice",
+     "required": false,
+     "choices": [
+      "silu",
+      "gelu"
+     ],
+     "doc": ""
+    },
+    "bias": {
+     "default": false,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Embedding",
+   "category": "embedding",
+   "doc": "Lookup table: integer ids \u2192 vectors.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "num": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": "Vocabulary size"
+    },
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "PositionalEmbedding",
+   "category": "embedding",
+   "doc": "Adds a learned position vector to each step of B\u00d7T\u00d7D.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "max_len": {
+     "default": 512,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "LayerNorm",
+   "category": "norm",
+   "doc": "Layer normalisation over the last dimension.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "eps": {
+     "default": 1e-05,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "RMSNorm",
+   "category": "norm",
+   "doc": "Root-mean-square normalisation over the last dimension.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "eps": {
+     "default": 1e-06,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "ReLU",
+   "category": "activation",
+   "doc": "max(0, x).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "SiLU",
+   "category": "activation",
+   "doc": "x \u00b7 sigmoid(x).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Tanh",
+   "category": "activation",
+   "doc": "Hyperbolic tangent.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Sigmoid",
+   "category": "activation",
+   "doc": "Logistic sigmoid.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Softmax",
+   "category": "activation",
+   "doc": "Softmax along a dimension.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": -1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Dropout",
+   "category": "activation",
+   "doc": "Zeroes elements with probability p during training.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "p": {
+     "default": 0.1,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Add",
+   "category": "structure",
+   "doc": "Element-wise a + b (broadcasting). Residual connections.",
+   "inputs": [
+    {
+     "name": "a",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "b",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Mul",
+   "category": "structure",
+   "doc": "Element-wise a \u00b7 b (broadcasting). Gating.",
+   "inputs": [
+    {
+     "name": "a",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "b",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Concat",
+   "category": "structure",
+   "doc": "Concatenate a and b along a dimension.",
+   "inputs": [
+    {
+     "name": "a",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "b",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": -1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Reshape",
+   "category": "structure",
+   "doc": "Reshape, keeping the leading batch dimension.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "shape": {
+     "default": [
+      "B",
+      -1
+     ],
+     "kind": "shape",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "MeanPool",
+   "category": "structure",
+   "doc": "Mean over one dimension (e.g. the sequence).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "CrossEntropy",
+   "category": "loss",
+   "doc": "Classification loss. target defaults to the dataset label field.",
+   "inputs": [
+    {
+     "name": "logits",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "target",
+     "optional": true,
+     "doc": "Unconnected: dataset field y"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loss"
+    }
+   ],
+   "params": {
+    "weight": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "Weight in the summed total loss"
+    },
+    "label_smoothing": {
+     "default": 0.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "target_field": {
+     "default": "y",
+     "kind": "str",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": true
+  },
+  {
+   "type": "MSE",
+   "category": "loss",
+   "doc": "Mean squared error. target defaults to the dataset label field.",
+   "inputs": [
+    {
+     "name": "pred",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "target",
+     "optional": true,
+     "doc": "Unconnected: dataset field y"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loss"
+    }
+   ],
+   "params": {
+    "weight": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "Weight in the summed total loss"
+    },
+    "target_field": {
+     "default": "y",
+     "kind": "str",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": true
+  },
+  {
+   "type": "Subgraph",
+   "category": "structure",
+   "doc": "Instance of a reusable block, optionally repeated N\u00d7 with weight tying.",
+   "inputs": [],
+   "outputs": [],
+   "params": {
+    "graph": {
+     "default": null,
+     "kind": "str",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "repeat": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "tie_weights": {
+     "default": false,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": "All repeats share one set of weights"
+    },
+    "args": {
+     "default": {},
+     "kind": "json",
+     "required": false,
+     "choices": null,
+     "doc": "Values for the block's $parameters, e.g. {\"C\": 128}"
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "PythonModule",
+   "category": "custom",
+   "doc": "Escape hatch: your own nn.Module plus an infer_shape contract.",
+   "inputs": [],
+   "outputs": [],
+   "params": {
+    "code": {
+     "default": "",
+     "kind": "code",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "class_name": {
+     "default": "Block",
+     "kind": "str",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "init": {
+     "default": {},
+     "kind": "json",
+     "required": false,
+     "choices": null,
+     "doc": "Keyword arguments for the constructor"
+    },
+    "signature": {
+     "default": null,
+     "kind": "json",
+     "required": false,
+     "choices": null,
+     "doc": "Cached port signature from the daemon"
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Conv1d",
+   "category": "convolution",
+   "doc": "1D convolution over B\u00d7C\u00d7L.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "in_channels": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "out_channels": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "kernel_size": {
+     "default": 3,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "stride": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "padding": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "dilation": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "groups": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "groups = in_channels for a depthwise convolution"
+    },
+    "bias": {
+     "default": true,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Conv2d",
+   "category": "convolution",
+   "doc": "2D convolution over B\u00d7C\u00d7H\u00d7W.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "in_channels": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "out_channels": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "kernel_size": {
+     "default": 3,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "stride": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "padding": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "dilation": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "groups": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "groups = in_channels for a depthwise convolution"
+    },
+    "bias": {
+     "default": true,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Conv3d",
+   "category": "convolution",
+   "doc": "3D convolution over B\u00d7C\u00d7D\u00d7H\u00d7W.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "in_channels": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "out_channels": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "kernel_size": {
+     "default": 3,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "stride": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "padding": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "dilation": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "groups": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "groups = in_channels for a depthwise convolution"
+    },
+    "bias": {
+     "default": true,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "ConvTranspose2d",
+   "category": "convolution",
+   "doc": "Transposed 2D convolution (learned upsampling).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "in_channels": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "out_channels": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "kernel_size": {
+     "default": 2,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "stride": {
+     "default": 2,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "padding": {
+     "default": 0,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "output_padding": {
+     "default": 0,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "bias": {
+     "default": true,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "MaxPool1d",
+   "category": "pooling",
+   "doc": "Max pooling over L.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "kernel_size": {
+     "default": 2,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "stride": {
+     "default": null,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "Defaults to kernel_size"
+    },
+    "padding": {
+     "default": 0,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "AvgPool1d",
+   "category": "pooling",
+   "doc": "Average pooling over L.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "kernel_size": {
+     "default": 2,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "stride": {
+     "default": null,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "Defaults to kernel_size"
+    },
+    "padding": {
+     "default": 0,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "MaxPool2d",
+   "category": "pooling",
+   "doc": "Max pooling over H\u00d7W.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "kernel_size": {
+     "default": 2,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "stride": {
+     "default": null,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "Defaults to kernel_size"
+    },
+    "padding": {
+     "default": 0,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "AvgPool2d",
+   "category": "pooling",
+   "doc": "Average pooling over H\u00d7W.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "kernel_size": {
+     "default": 2,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "stride": {
+     "default": null,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "Defaults to kernel_size"
+    },
+    "padding": {
+     "default": 0,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "AdaptiveAvgPool1d",
+   "category": "pooling",
+   "doc": "Average pooling to a fixed length.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "output_size": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "AdaptiveAvgPool2d",
+   "category": "pooling",
+   "doc": "Average pooling to a fixed H\u00d7W (1 = global average pooling).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "output_size": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Upsample",
+   "category": "pooling",
+   "doc": "Nearest or bilinear upsampling by an integer factor.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "scale_factor": {
+     "default": 2,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "mode": {
+     "default": "nearest",
+     "kind": "choice",
+     "required": false,
+     "choices": [
+      "nearest",
+      "bilinear"
+     ],
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "PixelShuffle",
+   "category": "pooling",
+   "doc": "Rearranges C\u00b7r\u00b2 channels into an r\u00d7 larger image.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "upscale_factor": {
+     "default": 2,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "BatchNorm1d",
+   "category": "norm",
+   "doc": "Batch normalisation over B\u00d7C or B\u00d7C\u00d7L.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "features": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "eps": {
+     "default": 1e-05,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "momentum": {
+     "default": 0.1,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "BatchNorm2d",
+   "category": "norm",
+   "doc": "Batch normalisation over B\u00d7C\u00d7H\u00d7W.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "features": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "eps": {
+     "default": 1e-05,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "momentum": {
+     "default": 0.1,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "GroupNorm",
+   "category": "norm",
+   "doc": "Group normalisation over channel groups.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "groups": {
+     "default": 32,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "channels": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "eps": {
+     "default": 1e-05,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "InstanceNorm2d",
+   "category": "norm",
+   "doc": "Per-sample, per-channel normalisation (style transfer, GANs).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "features": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "affine": {
+     "default": false,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "eps": {
+     "default": 1e-05,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "L2Normalize",
+   "category": "norm",
+   "doc": "Scales vectors to unit length along a dimension (embeddings).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": -1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "GELU",
+   "category": "activation",
+   "doc": "Gaussian error linear unit.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "approximate": {
+     "default": "none",
+     "kind": "choice",
+     "required": false,
+     "choices": [
+      "none",
+      "tanh"
+     ],
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "LeakyReLU",
+   "category": "activation",
+   "doc": "max(x, slope\u00b7x).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "negative_slope": {
+     "default": 0.01,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "ELU",
+   "category": "activation",
+   "doc": "Exponential linear unit.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "alpha": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "SELU",
+   "category": "activation",
+   "doc": "Self-normalising ELU.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Mish",
+   "category": "activation",
+   "doc": "x \u00b7 tanh(softplus(x)).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Softplus",
+   "category": "activation",
+   "doc": "log(1 + exp(\u03b2\u00b7x)) / \u03b2.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "beta": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Hardswish",
+   "category": "activation",
+   "doc": "Piecewise-linear swish (MobileNetV3).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "LogSoftmax",
+   "category": "activation",
+   "doc": "log(softmax(x)) along a dimension.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": -1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "GLU",
+   "category": "activation",
+   "doc": "Gated linear unit: a \u00b7 sigmoid(b) from the two halves of a dimension.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": -1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "DropPath",
+   "category": "activation",
+   "doc": "Stochastic depth: drops the whole residual branch per sample.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "p": {
+     "default": 0.1,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "SinusoidalPositional",
+   "category": "embedding",
+   "doc": "Adds fixed sine/cosine position encodings (no parameters).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "ClassToken",
+   "category": "embedding",
+   "doc": "Prepends a learned [CLS] token: B\u00d7T\u00d7D \u2192 B\u00d7(T+1)\u00d7D.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "PatchEmbed",
+   "category": "embedding",
+   "doc": "Image \u2192 sequence of patch embeddings (ViT): B\u00d7C\u00d7H\u00d7W \u2192 B\u00d7(H/p\u00b7W/p)\u00d7D.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "in_channels": {
+     "default": 3,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "patch": {
+     "default": 16,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "RelativePositionBias",
+   "category": "embedding",
+   "doc": "Bucketed relative position bias (T5/MPNet), one table shared by all layers: \u2192 heads\u00d7T\u00d7T.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "heads": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "buckets": {
+     "default": 32,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "max_distance": {
+     "default": 128,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "bidirectional": {
+     "default": true,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Attention",
+   "category": "attention",
+   "doc": "Multi-head self-attention: grouped-query (kv_heads), RoPE or NoPE, QK-norm, chunked local attention, optional additive bias.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "bias",
+     "optional": true,
+     "doc": "Additive attention bias, heads\u00d7T\u00d7T (e.g. RelativePositionBias)"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "heads": {
+     "default": 8,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "kv_heads": {
+     "default": null,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "Grouped-query attention: key/value heads (defaults to heads)"
+    },
+    "causal": {
+     "default": false,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "dropout": {
+     "default": 0.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "bias": {
+     "default": true,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": "Bias on q/k/v"
+    },
+    "o_bias": {
+     "default": true,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": "Bias on the output projection"
+    },
+    "rope": {
+     "default": false,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": "Rotary position embedding on q and k"
+    },
+    "rope_theta": {
+     "default": 10000.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "qk_norm": {
+     "default": "none",
+     "kind": "choice",
+     "required": false,
+     "choices": [
+      "none",
+      "rms",
+      "l2"
+     ],
+     "doc": "Normalise q and k per head (rms: learned scale, l2: none)"
+    },
+    "chunk": {
+     "default": 0,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "Local attention inside chunks of this many tokens (0 = full)"
+    },
+    "nope_temp": {
+     "default": false,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": "Llama 4 NoPE layers: scale q by log(position) for long context"
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "CrossAttention",
+   "category": "attention",
+   "doc": "Queries from the input, keys/values from a context sequence (decoders, conditioning).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "context",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "heads": {
+     "default": 8,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "context_dim": {
+     "default": null,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "Defaults to dim"
+    },
+    "dropout": {
+     "default": 0.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "bias": {
+     "default": true,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "LSTM",
+   "category": "sequence",
+   "doc": "Long short-term memory. out: every step; last: the final step (both directions concatenated).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    },
+    {
+     "name": "last"
+    }
+   ],
+   "params": {
+    "input": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "hidden": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "layers": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "bidirectional": {
+     "default": false,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "dropout": {
+     "default": 0.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "bias": {
+     "default": true,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "GRU",
+   "category": "sequence",
+   "doc": "Gated recurrent unit. out: every step; last: the final step (both directions concatenated).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    },
+    {
+     "name": "last"
+    }
+   ],
+   "params": {
+    "input": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "hidden": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "layers": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "bidirectional": {
+     "default": false,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "dropout": {
+     "default": 0.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "bias": {
+     "default": true,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "RNN",
+   "category": "sequence",
+   "doc": "Elman RNN (tanh). out: every step; last: the final step (both directions concatenated).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    },
+    {
+     "name": "last"
+    }
+   ],
+   "params": {
+    "input": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "hidden": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "layers": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "bidirectional": {
+     "default": false,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "dropout": {
+     "default": 0.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "bias": {
+     "default": true,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Mamba",
+   "category": "sequence",
+   "doc": "Selective state-space mixer (Mamba): causal, linear in sequence length.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "d_state": {
+     "default": 16,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "d_conv": {
+     "default": 4,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "expand": {
+     "default": 2,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "dt_rank": {
+     "default": null,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "Defaults to ceil(dim / 16)"
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "MoE",
+   "category": "layers",
+   "doc": "Mixture of SwiGLU experts. softmax: top-k weights renormalised over the output (Mixtral); sigmoid: the score scales the expert's input (Llama 4). Optional always-on shared expert.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "hidden": {
+     "default": null,
+     "kind": "int",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    },
+    "num_experts": {
+     "default": 8,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "top_k": {
+     "default": 2,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "router": {
+     "default": "softmax",
+     "kind": "choice",
+     "required": false,
+     "choices": [
+      "softmax",
+      "sigmoid"
+     ],
+     "doc": ""
+    },
+    "shared_hidden": {
+     "default": 0,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "Shared expert width (0 = none)"
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Sub",
+   "category": "structure",
+   "doc": "Element-wise a \u2212 b (broadcasting).",
+   "inputs": [
+    {
+     "name": "a",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "b",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Flatten",
+   "category": "structure",
+   "doc": "Merges dims start_dim..end_dim into one.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "start_dim": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "end_dim": {
+     "default": -1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Unflatten",
+   "category": "structure",
+   "doc": "Splits one dim into several (one size may be -1).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "sizes": {
+     "default": [
+      -1,
+      2
+     ],
+     "kind": "shape",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Transpose",
+   "category": "structure",
+   "doc": "Swaps two dimensions.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim0": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "dim1": {
+     "default": 2,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Permute",
+   "category": "structure",
+   "doc": "Reorders all dimensions.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dims": {
+     "default": [
+      0,
+      2,
+      1
+     ],
+     "kind": "shape",
+     "required": true,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Select",
+   "category": "structure",
+   "doc": "Picks one index along a dimension, removing it ([CLS] token, last step).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "index": {
+     "default": 0,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Slice",
+   "category": "structure",
+   "doc": "x[start:end] along a dimension.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "start": {
+     "default": 0,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "end": {
+     "default": null,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Unsqueeze",
+   "category": "structure",
+   "doc": "Inserts a size-1 dimension.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Chunk",
+   "category": "structure",
+   "doc": "Splits a dimension into two equal halves a and b.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "a"
+    },
+    {
+     "name": "b"
+    }
+   ],
+   "params": {
+    "dim": {
+     "default": -1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Reduce",
+   "category": "structure",
+   "doc": "mean, sum or max over one dimension (pooling over tokens).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "op": {
+     "default": "mean",
+     "kind": "choice",
+     "required": false,
+     "choices": [
+      "mean",
+      "sum",
+      "max"
+     ],
+     "doc": ""
+    },
+    "dim": {
+     "default": 1,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "keepdim": {
+     "default": false,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "MatMul",
+   "category": "structure",
+   "doc": "Batched matrix product a @ b.",
+   "inputs": [
+    {
+     "name": "a",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "b",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Scale",
+   "category": "structure",
+   "doc": "Multiplies by a constant.",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {
+    "factor": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": false
+  },
+  {
+   "type": "Identity",
+   "category": "structure",
+   "doc": "Passes the input through (placeholders, ablations).",
+   "inputs": [
+    {
+     "name": "in",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "Reparameterize",
+   "category": "generative",
+   "doc": "VAE sampling z = \u03bc + \u03b5\u00b7exp(\u00bd\u00b7log \u03c3\u00b2) (returns \u03bc at eval).",
+   "inputs": [
+    {
+     "name": "mu",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "logvar",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "out"
+    }
+   ],
+   "params": {},
+   "loss": false
+  },
+  {
+   "type": "BCEWithLogits",
+   "category": "loss",
+   "doc": "Binary / multi-label cross-entropy on logits.",
+   "inputs": [
+    {
+     "name": "pred",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "target",
+     "optional": true,
+     "doc": "Unconnected: dataset field y"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loss"
+    }
+   ],
+   "params": {
+    "weight": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "Weight in the summed total loss"
+    },
+    "target_field": {
+     "default": "y",
+     "kind": "str",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": true
+  },
+  {
+   "type": "L1",
+   "category": "loss",
+   "doc": "Mean absolute error.",
+   "inputs": [
+    {
+     "name": "pred",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "target",
+     "optional": true,
+     "doc": "Unconnected: dataset field y"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loss"
+    }
+   ],
+   "params": {
+    "weight": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "Weight in the summed total loss"
+    },
+    "target_field": {
+     "default": "y",
+     "kind": "str",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": true
+  },
+  {
+   "type": "Huber",
+   "category": "loss",
+   "doc": "Smooth L1: quadratic below delta, linear above.",
+   "inputs": [
+    {
+     "name": "pred",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "target",
+     "optional": true,
+     "doc": "Unconnected: dataset field y"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loss"
+    }
+   ],
+   "params": {
+    "weight": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "Weight in the summed total loss"
+    },
+    "target_field": {
+     "default": "y",
+     "kind": "str",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    },
+    "delta": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": true
+  },
+  {
+   "type": "NLL",
+   "category": "loss",
+   "doc": "Negative log-likelihood on log-probabilities (after LogSoftmax).",
+   "inputs": [
+    {
+     "name": "log_probs",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "target",
+     "optional": true,
+     "doc": "Unconnected: dataset field y"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loss"
+    }
+   ],
+   "params": {
+    "weight": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "Weight in the summed total loss"
+    },
+    "target_field": {
+     "default": "y",
+     "kind": "str",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": true
+  },
+  {
+   "type": "KLDiv",
+   "category": "loss",
+   "doc": "KL(target \u2016 input) for distillation; input is log-probabilities.",
+   "inputs": [
+    {
+     "name": "log_probs",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "target_probs",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loss"
+    }
+   ],
+   "params": {
+    "weight": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "Weight in the summed total loss"
+    }
+   },
+   "loss": true
+  },
+  {
+   "type": "Contrastive",
+   "category": "loss",
+   "doc": "In-batch contrastive loss (InfoNCE / MNRL / CLIP): row i of a matches row i of b; every other row of b, and any hard negatives, are wrong answers.",
+   "inputs": [
+    {
+     "name": "a",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "b",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "negatives",
+     "optional": true,
+     "doc": "Hard negatives, N\u00d7D, appended as extra wrong answers"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loss"
+    }
+   ],
+   "params": {
+    "weight": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "Weight in the summed total loss"
+    },
+    "scale": {
+     "default": 20.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "1 / temperature"
+    },
+    "symmetric": {
+     "default": false,
+     "kind": "bool",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": true
+  },
+  {
+   "type": "Triplet",
+   "category": "loss",
+   "doc": "max(d(a,p) \u2212 d(a,n) + margin, 0).",
+   "inputs": [
+    {
+     "name": "anchor",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "positive",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "negative",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loss"
+    }
+   ],
+   "params": {
+    "weight": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "Weight in the summed total loss"
+    },
+    "margin": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": ""
+    }
+   },
+   "loss": true
+  },
+  {
+   "type": "KLGaussian",
+   "category": "loss",
+   "doc": "VAE prior term: KL(N(\u03bc, \u03c3\u00b2) \u2016 N(0, 1)), summed over latent dims.",
+   "inputs": [
+    {
+     "name": "mu",
+     "optional": false,
+     "doc": ""
+    },
+    {
+     "name": "logvar",
+     "optional": false,
+     "doc": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "loss"
+    }
+   ],
+   "params": {
+    "weight": {
+     "default": 1.0,
+     "kind": "float",
+     "required": false,
+     "choices": null,
+     "doc": "Weight in the summed total loss"
+    }
+   },
+   "loss": true
+  }
+ ]
+}

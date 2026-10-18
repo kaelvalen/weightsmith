@@ -1,0 +1,191 @@
+{
+  "schema": 1,
+  "name": "Transformer \u00b7 associative memory (Python node)",
+  "nodes": [
+    {
+      "id": "tokens",
+      "type": "Input",
+      "params": {
+        "shape": [
+          "B",
+          16
+        ],
+        "dtype": "i64",
+        "field": "x"
+      }
+    },
+    {
+      "id": "emb",
+      "type": "Embedding",
+      "label": "token embedding",
+      "params": {
+        "num": 16,
+        "dim": 64
+      }
+    },
+    {
+      "id": "pos",
+      "type": "PositionalEmbedding",
+      "params": {
+        "max_len": 64,
+        "dim": 64
+      }
+    },
+    {
+      "id": "blocks",
+      "type": "Subgraph",
+      "label": "2\u00d7 encoder block",
+      "params": {
+        "graph": "block",
+        "repeat": 2
+      }
+    },
+    {
+      "id": "norm",
+      "type": "LayerNorm",
+      "params": {
+        "dim": 64
+      }
+    },
+    {
+      "id": "head",
+      "type": "Linear",
+      "params": {
+        "in": 64,
+        "out": 16
+      }
+    },
+    {
+      "id": "loss",
+      "type": "CrossEntropy"
+    }
+  ],
+  "edges": [
+    [
+      "tokens.out",
+      "emb.in"
+    ],
+    [
+      "emb.out",
+      "pos.in"
+    ],
+    [
+      "pos.out",
+      "blocks.x"
+    ],
+    [
+      "blocks.out",
+      "norm.in"
+    ],
+    [
+      "norm.out",
+      "head.in"
+    ],
+    [
+      "head.out",
+      "loss.logits"
+    ]
+  ],
+  "subgraphs": {
+    "block": {
+      "nodes": [
+        {
+          "id": "x",
+          "type": "Input",
+          "params": {
+            "shape": [
+              "B",
+              "T",
+              64
+            ]
+          }
+        },
+        {
+          "id": "ln1",
+          "type": "LayerNorm",
+          "params": {
+            "dim": 64
+          }
+        },
+        {
+          "id": "mem",
+          "type": "PythonModule",
+          "label": "associative memory",
+          "params": {
+            "code": "class AssociativeMemory(nn.Module):\n    \"\"\"Linear-attention associative memory: M = \u03a3 \u03c6(k)\u1d40v, read with \u03c6(q).\"\"\"\n\n    def __init__(self, dim: int, heads: int = 4):\n        super().__init__()\n        self.heads = heads\n        self.qkv = nn.Linear(dim, 3 * dim)\n        self.out = nn.Linear(dim, dim)\n\n    def forward(self, x):\n        B, T, D = x.shape\n        q, k, v = self.qkv(x).view(B, T, 3, self.heads, D // self.heads).unbind(2)\n        q, k = F.elu(q) + 1, F.elu(k) + 1\n        memory = torch.einsum(\"bthd,bthe->bhde\", k, v)\n        norm = torch.einsum(\"bthd,bhd->bth\", q, k.sum(1)).unsqueeze(-1)\n        y = torch.einsum(\"bthd,bhde->bthe\", q, memory) / (norm + 1e-6)\n        return self.out(y.reshape(B, T, D))\n\n    @staticmethod\n    def infer_shape(inputs):\n        return {\"out\": inputs[\"x\"]}\n",
+            "class_name": "AssociativeMemory",
+            "init": {
+              "dim": 64,
+              "heads": 4
+            }
+          }
+        },
+        {
+          "id": "res1",
+          "type": "Add"
+        },
+        {
+          "id": "ln2",
+          "type": "LayerNorm",
+          "params": {
+            "dim": 64
+          }
+        },
+        {
+          "id": "mlp",
+          "type": "MLP",
+          "params": {
+            "dim": 64,
+            "hidden": 256
+          }
+        },
+        {
+          "id": "res2",
+          "type": "Add"
+        },
+        {
+          "id": "out",
+          "type": "Output"
+        }
+      ],
+      "edges": [
+        [
+          "x.out",
+          "ln1.in"
+        ],
+        [
+          "ln1.out",
+          "mem.x"
+        ],
+        [
+          "x.out",
+          "res1.a"
+        ],
+        [
+          "mem.out",
+          "res1.b"
+        ],
+        [
+          "res1.out",
+          "ln2.in"
+        ],
+        [
+          "ln2.out",
+          "mlp.in"
+        ],
+        [
+          "res1.out",
+          "res2.a"
+        ],
+        [
+          "mlp.out",
+          "res2.b"
+        ],
+        [
+          "res2.out",
+          "out.in"
+        ]
+      ]
+    }
+  }
+}

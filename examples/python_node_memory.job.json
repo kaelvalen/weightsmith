@@ -1,0 +1,31 @@
+{
+  "graph": {
+    "$ref": "python_node_memory.json"
+  },
+  "data": {
+    "source": "synthetic",
+    "kind": "reverse",
+    "n": 8192,
+    "length": 16,
+    "vocab": 16,
+    "split": {
+      "val": 0.1,
+      "seed": 0
+    }
+  },
+  "train": {
+    "epochs": 40,
+    "batch_size": 128,
+    "optimizer": {
+      "name": "adamw",
+      "lr": 0.001
+    },
+    "scheduler": {
+      "name": "cosine",
+      "warmup_steps": 50
+    },
+    "log_every": 25,
+    "eval_every": 500,
+    "seed": 0
+  }
+}

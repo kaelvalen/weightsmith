@@ -1,0 +1,5 @@
+{
+  "graph": {"$ref": "mlp_lora.json"},
+  "data": {"source": "synthetic", "kind": "classification", "n": 8192, "dim": 768, "classes": 10},
+  "train": {"epochs": 3, "batch_size": 128, "optimizer": {"name": "adamw", "lr": 0.001}, "log_every": 10, "eval_every": 100}
+}

@@ -1,0 +1,890 @@
+[
+ {
+  "name": "Cerata \u00b7 Qwen2.5-1.5B + fact adapter",
+  "graph": {
+   "schema": 1,
+   "name": "Cerata \u00b7 Qwen2.5-1.5B + fact adapter",
+   "nodes": [
+    {
+     "id": "prompt",
+     "type": "Input",
+     "label": "chat prompt (note in system)",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "x"
+     }
+    },
+    {
+     "id": "embed",
+     "type": "Embedding",
+     "label": "embed_tokens",
+     "params": {
+      "num": 151936,
+      "dim": 1536
+     },
+     "trainable": false
+    },
+    {
+     "id": "layers",
+     "type": "Subgraph",
+     "label": "28\u00d7 Qwen2 decoder layer",
+     "params": {
+      "graph": "qwen2_layer",
+      "repeat": 28
+     }
+    },
+    {
+     "id": "norm",
+     "type": "RMSNorm",
+     "label": "final norm",
+     "params": {
+      "dim": 1536,
+      "eps": 1e-06
+     },
+     "trainable": false
+    },
+    {
+     "id": "lm_head",
+     "type": "Linear",
+     "label": "lm_head (tied)",
+     "params": {
+      "in": 1536,
+      "out": 151936,
+      "bias": false,
+      "tie_to": "embed"
+     },
+     "trainable": false
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy",
+     "label": "edit prompt \u2192 answer"
+    }
+   ],
+   "edges": [
+    [
+     "prompt.out",
+     "embed.in"
+    ],
+    [
+     "embed.out",
+     "layers.x"
+    ],
+    [
+     "layers.out",
+     "norm.in"
+    ],
+    [
+     "norm.out",
+     "lm_head.in"
+    ],
+    [
+     "lm_head.out",
+     "loss.logits"
+    ]
+   ],
+   "subgraphs": {
+    "qwen2_layer": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T",
+         1536
+        ]
+       }
+      },
+      {
+       "id": "input_norm",
+       "type": "RMSNorm",
+       "label": "input_layernorm",
+       "params": {
+        "dim": 1536,
+        "eps": 1e-06
+       },
+       "trainable": false
+      },
+      {
+       "id": "self_attn",
+       "type": "Attention",
+       "label": "self_attn \u00b7 GQA 12/2 \u00b7 RoPE",
+       "params": {
+        "dim": 1536,
+        "heads": 12,
+        "kv_heads": 2,
+        "causal": true,
+        "bias": true,
+        "o_bias": false,
+        "rope": true,
+        "rope_theta": 1000000.0
+       },
+       "trainable": false,
+       "adapt": [
+        {
+         "kind": "lora",
+         "target": "q_proj",
+         "r": 16,
+         "alpha": 32
+        },
+        {
+         "kind": "lora",
+         "target": "v_proj",
+         "r": 16,
+         "alpha": 32
+        }
+       ]
+      },
+      {
+       "id": "res_attn",
+       "type": "Add"
+      },
+      {
+       "id": "post_norm",
+       "type": "RMSNorm",
+       "label": "post_attention_layernorm",
+       "params": {
+        "dim": 1536,
+        "eps": 1e-06
+       },
+       "trainable": false
+      },
+      {
+       "id": "mlp",
+       "type": "GatedMLP",
+       "label": "mlp \u00b7 SwiGLU",
+       "params": {
+        "dim": 1536,
+        "hidden": 8960,
+        "act": "silu"
+       },
+       "trainable": false
+      },
+      {
+       "id": "res_mlp",
+       "type": "Add"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "input_norm.in"
+      ],
+      [
+       "input_norm.out",
+       "self_attn.in"
+      ],
+      [
+       "x.out",
+       "res_attn.a"
+      ],
+      [
+       "self_attn.out",
+       "res_attn.b"
+      ],
+      [
+       "res_attn.out",
+       "post_norm.in"
+      ],
+      [
+       "post_norm.out",
+       "mlp.in"
+      ],
+      [
+       "res_attn.out",
+       "res_mlp.a"
+      ],
+      [
+       "mlp.out",
+       "res_mlp.b"
+      ],
+      [
+       "res_mlp.out",
+       "out.in"
+      ]
+     ],
+     "layout": {
+      "x": {
+       "x": 0,
+       "y": 0
+      },
+      "input_norm": {
+       "x": 216,
+       "y": 104
+      },
+      "self_attn": {
+       "x": 216,
+       "y": 208
+      },
+      "res_attn": {
+       "x": 0,
+       "y": 320
+      },
+      "post_norm": {
+       "x": 216,
+       "y": 424
+      },
+      "mlp": {
+       "x": 216,
+       "y": 528
+      },
+      "res_mlp": {
+       "x": 0,
+       "y": 640
+      },
+      "out": {
+       "x": 0,
+       "y": 744
+      }
+     }
+    }
+   }
+  },
+  "data": {},
+  "train": {
+   "max_steps": 32,
+   "batch_size": 2,
+   "optimizer": {
+    "name": "adamw",
+    "lr": 0.0003,
+    "weight_decay": 0.0
+   },
+   "scheduler": {
+    "name": "constant"
+   },
+   "precision": "bf16",
+   "grad_clip": null,
+   "log_every": 1
+  }
+ },
+ {
+  "name": "MLP + LoRA (plan example)",
+  "graph": {
+   "schema": 1,
+   "name": "MLP + LoRA (plan example)",
+   "nodes": [
+    {
+     "id": "in",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       768
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "fc1",
+     "type": "Linear",
+     "params": {
+      "in": 768,
+      "out": 1024
+     },
+     "adapt": [
+      {
+       "kind": "lora",
+       "target": "weight",
+       "r": 16,
+       "alpha": 32
+      }
+     ]
+    },
+    {
+     "id": "act",
+     "type": "GELU"
+    },
+    {
+     "id": "fc2",
+     "type": "Linear",
+     "params": {
+      "in": 1024,
+      "out": 10
+     }
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy"
+    }
+   ],
+   "edges": [
+    [
+     "in.out",
+     "fc1.in"
+    ],
+    [
+     "fc1.out",
+     "act.in"
+    ],
+    [
+     "act.out",
+     "fc2.in"
+    ],
+    [
+     "fc2.out",
+     "loss.logits"
+    ]
+   ]
+  },
+  "data": {
+   "source": "synthetic",
+   "kind": "classification",
+   "n": 8192,
+   "dim": 768,
+   "classes": 10
+  },
+  "train": {
+   "epochs": 3,
+   "batch_size": 128,
+   "optimizer": {
+    "name": "adamw",
+    "lr": 0.001
+   },
+   "log_every": 10,
+   "eval_every": 100
+  }
+ },
+ {
+  "name": "MNIST MLP",
+  "graph": {
+   "schema": 1,
+   "name": "MNIST MLP",
+   "nodes": [
+    {
+     "id": "image",
+     "type": "Input",
+     "label": "image",
+     "params": {
+      "shape": [
+       "B",
+       784
+      ],
+      "dtype": "f32",
+      "field": "x"
+     }
+    },
+    {
+     "id": "fc1",
+     "type": "Linear",
+     "params": {
+      "in": 784,
+      "out": 256
+     }
+    },
+    {
+     "id": "act",
+     "type": "ReLU"
+    },
+    {
+     "id": "drop",
+     "type": "Dropout",
+     "params": {
+      "p": 0.1
+     }
+    },
+    {
+     "id": "fc2",
+     "type": "Linear",
+     "label": "classifier",
+     "params": {
+      "in": 256,
+      "out": 10
+     }
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy"
+    }
+   ],
+   "edges": [
+    [
+     "image.out",
+     "fc1.in"
+    ],
+    [
+     "fc1.out",
+     "act.in"
+    ],
+    [
+     "act.out",
+     "drop.in"
+    ],
+    [
+     "drop.out",
+     "fc2.in"
+    ],
+    [
+     "fc2.out",
+     "loss.logits"
+    ]
+   ]
+  },
+  "data": {
+   "source": "mnist",
+   "split": {
+    "val": 0.1,
+    "seed": 0
+   }
+  },
+  "train": {
+   "epochs": 1,
+   "batch_size": 128,
+   "optimizer": {
+    "name": "adamw",
+    "lr": 0.001
+   },
+   "scheduler": {
+    "name": "cosine",
+    "warmup_steps": 50
+   },
+   "log_every": 50,
+   "eval_every": 200,
+   "seed": 0
+  }
+ },
+ {
+  "name": "Transformer \u00b7 associative memory (Python node)",
+  "graph": {
+   "schema": 1,
+   "name": "Transformer \u00b7 associative memory (Python node)",
+   "nodes": [
+    {
+     "id": "tokens",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       16
+      ],
+      "dtype": "i64",
+      "field": "x"
+     }
+    },
+    {
+     "id": "emb",
+     "type": "Embedding",
+     "label": "token embedding",
+     "params": {
+      "num": 16,
+      "dim": 64
+     }
+    },
+    {
+     "id": "pos",
+     "type": "PositionalEmbedding",
+     "params": {
+      "max_len": 64,
+      "dim": 64
+     }
+    },
+    {
+     "id": "blocks",
+     "type": "Subgraph",
+     "label": "2\u00d7 encoder block",
+     "params": {
+      "graph": "block",
+      "repeat": 2
+     }
+    },
+    {
+     "id": "norm",
+     "type": "LayerNorm",
+     "params": {
+      "dim": 64
+     }
+    },
+    {
+     "id": "head",
+     "type": "Linear",
+     "params": {
+      "in": 64,
+      "out": 16
+     }
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy"
+    }
+   ],
+   "edges": [
+    [
+     "tokens.out",
+     "emb.in"
+    ],
+    [
+     "emb.out",
+     "pos.in"
+    ],
+    [
+     "pos.out",
+     "blocks.x"
+    ],
+    [
+     "blocks.out",
+     "norm.in"
+    ],
+    [
+     "norm.out",
+     "head.in"
+    ],
+    [
+     "head.out",
+     "loss.logits"
+    ]
+   ],
+   "subgraphs": {
+    "block": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T",
+         64
+        ]
+       }
+      },
+      {
+       "id": "ln1",
+       "type": "LayerNorm",
+       "params": {
+        "dim": 64
+       }
+      },
+      {
+       "id": "mem",
+       "type": "PythonModule",
+       "label": "associative memory",
+       "params": {
+        "code": "class AssociativeMemory(nn.Module):\n    \"\"\"Linear-attention associative memory: M = \u03a3 \u03c6(k)\u1d40v, read with \u03c6(q).\"\"\"\n\n    def __init__(self, dim: int, heads: int = 4):\n        super().__init__()\n        self.heads = heads\n        self.qkv = nn.Linear(dim, 3 * dim)\n        self.out = nn.Linear(dim, dim)\n\n    def forward(self, x):\n        B, T, D = x.shape\n        q, k, v = self.qkv(x).view(B, T, 3, self.heads, D // self.heads).unbind(2)\n        q, k = F.elu(q) + 1, F.elu(k) + 1\n        memory = torch.einsum(\"bthd,bthe->bhde\", k, v)\n        norm = torch.einsum(\"bthd,bhd->bth\", q, k.sum(1)).unsqueeze(-1)\n        y = torch.einsum(\"bthd,bhde->bthe\", q, memory) / (norm + 1e-6)\n        return self.out(y.reshape(B, T, D))\n\n    @staticmethod\n    def infer_shape(inputs):\n        return {\"out\": inputs[\"x\"]}\n",
+        "class_name": "AssociativeMemory",
+        "init": {
+         "dim": 64,
+         "heads": 4
+        }
+       }
+      },
+      {
+       "id": "res1",
+       "type": "Add"
+      },
+      {
+       "id": "ln2",
+       "type": "LayerNorm",
+       "params": {
+        "dim": 64
+       }
+      },
+      {
+       "id": "mlp",
+       "type": "MLP",
+       "params": {
+        "dim": 64,
+        "hidden": 256
+       }
+      },
+      {
+       "id": "res2",
+       "type": "Add"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "ln1.in"
+      ],
+      [
+       "ln1.out",
+       "mem.x"
+      ],
+      [
+       "x.out",
+       "res1.a"
+      ],
+      [
+       "mem.out",
+       "res1.b"
+      ],
+      [
+       "res1.out",
+       "ln2.in"
+      ],
+      [
+       "ln2.out",
+       "mlp.in"
+      ],
+      [
+       "res1.out",
+       "res2.a"
+      ],
+      [
+       "mlp.out",
+       "res2.b"
+      ],
+      [
+       "res2.out",
+       "out.in"
+      ]
+     ]
+    }
+   }
+  },
+  "data": {
+   "source": "synthetic",
+   "kind": "reverse",
+   "n": 8192,
+   "length": 16,
+   "vocab": 16,
+   "split": {
+    "val": 0.1,
+    "seed": 0
+   }
+  },
+  "train": {
+   "epochs": 40,
+   "batch_size": 128,
+   "optimizer": {
+    "name": "adamw",
+    "lr": 0.001
+   },
+   "scheduler": {
+    "name": "cosine",
+    "warmup_steps": 50
+   },
+   "log_every": 25,
+   "eval_every": 500,
+   "seed": 0
+  }
+ },
+ {
+  "name": "Tiny Transformer \u00b7 reverse",
+  "graph": {
+   "schema": 1,
+   "name": "Tiny Transformer \u00b7 reverse",
+   "nodes": [
+    {
+     "id": "tokens",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       16
+      ],
+      "dtype": "i64",
+      "field": "x"
+     }
+    },
+    {
+     "id": "emb",
+     "type": "Embedding",
+     "label": "token embedding",
+     "params": {
+      "num": 16,
+      "dim": 64
+     }
+    },
+    {
+     "id": "pos",
+     "type": "PositionalEmbedding",
+     "params": {
+      "max_len": 64,
+      "dim": 64
+     }
+    },
+    {
+     "id": "blocks",
+     "type": "Subgraph",
+     "label": "2\u00d7 encoder block",
+     "params": {
+      "graph": "block",
+      "repeat": 2
+     }
+    },
+    {
+     "id": "norm",
+     "type": "LayerNorm",
+     "params": {
+      "dim": 64
+     }
+    },
+    {
+     "id": "head",
+     "type": "Linear",
+     "params": {
+      "in": 64,
+      "out": 16
+     }
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy"
+    }
+   ],
+   "edges": [
+    [
+     "tokens.out",
+     "emb.in"
+    ],
+    [
+     "emb.out",
+     "pos.in"
+    ],
+    [
+     "pos.out",
+     "blocks.x"
+    ],
+    [
+     "blocks.out",
+     "norm.in"
+    ],
+    [
+     "norm.out",
+     "head.in"
+    ],
+    [
+     "head.out",
+     "loss.logits"
+    ]
+   ],
+   "subgraphs": {
+    "block": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T",
+         64
+        ]
+       }
+      },
+      {
+       "id": "ln1",
+       "type": "LayerNorm",
+       "params": {
+        "dim": 64
+       }
+      },
+      {
+       "id": "attn",
+       "type": "Attention",
+       "params": {
+        "dim": 64,
+        "heads": 4
+       }
+      },
+      {
+       "id": "res1",
+       "type": "Add"
+      },
+      {
+       "id": "ln2",
+       "type": "LayerNorm",
+       "params": {
+        "dim": 64
+       }
+      },
+      {
+       "id": "mlp",
+       "type": "MLP",
+       "params": {
+        "dim": 64,
+        "hidden": 256
+       }
+      },
+      {
+       "id": "res2",
+       "type": "Add"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "ln1.in"
+      ],
+      [
+       "ln1.out",
+       "attn.in"
+      ],
+      [
+       "x.out",
+       "res1.a"
+      ],
+      [
+       "attn.out",
+       "res1.b"
+      ],
+      [
+       "res1.out",
+       "ln2.in"
+      ],
+      [
+       "ln2.out",
+       "mlp.in"
+      ],
+      [
+       "res1.out",
+       "res2.a"
+      ],
+      [
+       "mlp.out",
+       "res2.b"
+      ],
+      [
+       "res2.out",
+       "out.in"
+      ]
+     ]
+    }
+   }
+  },
+  "data": {
+   "source": "synthetic",
+   "kind": "reverse",
+   "n": 8192,
+   "length": 16,
+   "vocab": 16,
+   "split": {
+    "val": 0.1,
+    "seed": 0
+   }
+  },
+  "train": {
+   "epochs": 40,
+   "batch_size": 128,
+   "optimizer": {
+    "name": "adamw",
+    "lr": 0.001
+   },
+   "scheduler": {
+    "name": "cosine",
+    "warmup_steps": 50
+   },
+   "log_every": 25,
+   "eval_every": 500,
+   "seed": 0
+  }
+ }
+]

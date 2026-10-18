@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "name": "MNIST MLP",
+  "nodes": [
+    {
+      "id": "image",
+      "type": "Input",
+      "label": "image",
+      "params": {
+        "shape": [
+          "B",
+          784
+        ],
+        "dtype": "f32",
+        "field": "x"
+      }
+    },
+    {
+      "id": "fc1",
+      "type": "Linear",
+      "params": {
+        "in": 784,
+        "out": 256
+      }
+    },
+    {
+      "id": "act",
+      "type": "ReLU"
+    },
+    {
+      "id": "drop",
+      "type": "Dropout",
+      "params": {
+        "p": 0.1
+      }
+    },
+    {
+      "id": "fc2",
+      "type": "Linear",
+      "label": "classifier",
+      "params": {
+        "in": 256,
+        "out": 10
+      }
+    },
+    {
+      "id": "loss",
+      "type": "CrossEntropy"
+    }
+  ],
+  "edges": [
+    [
+      "image.out",
+      "fc1.in"
+    ],
+    [
+      "fc1.out",
+      "act.in"
+    ],
+    [
+      "act.out",
+      "drop.in"
+    ],
+    [
+      "drop.out",
+      "fc2.in"
+    ],
+    [
+      "fc2.out",
+      "loss.logits"
+    ]
+  ]
+}

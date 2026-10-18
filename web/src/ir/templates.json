@@ -1,0 +1,5990 @@
+[
+ {
+  "id": "mlp_mnist",
+  "name": "MLP \u00b7 MNIST",
+  "kind": "model",
+  "category": "vision",
+  "doc": "Two-layer perceptron for 28\u00d728 digits.",
+  "reference": null,
+  "source": "",
+  "graph": {
+   "schema": 1,
+   "name": "MLP \u00b7 MNIST",
+   "nodes": [
+    {
+     "id": "image",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       784
+      ]
+     }
+    },
+    {
+     "id": "fc1",
+     "type": "Linear",
+     "params": {
+      "in": 784,
+      "out": 256
+     }
+    },
+    {
+     "id": "act",
+     "type": "ReLU"
+    },
+    {
+     "id": "drop",
+     "type": "Dropout",
+     "params": {
+      "p": 0.1
+     }
+    },
+    {
+     "id": "fc2",
+     "type": "Linear",
+     "params": {
+      "in": 256,
+      "out": 10
+     }
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy"
+    }
+   ],
+   "edges": [
+    [
+     "image.out",
+     "fc1.in"
+    ],
+    [
+     "fc1.out",
+     "act.in"
+    ],
+    [
+     "act.out",
+     "drop.in"
+    ],
+    [
+     "drop.out",
+     "fc2.in"
+    ],
+    [
+     "fc2.out",
+     "loss.logits"
+    ]
+   ]
+  }
+ },
+ {
+  "id": "lenet5",
+  "name": "LeNet-5",
+  "kind": "model",
+  "category": "vision",
+  "doc": "LeCun et al. 1998: conv-pool-conv-pool and three dense layers.",
+  "reference": 61706,
+  "source": "LeCun et al. 1998",
+  "graph": {
+   "schema": 1,
+   "name": "LeNet-5",
+   "nodes": [
+    {
+     "id": "image",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       1,
+       28,
+       28
+      ]
+     }
+    },
+    {
+     "id": "c1",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 1,
+      "out_channels": 6,
+      "kernel_size": 5,
+      "padding": 2
+     }
+    },
+    {
+     "id": "t1",
+     "type": "Tanh"
+    },
+    {
+     "id": "s2",
+     "type": "AvgPool2d",
+     "params": {
+      "kernel_size": 2
+     }
+    },
+    {
+     "id": "c3",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 6,
+      "out_channels": 16,
+      "kernel_size": 5,
+      "padding": 0
+     }
+    },
+    {
+     "id": "t3",
+     "type": "Tanh"
+    },
+    {
+     "id": "s4",
+     "type": "AvgPool2d",
+     "params": {
+      "kernel_size": 2
+     }
+    },
+    {
+     "id": "flat",
+     "type": "Flatten"
+    },
+    {
+     "id": "f5",
+     "type": "Linear",
+     "params": {
+      "in": 400,
+      "out": 120
+     }
+    },
+    {
+     "id": "t5",
+     "type": "Tanh"
+    },
+    {
+     "id": "f6",
+     "type": "Linear",
+     "params": {
+      "in": 120,
+      "out": 84
+     }
+    },
+    {
+     "id": "t6",
+     "type": "Tanh"
+    },
+    {
+     "id": "f7",
+     "type": "Linear",
+     "params": {
+      "in": 84,
+      "out": 10
+     }
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy"
+    }
+   ],
+   "edges": [
+    [
+     "image.out",
+     "c1.in"
+    ],
+    [
+     "c1.out",
+     "t1.in"
+    ],
+    [
+     "t1.out",
+     "s2.in"
+    ],
+    [
+     "s2.out",
+     "c3.in"
+    ],
+    [
+     "c3.out",
+     "t3.in"
+    ],
+    [
+     "t3.out",
+     "s4.in"
+    ],
+    [
+     "s4.out",
+     "flat.in"
+    ],
+    [
+     "flat.out",
+     "f5.in"
+    ],
+    [
+     "f5.out",
+     "t5.in"
+    ],
+    [
+     "t5.out",
+     "f6.in"
+    ],
+    [
+     "f6.out",
+     "t6.in"
+    ],
+    [
+     "t6.out",
+     "f7.in"
+    ],
+    [
+     "f7.out",
+     "loss.logits"
+    ]
+   ]
+  }
+ },
+ {
+  "id": "resnet18",
+  "name": "ResNet-18",
+  "kind": "model",
+  "category": "vision",
+  "doc": "He et al. 2015: 4 stages of basic residual blocks, 224\u00d7224, 1000 classes.",
+  "reference": 11689512,
+  "source": "torchvision resnet18",
+  "graph": {
+   "schema": 1,
+   "name": "ResNet-18",
+   "nodes": [
+    {
+     "id": "image",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       3,
+       224,
+       224
+      ]
+     }
+    },
+    {
+     "id": "conv1",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 3,
+      "out_channels": 64,
+      "kernel_size": 7,
+      "stride": 2,
+      "padding": 3,
+      "bias": false
+     }
+    },
+    {
+     "id": "bn1",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": 64
+     }
+    },
+    {
+     "id": "relu",
+     "type": "ReLU"
+    },
+    {
+     "id": "maxpool",
+     "type": "MaxPool2d",
+     "params": {
+      "kernel_size": 3,
+      "stride": 2,
+      "padding": 1
+     }
+    },
+    {
+     "id": "layer1",
+     "type": "Subgraph",
+     "params": {
+      "graph": "basic",
+      "repeat": 2,
+      "args": {
+       "C": 64
+      }
+     },
+     "label": "layer1 \u00b7 2\u00d7 basic 64"
+    },
+    {
+     "id": "layer2_0",
+     "type": "Subgraph",
+     "params": {
+      "graph": "basic_down",
+      "args": {
+       "Cin": 64,
+       "C": 128
+      }
+     },
+     "label": "layer2 \u00b7 down 64\u2192128"
+    },
+    {
+     "id": "layer2_1",
+     "type": "Subgraph",
+     "params": {
+      "graph": "basic",
+      "args": {
+       "C": 128
+      }
+     },
+     "label": "layer2 \u00b7 basic 128"
+    },
+    {
+     "id": "layer3_0",
+     "type": "Subgraph",
+     "params": {
+      "graph": "basic_down",
+      "args": {
+       "Cin": 128,
+       "C": 256
+      }
+     },
+     "label": "layer3 \u00b7 down 128\u2192256"
+    },
+    {
+     "id": "layer3_1",
+     "type": "Subgraph",
+     "params": {
+      "graph": "basic",
+      "args": {
+       "C": 256
+      }
+     },
+     "label": "layer3 \u00b7 basic 256"
+    },
+    {
+     "id": "layer4_0",
+     "type": "Subgraph",
+     "params": {
+      "graph": "basic_down",
+      "args": {
+       "Cin": 256,
+       "C": 512
+      }
+     },
+     "label": "layer4 \u00b7 down 256\u2192512"
+    },
+    {
+     "id": "layer4_1",
+     "type": "Subgraph",
+     "params": {
+      "graph": "basic",
+      "args": {
+       "C": 512
+      }
+     },
+     "label": "layer4 \u00b7 basic 512"
+    },
+    {
+     "id": "avgpool",
+     "type": "AdaptiveAvgPool2d",
+     "params": {
+      "output_size": 1
+     }
+    },
+    {
+     "id": "flat",
+     "type": "Flatten"
+    },
+    {
+     "id": "fc",
+     "type": "Linear",
+     "params": {
+      "in": 512,
+      "out": 1000
+     }
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy"
+    }
+   ],
+   "edges": [
+    [
+     "image.out",
+     "conv1.in"
+    ],
+    [
+     "conv1.out",
+     "bn1.in"
+    ],
+    [
+     "bn1.out",
+     "relu.in"
+    ],
+    [
+     "relu.out",
+     "maxpool.in"
+    ],
+    [
+     "maxpool.out",
+     "layer1.x"
+    ],
+    [
+     "layer1.out",
+     "layer2_0.x"
+    ],
+    [
+     "layer2_0.out",
+     "layer2_1.x"
+    ],
+    [
+     "layer2_1.out",
+     "layer3_0.x"
+    ],
+    [
+     "layer3_0.out",
+     "layer3_1.x"
+    ],
+    [
+     "layer3_1.out",
+     "layer4_0.x"
+    ],
+    [
+     "layer4_0.out",
+     "layer4_1.x"
+    ],
+    [
+     "layer4_1.out",
+     "avgpool.in"
+    ],
+    [
+     "avgpool.out",
+     "flat.in"
+    ],
+    [
+     "flat.out",
+     "fc.in"
+    ],
+    [
+     "fc.out",
+     "loss.logits"
+    ]
+   ],
+   "subgraphs": {
+    "basic": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "$C",
+         "H",
+         "W"
+        ]
+       }
+      },
+      {
+       "id": "conv1",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$C",
+        "out_channels": "$C",
+        "kernel_size": 3,
+        "stride": 1,
+        "padding": 1,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn1",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$C"
+       }
+      },
+      {
+       "id": "relu1",
+       "type": "ReLU"
+      },
+      {
+       "id": "conv2",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$C",
+        "out_channels": "$C",
+        "kernel_size": 3,
+        "stride": 1,
+        "padding": 1,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn2",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$C"
+       }
+      },
+      {
+       "id": "add",
+       "type": "Add"
+      },
+      {
+       "id": "relu2",
+       "type": "ReLU"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "add.a"
+      ],
+      [
+       "bn2.out",
+       "add.b"
+      ],
+      [
+       "x.out",
+       "conv1.in"
+      ],
+      [
+       "conv1.out",
+       "bn1.in"
+      ],
+      [
+       "bn1.out",
+       "relu1.in"
+      ],
+      [
+       "relu1.out",
+       "conv2.in"
+      ],
+      [
+       "conv2.out",
+       "bn2.in"
+      ],
+      [
+       "add.out",
+       "relu2.in"
+      ],
+      [
+       "relu2.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "C": 64
+     },
+     "doc": "ResNet basic block: two 3\u00d73 conv-BN with an identity shortcut."
+    },
+    "basic_down": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "$Cin",
+         "H",
+         "W"
+        ]
+       }
+      },
+      {
+       "id": "conv1",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$Cin",
+        "out_channels": "$C",
+        "kernel_size": 3,
+        "stride": 2,
+        "padding": 1,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn1",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$C"
+       }
+      },
+      {
+       "id": "relu1",
+       "type": "ReLU"
+      },
+      {
+       "id": "conv2",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$C",
+        "out_channels": "$C",
+        "kernel_size": 3,
+        "stride": 1,
+        "padding": 1,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn2",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$C"
+       }
+      },
+      {
+       "id": "down_conv",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$Cin",
+        "out_channels": "$C",
+        "kernel_size": 1,
+        "stride": 2,
+        "padding": 0,
+        "bias": false
+       },
+       "label": "downsample"
+      },
+      {
+       "id": "down_bn",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$C"
+       }
+      },
+      {
+       "id": "add",
+       "type": "Add"
+      },
+      {
+       "id": "relu2",
+       "type": "ReLU"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "down_bn.out",
+       "add.a"
+      ],
+      [
+       "bn2.out",
+       "add.b"
+      ],
+      [
+       "x.out",
+       "conv1.in"
+      ],
+      [
+       "conv1.out",
+       "bn1.in"
+      ],
+      [
+       "bn1.out",
+       "relu1.in"
+      ],
+      [
+       "relu1.out",
+       "conv2.in"
+      ],
+      [
+       "conv2.out",
+       "bn2.in"
+      ],
+      [
+       "x.out",
+       "down_conv.in"
+      ],
+      [
+       "down_conv.out",
+       "down_bn.in"
+      ],
+      [
+       "add.out",
+       "relu2.in"
+      ],
+      [
+       "relu2.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "Cin": 64,
+      "C": 128
+     },
+     "doc": "ResNet basic block that halves H\u00d7W and changes channels; 1\u00d71 conv shortcut."
+    }
+   }
+  }
+ },
+ {
+  "id": "unet_small",
+  "name": "U-Net (small)",
+  "kind": "model",
+  "category": "vision",
+  "doc": "Encoder-decoder with skip connections for segmentation masks.",
+  "reference": null,
+  "source": "",
+  "graph": {
+   "schema": 1,
+   "name": "U-Net (small)",
+   "nodes": [
+    {
+     "id": "image",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       1,
+       64,
+       64
+      ]
+     }
+    },
+    {
+     "id": "enc1",
+     "type": "Subgraph",
+     "params": {
+      "graph": "double_conv",
+      "args": {
+       "Cin": 1,
+       "Cout": 32
+      }
+     },
+     "label": "enc1 \u00b7 1\u219232"
+    },
+    {
+     "id": "enc2",
+     "type": "Subgraph",
+     "params": {
+      "graph": "double_conv",
+      "args": {
+       "Cin": 32,
+       "Cout": 64
+      }
+     },
+     "label": "enc2 \u00b7 32\u219264"
+    },
+    {
+     "id": "bottleneck",
+     "type": "Subgraph",
+     "params": {
+      "graph": "double_conv",
+      "args": {
+       "Cin": 64,
+       "Cout": 128
+      }
+     },
+     "label": "bottleneck \u00b7 64\u2192128"
+    },
+    {
+     "id": "dec2",
+     "type": "Subgraph",
+     "params": {
+      "graph": "double_conv",
+      "args": {
+       "Cin": 128,
+       "Cout": 64
+      }
+     },
+     "label": "dec2 \u00b7 128\u219264"
+    },
+    {
+     "id": "dec1",
+     "type": "Subgraph",
+     "params": {
+      "graph": "double_conv",
+      "args": {
+       "Cin": 64,
+       "Cout": 32
+      }
+     },
+     "label": "dec1 \u00b7 64\u219232"
+    },
+    {
+     "id": "pool1",
+     "type": "MaxPool2d",
+     "params": {
+      "kernel_size": 2
+     }
+    },
+    {
+     "id": "pool2",
+     "type": "MaxPool2d",
+     "params": {
+      "kernel_size": 2
+     }
+    },
+    {
+     "id": "up2",
+     "type": "ConvTranspose2d",
+     "params": {
+      "in_channels": 128,
+      "out_channels": 64
+     }
+    },
+    {
+     "id": "up1",
+     "type": "ConvTranspose2d",
+     "params": {
+      "in_channels": 64,
+      "out_channels": 32
+     }
+    },
+    {
+     "id": "cat2",
+     "type": "Concat",
+     "params": {
+      "dim": 1
+     },
+     "label": "skip 2"
+    },
+    {
+     "id": "cat1",
+     "type": "Concat",
+     "params": {
+      "dim": 1
+     },
+     "label": "skip 1"
+    },
+    {
+     "id": "head",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": 32,
+      "out_channels": 1,
+      "kernel_size": 1,
+      "padding": 0
+     }
+    },
+    {
+     "id": "loss",
+     "type": "BCEWithLogits",
+     "label": "mask"
+    }
+   ],
+   "edges": [
+    [
+     "image.out",
+     "enc1.x"
+    ],
+    [
+     "enc1.out",
+     "pool1.in"
+    ],
+    [
+     "pool1.out",
+     "enc2.x"
+    ],
+    [
+     "enc2.out",
+     "pool2.in"
+    ],
+    [
+     "pool2.out",
+     "bottleneck.x"
+    ],
+    [
+     "bottleneck.out",
+     "up2.in"
+    ],
+    [
+     "up2.out",
+     "cat2.a"
+    ],
+    [
+     "enc2.out",
+     "cat2.b"
+    ],
+    [
+     "cat2.out",
+     "dec2.x"
+    ],
+    [
+     "dec2.out",
+     "up1.in"
+    ],
+    [
+     "up1.out",
+     "cat1.a"
+    ],
+    [
+     "enc1.out",
+     "cat1.b"
+    ],
+    [
+     "cat1.out",
+     "dec1.x"
+    ],
+    [
+     "dec1.out",
+     "head.in"
+    ],
+    [
+     "head.out",
+     "loss.pred"
+    ]
+   ],
+   "subgraphs": {
+    "double_conv": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "$Cin",
+         "H",
+         "W"
+        ]
+       }
+      },
+      {
+       "id": "conv1",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$Cin",
+        "out_channels": "$Cout",
+        "kernel_size": 3,
+        "padding": 1,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn1",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$Cout"
+       }
+      },
+      {
+       "id": "relu1",
+       "type": "ReLU"
+      },
+      {
+       "id": "conv2",
+       "type": "Conv2d",
+       "params": {
+        "in_channels": "$Cout",
+        "out_channels": "$Cout",
+        "kernel_size": 3,
+        "padding": 1,
+        "bias": false
+       }
+      },
+      {
+       "id": "bn2",
+       "type": "BatchNorm2d",
+       "params": {
+        "features": "$Cout"
+       }
+      },
+      {
+       "id": "relu2",
+       "type": "ReLU"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "conv1.in"
+      ],
+      [
+       "conv1.out",
+       "bn1.in"
+      ],
+      [
+       "bn1.out",
+       "relu1.in"
+      ],
+      [
+       "relu1.out",
+       "conv2.in"
+      ],
+      [
+       "conv2.out",
+       "bn2.in"
+      ],
+      [
+       "bn2.out",
+       "relu2.in"
+      ],
+      [
+       "relu2.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "Cin": 1,
+      "Cout": 32
+     },
+     "doc": "U-Net double convolution: (3\u00d73 conv \u2192 BN \u2192 ReLU) \u00d7 2."
+    }
+   }
+  }
+ },
+ {
+  "id": "vit_b16",
+  "name": "ViT-B/16",
+  "kind": "model",
+  "category": "vision",
+  "doc": "Dosovitskiy et al. 2020: 16\u00d716 patches, [CLS] token, 12 pre-LN blocks.",
+  "reference": 86567656,
+  "source": "torchvision vit_b_16",
+  "graph": {
+   "schema": 1,
+   "name": "ViT-B/16",
+   "nodes": [
+    {
+     "id": "image",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       3,
+       224,
+       224
+      ]
+     }
+    },
+    {
+     "id": "patch",
+     "type": "PatchEmbed",
+     "params": {
+      "in_channels": 3,
+      "dim": 768,
+      "patch": 16
+     },
+     "label": "16\u00d716 patches"
+    },
+    {
+     "id": "cls",
+     "type": "ClassToken",
+     "params": {
+      "dim": 768
+     }
+    },
+    {
+     "id": "pos",
+     "type": "PositionalEmbedding",
+     "params": {
+      "max_len": 197,
+      "dim": 768
+     }
+    },
+    {
+     "id": "drop",
+     "type": "Dropout",
+     "params": {
+      "p": 0.0
+     }
+    },
+    {
+     "id": "encoder",
+     "type": "Subgraph",
+     "params": {
+      "graph": "vit_block",
+      "repeat": 12
+     },
+     "label": "12\u00d7 encoder block"
+    },
+    {
+     "id": "norm",
+     "type": "LayerNorm",
+     "params": {
+      "dim": 768,
+      "eps": 1e-06
+     }
+    },
+    {
+     "id": "cls_out",
+     "type": "Select",
+     "params": {
+      "dim": 1,
+      "index": 0
+     },
+     "label": "[CLS]"
+    },
+    {
+     "id": "head",
+     "type": "Linear",
+     "params": {
+      "in": 768,
+      "out": 1000
+     }
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy"
+    }
+   ],
+   "edges": [
+    [
+     "image.out",
+     "patch.in"
+    ],
+    [
+     "patch.out",
+     "cls.in"
+    ],
+    [
+     "cls.out",
+     "pos.in"
+    ],
+    [
+     "pos.out",
+     "drop.in"
+    ],
+    [
+     "drop.out",
+     "encoder.x"
+    ],
+    [
+     "encoder.out",
+     "norm.in"
+    ],
+    [
+     "norm.out",
+     "cls_out.in"
+    ],
+    [
+     "cls_out.out",
+     "head.in"
+    ],
+    [
+     "head.out",
+     "loss.logits"
+    ]
+   ],
+   "subgraphs": {
+    "vit_block": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T",
+         "$D"
+        ]
+       }
+      },
+      {
+       "id": "ln1",
+       "type": "LayerNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "attn",
+       "type": "Attention",
+       "params": {
+        "dim": "$D",
+        "heads": "$H",
+        "causal": "$causal"
+       }
+      },
+      {
+       "id": "drop1",
+       "type": "Dropout",
+       "params": {
+        "p": "$dropout"
+       }
+      },
+      {
+       "id": "res1",
+       "type": "Add"
+      },
+      {
+       "id": "ln2",
+       "type": "LayerNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "mlp",
+       "type": "MLP",
+       "params": {
+        "dim": "$D",
+        "hidden": "$F",
+        "act": "$act"
+       }
+      },
+      {
+       "id": "drop2",
+       "type": "Dropout",
+       "params": {
+        "p": "$dropout"
+       }
+      },
+      {
+       "id": "res2",
+       "type": "Add"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "res1.a"
+      ],
+      [
+       "drop1.out",
+       "res1.b"
+      ],
+      [
+       "res1.out",
+       "res2.a"
+      ],
+      [
+       "drop2.out",
+       "res2.b"
+      ],
+      [
+       "x.out",
+       "ln1.in"
+      ],
+      [
+       "ln1.out",
+       "attn.in"
+      ],
+      [
+       "attn.out",
+       "drop1.in"
+      ],
+      [
+       "res1.out",
+       "ln2.in"
+      ],
+      [
+       "ln2.out",
+       "mlp.in"
+      ],
+      [
+       "mlp.out",
+       "drop2.in"
+      ],
+      [
+       "res2.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "D": 768,
+      "H": 12,
+      "F": 3072,
+      "eps": 1e-06,
+      "causal": false,
+      "act": "gelu",
+      "dropout": 0.0
+     },
+     "doc": "Pre-LN transformer block (GPT-2, ViT): x + attn(LN(x)), then x + MLP(LN(x))."
+    }
+   }
+  }
+ },
+ {
+  "id": "bert_base",
+  "name": "BERT-base",
+  "kind": "model",
+  "category": "language",
+  "doc": "Devlin et al. 2018: 12 post-LN encoder layers, token types, pooler.",
+  "reference": 109482240,
+  "source": "bert-base-uncased",
+  "graph": {
+   "schema": 1,
+   "name": "BERT-base (uncased)",
+   "nodes": [
+    {
+     "id": "input_ids",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "x"
+     }
+    },
+    {
+     "id": "word",
+     "type": "Embedding",
+     "params": {
+      "num": 30522,
+      "dim": 768
+     },
+     "label": "word_embeddings"
+    },
+    {
+     "id": "pos",
+     "type": "PositionalEmbedding",
+     "params": {
+      "max_len": 512,
+      "dim": 768
+     },
+     "label": "position_embeddings"
+    },
+    {
+     "id": "emb_norm",
+     "type": "LayerNorm",
+     "params": {
+      "dim": 768,
+      "eps": 1e-12
+     }
+    },
+    {
+     "id": "emb_drop",
+     "type": "Dropout",
+     "params": {
+      "p": 0.1
+     }
+    },
+    {
+     "id": "encoder",
+     "type": "Subgraph",
+     "params": {
+      "graph": "encoder_layer",
+      "repeat": 12
+     },
+     "label": "12\u00d7 encoder layer"
+    },
+    {
+     "id": "cls",
+     "type": "Select",
+     "params": {
+      "dim": 1,
+      "index": 0
+     },
+     "label": "[CLS]"
+    },
+    {
+     "id": "pooler",
+     "type": "Linear",
+     "params": {
+      "in": 768,
+      "out": 768
+     }
+    },
+    {
+     "id": "pooler_act",
+     "type": "Tanh"
+    },
+    {
+     "id": "pooled",
+     "type": "Output"
+    },
+    {
+     "id": "hidden",
+     "type": "Output"
+    },
+    {
+     "id": "token_types",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "token_type"
+     }
+    },
+    {
+     "id": "type_emb",
+     "type": "Embedding",
+     "params": {
+      "num": 2,
+      "dim": 768
+     },
+     "label": "token_type_embeddings"
+    },
+    {
+     "id": "emb_sum",
+     "type": "Add"
+    }
+   ],
+   "edges": [
+    [
+     "input_ids.out",
+     "word.in"
+    ],
+    [
+     "token_types.out",
+     "type_emb.in"
+    ],
+    [
+     "word.out",
+     "emb_sum.a"
+    ],
+    [
+     "type_emb.out",
+     "emb_sum.b"
+    ],
+    [
+     "emb_sum.out",
+     "pos.in"
+    ],
+    [
+     "pos.out",
+     "emb_norm.in"
+    ],
+    [
+     "emb_norm.out",
+     "emb_drop.in"
+    ],
+    [
+     "emb_drop.out",
+     "encoder.x"
+    ],
+    [
+     "encoder.out",
+     "cls.in"
+    ],
+    [
+     "cls.out",
+     "pooler.in"
+    ],
+    [
+     "pooler.out",
+     "pooler_act.in"
+    ],
+    [
+     "pooler_act.out",
+     "pooled.in"
+    ],
+    [
+     "encoder.out",
+     "hidden.in"
+    ]
+   ],
+   "subgraphs": {
+    "encoder_layer": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T",
+         "$D"
+        ]
+       }
+      },
+      {
+       "id": "attn",
+       "type": "Attention",
+       "params": {
+        "dim": "$D",
+        "heads": "$H"
+       }
+      },
+      {
+       "id": "drop1",
+       "type": "Dropout",
+       "params": {
+        "p": "$dropout"
+       }
+      },
+      {
+       "id": "res1",
+       "type": "Add"
+      },
+      {
+       "id": "ln1",
+       "type": "LayerNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "mlp",
+       "type": "MLP",
+       "params": {
+        "dim": "$D",
+        "hidden": "$F",
+        "act": "$act"
+       }
+      },
+      {
+       "id": "drop2",
+       "type": "Dropout",
+       "params": {
+        "p": "$dropout"
+       }
+      },
+      {
+       "id": "res2",
+       "type": "Add"
+      },
+      {
+       "id": "ln2",
+       "type": "LayerNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "res1.a"
+      ],
+      [
+       "drop1.out",
+       "res1.b"
+      ],
+      [
+       "ln1.out",
+       "res2.a"
+      ],
+      [
+       "drop2.out",
+       "res2.b"
+      ],
+      [
+       "x.out",
+       "attn.in"
+      ],
+      [
+       "attn.out",
+       "drop1.in"
+      ],
+      [
+       "res1.out",
+       "ln1.in"
+      ],
+      [
+       "ln1.out",
+       "mlp.in"
+      ],
+      [
+       "mlp.out",
+       "drop2.in"
+      ],
+      [
+       "res2.out",
+       "ln2.in"
+      ],
+      [
+       "ln2.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "D": 768,
+      "H": 12,
+      "F": 3072,
+      "eps": 1e-12,
+      "act": "gelu",
+      "dropout": 0.1
+     },
+     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x))."
+    }
+   }
+  }
+ },
+ {
+  "id": "minilm_l12",
+  "name": "MiniLM-L12 multilingual",
+  "kind": "model",
+  "category": "language",
+  "doc": "paraphrase-multilingual-MiniLM-L12-v2: 384-dim sentence encoder, mean pooling.",
+  "reference": 117653760,
+  "source": "sentence-transformers",
+  "graph": {
+   "schema": 1,
+   "name": "paraphrase-multilingual-MiniLM-L12-v2",
+   "nodes": [
+    {
+     "id": "input_ids",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "x"
+     }
+    },
+    {
+     "id": "word",
+     "type": "Embedding",
+     "params": {
+      "num": 250037,
+      "dim": 384
+     },
+     "label": "word_embeddings"
+    },
+    {
+     "id": "pos",
+     "type": "PositionalEmbedding",
+     "params": {
+      "max_len": 512,
+      "dim": 384
+     },
+     "label": "position_embeddings"
+    },
+    {
+     "id": "emb_norm",
+     "type": "LayerNorm",
+     "params": {
+      "dim": 384,
+      "eps": 1e-12
+     }
+    },
+    {
+     "id": "emb_drop",
+     "type": "Dropout",
+     "params": {
+      "p": 0.1
+     }
+    },
+    {
+     "id": "encoder",
+     "type": "Subgraph",
+     "params": {
+      "graph": "encoder_layer",
+      "repeat": 12
+     },
+     "label": "12\u00d7 encoder layer"
+    },
+    {
+     "id": "cls",
+     "type": "Select",
+     "params": {
+      "dim": 1,
+      "index": 0
+     },
+     "label": "[CLS]"
+    },
+    {
+     "id": "pooler",
+     "type": "Linear",
+     "params": {
+      "in": 384,
+      "out": 384
+     }
+    },
+    {
+     "id": "pooler_act",
+     "type": "Tanh"
+    },
+    {
+     "id": "pooled",
+     "type": "Output"
+    },
+    {
+     "id": "hidden",
+     "type": "Output"
+    },
+    {
+     "id": "token_types",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "token_type"
+     }
+    },
+    {
+     "id": "type_emb",
+     "type": "Embedding",
+     "params": {
+      "num": 2,
+      "dim": 384
+     },
+     "label": "token_type_embeddings"
+    },
+    {
+     "id": "emb_sum",
+     "type": "Add"
+    },
+    {
+     "id": "mean_pool",
+     "type": "Reduce",
+     "params": {
+      "op": "mean",
+      "dim": 1
+     },
+     "label": "mean pooling"
+    },
+    {
+     "id": "embedding",
+     "type": "Output",
+     "label": "sentence embedding"
+    }
+   ],
+   "edges": [
+    [
+     "input_ids.out",
+     "word.in"
+    ],
+    [
+     "token_types.out",
+     "type_emb.in"
+    ],
+    [
+     "word.out",
+     "emb_sum.a"
+    ],
+    [
+     "type_emb.out",
+     "emb_sum.b"
+    ],
+    [
+     "emb_sum.out",
+     "pos.in"
+    ],
+    [
+     "pos.out",
+     "emb_norm.in"
+    ],
+    [
+     "emb_norm.out",
+     "emb_drop.in"
+    ],
+    [
+     "emb_drop.out",
+     "encoder.x"
+    ],
+    [
+     "encoder.out",
+     "cls.in"
+    ],
+    [
+     "cls.out",
+     "pooler.in"
+    ],
+    [
+     "pooler.out",
+     "pooler_act.in"
+    ],
+    [
+     "pooler_act.out",
+     "pooled.in"
+    ],
+    [
+     "encoder.out",
+     "hidden.in"
+    ],
+    [
+     "encoder.out",
+     "mean_pool.in"
+    ],
+    [
+     "mean_pool.out",
+     "embedding.in"
+    ]
+   ],
+   "subgraphs": {
+    "encoder_layer": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T",
+         "$D"
+        ]
+       }
+      },
+      {
+       "id": "attn",
+       "type": "Attention",
+       "params": {
+        "dim": "$D",
+        "heads": "$H"
+       }
+      },
+      {
+       "id": "drop1",
+       "type": "Dropout",
+       "params": {
+        "p": "$dropout"
+       }
+      },
+      {
+       "id": "res1",
+       "type": "Add"
+      },
+      {
+       "id": "ln1",
+       "type": "LayerNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "mlp",
+       "type": "MLP",
+       "params": {
+        "dim": "$D",
+        "hidden": "$F",
+        "act": "$act"
+       }
+      },
+      {
+       "id": "drop2",
+       "type": "Dropout",
+       "params": {
+        "p": "$dropout"
+       }
+      },
+      {
+       "id": "res2",
+       "type": "Add"
+      },
+      {
+       "id": "ln2",
+       "type": "LayerNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "res1.a"
+      ],
+      [
+       "drop1.out",
+       "res1.b"
+      ],
+      [
+       "ln1.out",
+       "res2.a"
+      ],
+      [
+       "drop2.out",
+       "res2.b"
+      ],
+      [
+       "x.out",
+       "attn.in"
+      ],
+      [
+       "attn.out",
+       "drop1.in"
+      ],
+      [
+       "res1.out",
+       "ln1.in"
+      ],
+      [
+       "ln1.out",
+       "mlp.in"
+      ],
+      [
+       "mlp.out",
+       "drop2.in"
+      ],
+      [
+       "res2.out",
+       "ln2.in"
+      ],
+      [
+       "ln2.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "D": 384,
+      "H": 12,
+      "F": 1536,
+      "eps": 1e-12,
+      "act": "gelu",
+      "dropout": 0.1
+     },
+     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x))."
+    }
+   }
+  }
+ },
+ {
+  "id": "mpnet_base",
+  "name": "MPNet-base (all-mpnet-base-v2)",
+  "kind": "model",
+  "category": "language",
+  "doc": "Sentence encoder with a shared relative position bias, mean pooling, L2-normalised.",
+  "reference": 109486464,
+  "source": "sentence-transformers",
+  "graph": {
+   "schema": 1,
+   "name": "all-mpnet-base-v2",
+   "nodes": [
+    {
+     "id": "input_ids",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "x"
+     }
+    },
+    {
+     "id": "word",
+     "type": "Embedding",
+     "params": {
+      "num": 30527,
+      "dim": 768
+     },
+     "label": "word_embeddings"
+    },
+    {
+     "id": "pos",
+     "type": "PositionalEmbedding",
+     "params": {
+      "max_len": 514,
+      "dim": 768
+     },
+     "label": "position_embeddings"
+    },
+    {
+     "id": "emb_norm",
+     "type": "LayerNorm",
+     "params": {
+      "dim": 768,
+      "eps": 1e-05
+     }
+    },
+    {
+     "id": "emb_drop",
+     "type": "Dropout",
+     "params": {
+      "p": 0.1
+     }
+    },
+    {
+     "id": "rel_bias",
+     "type": "RelativePositionBias",
+     "params": {
+      "heads": 12,
+      "buckets": 32,
+      "max_distance": 128
+     },
+     "label": "relative_attention_bias"
+    },
+    {
+     "id": "encoder",
+     "type": "Subgraph",
+     "params": {
+      "graph": "mpnet_layer",
+      "repeat": 12
+     },
+     "label": "12\u00d7 encoder layer"
+    },
+    {
+     "id": "cls",
+     "type": "Select",
+     "params": {
+      "dim": 1,
+      "index": 0
+     },
+     "label": "[CLS]"
+    },
+    {
+     "id": "pooler",
+     "type": "Linear",
+     "params": {
+      "in": 768,
+      "out": 768
+     }
+    },
+    {
+     "id": "pooler_act",
+     "type": "Tanh"
+    },
+    {
+     "id": "pooled",
+     "type": "Output"
+    },
+    {
+     "id": "mean_pool",
+     "type": "Reduce",
+     "params": {
+      "op": "mean",
+      "dim": 1
+     },
+     "label": "mean pooling"
+    },
+    {
+     "id": "normalize",
+     "type": "L2Normalize"
+    },
+    {
+     "id": "embedding",
+     "type": "Output",
+     "label": "sentence embedding"
+    }
+   ],
+   "edges": [
+    [
+     "input_ids.out",
+     "word.in"
+    ],
+    [
+     "word.out",
+     "pos.in"
+    ],
+    [
+     "pos.out",
+     "emb_norm.in"
+    ],
+    [
+     "emb_norm.out",
+     "emb_drop.in"
+    ],
+    [
+     "emb_drop.out",
+     "encoder.x"
+    ],
+    [
+     "emb_drop.out",
+     "rel_bias.in"
+    ],
+    [
+     "rel_bias.out",
+     "encoder.bias"
+    ],
+    [
+     "encoder.out",
+     "cls.in"
+    ],
+    [
+     "cls.out",
+     "pooler.in"
+    ],
+    [
+     "pooler.out",
+     "pooler_act.in"
+    ],
+    [
+     "pooler_act.out",
+     "pooled.in"
+    ],
+    [
+     "encoder.out",
+     "mean_pool.in"
+    ],
+    [
+     "mean_pool.out",
+     "normalize.in"
+    ],
+    [
+     "normalize.out",
+     "embedding.in"
+    ]
+   ],
+   "subgraphs": {
+    "mpnet_layer": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T",
+         "$D"
+        ]
+       }
+      },
+      {
+       "id": "bias",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "$H",
+         "T",
+         "T"
+        ]
+       },
+       "label": "shared position bias"
+      },
+      {
+       "id": "attn",
+       "type": "Attention",
+       "params": {
+        "dim": "$D",
+        "heads": "$H"
+       }
+      },
+      {
+       "id": "drop1",
+       "type": "Dropout",
+       "params": {
+        "p": "$dropout"
+       }
+      },
+      {
+       "id": "res1",
+       "type": "Add"
+      },
+      {
+       "id": "ln1",
+       "type": "LayerNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "mlp",
+       "type": "MLP",
+       "params": {
+        "dim": "$D",
+        "hidden": "$F",
+        "act": "$act"
+       }
+      },
+      {
+       "id": "drop2",
+       "type": "Dropout",
+       "params": {
+        "p": "$dropout"
+       }
+      },
+      {
+       "id": "res2",
+       "type": "Add"
+      },
+      {
+       "id": "ln2",
+       "type": "LayerNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "res1.a"
+      ],
+      [
+       "drop1.out",
+       "res1.b"
+      ],
+      [
+       "ln1.out",
+       "res2.a"
+      ],
+      [
+       "drop2.out",
+       "res2.b"
+      ],
+      [
+       "x.out",
+       "attn.in"
+      ],
+      [
+       "attn.out",
+       "drop1.in"
+      ],
+      [
+       "bias.out",
+       "attn.bias"
+      ],
+      [
+       "res1.out",
+       "ln1.in"
+      ],
+      [
+       "ln1.out",
+       "mlp.in"
+      ],
+      [
+       "mlp.out",
+       "drop2.in"
+      ],
+      [
+       "res2.out",
+       "ln2.in"
+      ],
+      [
+       "ln2.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "D": 768,
+      "H": 12,
+      "F": 3072,
+      "eps": 1e-05,
+      "act": "gelu",
+      "dropout": 0.1
+     },
+     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x)). Takes a relative position bias shared by every layer (MPNet)."
+    }
+   }
+  }
+ },
+ {
+  "id": "gpt2_small",
+  "name": "GPT-2 small",
+  "kind": "model",
+  "category": "language",
+  "doc": "Radford et al. 2019: 12 pre-LN causal blocks, learned positions, tied head.",
+  "reference": 124439808,
+  "source": "openai-community/gpt2",
+  "graph": {
+   "schema": 1,
+   "name": "GPT-2 small",
+   "nodes": [
+    {
+     "id": "tokens",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "x"
+     }
+    },
+    {
+     "id": "wte",
+     "type": "Embedding",
+     "params": {
+      "num": 50257,
+      "dim": 768
+     }
+    },
+    {
+     "id": "wpe",
+     "type": "PositionalEmbedding",
+     "params": {
+      "max_len": 1024,
+      "dim": 768
+     }
+    },
+    {
+     "id": "drop",
+     "type": "Dropout",
+     "params": {
+      "p": 0.1
+     }
+    },
+    {
+     "id": "blocks",
+     "type": "Subgraph",
+     "params": {
+      "graph": "gpt2_block",
+      "repeat": 12
+     },
+     "label": "12\u00d7 block"
+    },
+    {
+     "id": "ln_f",
+     "type": "LayerNorm",
+     "params": {
+      "dim": 768,
+      "eps": 1e-05
+     }
+    },
+    {
+     "id": "lm_head",
+     "type": "Linear",
+     "params": {
+      "in": 768,
+      "out": 50257,
+      "bias": false,
+      "tie_to": "wte"
+     },
+     "label": "lm_head (tied)"
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy",
+     "label": "next token"
+    }
+   ],
+   "edges": [
+    [
+     "tokens.out",
+     "wte.in"
+    ],
+    [
+     "wte.out",
+     "wpe.in"
+    ],
+    [
+     "wpe.out",
+     "drop.in"
+    ],
+    [
+     "drop.out",
+     "blocks.x"
+    ],
+    [
+     "blocks.out",
+     "ln_f.in"
+    ],
+    [
+     "ln_f.out",
+     "lm_head.in"
+    ],
+    [
+     "lm_head.out",
+     "loss.logits"
+    ]
+   ],
+   "subgraphs": {
+    "gpt2_block": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T",
+         "$D"
+        ]
+       }
+      },
+      {
+       "id": "ln1",
+       "type": "LayerNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "attn",
+       "type": "Attention",
+       "params": {
+        "dim": "$D",
+        "heads": "$H",
+        "causal": "$causal"
+       }
+      },
+      {
+       "id": "drop1",
+       "type": "Dropout",
+       "params": {
+        "p": "$dropout"
+       }
+      },
+      {
+       "id": "res1",
+       "type": "Add"
+      },
+      {
+       "id": "ln2",
+       "type": "LayerNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "mlp",
+       "type": "MLP",
+       "params": {
+        "dim": "$D",
+        "hidden": "$F",
+        "act": "$act"
+       }
+      },
+      {
+       "id": "drop2",
+       "type": "Dropout",
+       "params": {
+        "p": "$dropout"
+       }
+      },
+      {
+       "id": "res2",
+       "type": "Add"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "res1.a"
+      ],
+      [
+       "drop1.out",
+       "res1.b"
+      ],
+      [
+       "res1.out",
+       "res2.a"
+      ],
+      [
+       "drop2.out",
+       "res2.b"
+      ],
+      [
+       "x.out",
+       "ln1.in"
+      ],
+      [
+       "ln1.out",
+       "attn.in"
+      ],
+      [
+       "attn.out",
+       "drop1.in"
+      ],
+      [
+       "res1.out",
+       "ln2.in"
+      ],
+      [
+       "ln2.out",
+       "mlp.in"
+      ],
+      [
+       "mlp.out",
+       "drop2.in"
+      ],
+      [
+       "res2.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "D": 768,
+      "H": 12,
+      "F": 3072,
+      "eps": 1e-05,
+      "causal": true,
+      "act": "gelu",
+      "dropout": 0.1
+     },
+     "doc": "Pre-LN transformer block (GPT-2, ViT): x + attn(LN(x)), then x + MLP(LN(x))."
+    }
+   }
+  }
+ },
+ {
+  "id": "llama32_1b",
+  "name": "Llama 3.2 1B",
+  "kind": "model",
+  "category": "language",
+  "doc": "16 layers, GQA 32/8, RoPE \u03b8=5e5, SwiGLU, tied embeddings.",
+  "reference": 1235814400,
+  "source": "meta-llama/Llama-3.2-1B",
+  "graph": {
+   "schema": 1,
+   "name": "Llama 3.2 1B",
+   "nodes": [
+    {
+     "id": "tokens",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "x"
+     }
+    },
+    {
+     "id": "embed",
+     "type": "Embedding",
+     "params": {
+      "num": 128256,
+      "dim": 2048
+     },
+     "label": "embed_tokens"
+    },
+    {
+     "id": "layers",
+     "type": "Subgraph",
+     "params": {
+      "graph": "llama_layer",
+      "repeat": 16
+     },
+     "label": "16\u00d7 decoder layer"
+    },
+    {
+     "id": "norm",
+     "type": "RMSNorm",
+     "params": {
+      "dim": 2048,
+      "eps": 1e-05
+     },
+     "label": "final norm"
+    },
+    {
+     "id": "lm_head",
+     "type": "Linear",
+     "params": {
+      "in": 2048,
+      "out": 128256,
+      "bias": false,
+      "tie_to": "embed"
+     },
+     "label": "lm_head (tied)"
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy",
+     "label": "next token"
+    }
+   ],
+   "edges": [
+    [
+     "tokens.out",
+     "embed.in"
+    ],
+    [
+     "embed.out",
+     "layers.x"
+    ],
+    [
+     "layers.out",
+     "norm.in"
+    ],
+    [
+     "norm.out",
+     "lm_head.in"
+    ],
+    [
+     "lm_head.out",
+     "loss.logits"
+    ]
+   ],
+   "subgraphs": {
+    "llama_layer": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T",
+         "$D"
+        ]
+       }
+      },
+      {
+       "id": "input_norm",
+       "type": "RMSNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       },
+       "label": "input_layernorm"
+      },
+      {
+       "id": "self_attn",
+       "type": "Attention",
+       "params": {
+        "dim": "$D",
+        "heads": "$H",
+        "kv_heads": "$KV",
+        "causal": true,
+        "bias": "$qkv_bias",
+        "o_bias": false,
+        "rope": true,
+        "rope_theta": "$theta"
+       }
+      },
+      {
+       "id": "res_attn",
+       "type": "Add"
+      },
+      {
+       "id": "post_norm",
+       "type": "RMSNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       },
+       "label": "post_attention_layernorm"
+      },
+      {
+       "id": "mlp",
+       "type": "GatedMLP",
+       "params": {
+        "dim": "$D",
+        "hidden": "$F",
+        "act": "silu"
+       },
+       "label": "SwiGLU"
+      },
+      {
+       "id": "res_mlp",
+       "type": "Add"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "res_attn.a"
+      ],
+      [
+       "self_attn.out",
+       "res_attn.b"
+      ],
+      [
+       "res_attn.out",
+       "res_mlp.a"
+      ],
+      [
+       "mlp.out",
+       "res_mlp.b"
+      ],
+      [
+       "x.out",
+       "input_norm.in"
+      ],
+      [
+       "input_norm.out",
+       "self_attn.in"
+      ],
+      [
+       "res_attn.out",
+       "post_norm.in"
+      ],
+      [
+       "post_norm.out",
+       "mlp.in"
+      ],
+      [
+       "res_mlp.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "D": 2048,
+      "H": 32,
+      "KV": 8,
+      "F": 8192,
+      "theta": 500000.0,
+      "eps": 1e-05,
+      "qkv_bias": false
+     },
+     "doc": "Llama-style decoder layer: RMSNorm \u2192 GQA with RoPE \u2192 residual \u2192 RMSNorm \u2192 SwiGLU \u2192 residual."
+    }
+   }
+  }
+ },
+ {
+  "id": "qwen25_15b",
+  "name": "Qwen2.5-1.5B",
+  "kind": "model",
+  "category": "language",
+  "doc": "28 layers, GQA 12/2 with q/k/v bias, RoPE \u03b8=1e6, SwiGLU, tied embeddings.",
+  "reference": 1543714304,
+  "source": "Qwen/Qwen2.5-1.5B",
+  "graph": {
+   "schema": 1,
+   "name": "Qwen2.5-1.5B",
+   "nodes": [
+    {
+     "id": "tokens",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "x"
+     }
+    },
+    {
+     "id": "embed",
+     "type": "Embedding",
+     "params": {
+      "num": 151936,
+      "dim": 1536
+     },
+     "label": "embed_tokens"
+    },
+    {
+     "id": "layers",
+     "type": "Subgraph",
+     "params": {
+      "graph": "qwen2_layer",
+      "repeat": 28
+     },
+     "label": "28\u00d7 decoder layer"
+    },
+    {
+     "id": "norm",
+     "type": "RMSNorm",
+     "params": {
+      "dim": 1536,
+      "eps": 1e-06
+     },
+     "label": "final norm"
+    },
+    {
+     "id": "lm_head",
+     "type": "Linear",
+     "params": {
+      "in": 1536,
+      "out": 151936,
+      "bias": false,
+      "tie_to": "embed"
+     },
+     "label": "lm_head (tied)"
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy",
+     "label": "next token"
+    }
+   ],
+   "edges": [
+    [
+     "tokens.out",
+     "embed.in"
+    ],
+    [
+     "embed.out",
+     "layers.x"
+    ],
+    [
+     "layers.out",
+     "norm.in"
+    ],
+    [
+     "norm.out",
+     "lm_head.in"
+    ],
+    [
+     "lm_head.out",
+     "loss.logits"
+    ]
+   ],
+   "subgraphs": {
+    "qwen2_layer": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T",
+         "$D"
+        ]
+       }
+      },
+      {
+       "id": "input_norm",
+       "type": "RMSNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       },
+       "label": "input_layernorm"
+      },
+      {
+       "id": "self_attn",
+       "type": "Attention",
+       "params": {
+        "dim": "$D",
+        "heads": "$H",
+        "kv_heads": "$KV",
+        "causal": true,
+        "bias": "$qkv_bias",
+        "o_bias": false,
+        "rope": true,
+        "rope_theta": "$theta"
+       }
+      },
+      {
+       "id": "res_attn",
+       "type": "Add"
+      },
+      {
+       "id": "post_norm",
+       "type": "RMSNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       },
+       "label": "post_attention_layernorm"
+      },
+      {
+       "id": "mlp",
+       "type": "GatedMLP",
+       "params": {
+        "dim": "$D",
+        "hidden": "$F",
+        "act": "silu"
+       },
+       "label": "SwiGLU"
+      },
+      {
+       "id": "res_mlp",
+       "type": "Add"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "res_attn.a"
+      ],
+      [
+       "self_attn.out",
+       "res_attn.b"
+      ],
+      [
+       "res_attn.out",
+       "res_mlp.a"
+      ],
+      [
+       "mlp.out",
+       "res_mlp.b"
+      ],
+      [
+       "x.out",
+       "input_norm.in"
+      ],
+      [
+       "input_norm.out",
+       "self_attn.in"
+      ],
+      [
+       "res_attn.out",
+       "post_norm.in"
+      ],
+      [
+       "post_norm.out",
+       "mlp.in"
+      ],
+      [
+       "res_mlp.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "D": 1536,
+      "H": 12,
+      "KV": 2,
+      "F": 8960,
+      "theta": 1000000.0,
+      "eps": 1e-06,
+      "qkv_bias": true
+     },
+     "doc": "Llama-style decoder layer: RMSNorm \u2192 GQA with RoPE \u2192 residual \u2192 RMSNorm \u2192 SwiGLU \u2192 residual."
+    }
+   }
+  }
+ },
+ {
+  "id": "mixtral_8x7b",
+  "name": "Mixtral 8x7B",
+  "kind": "model",
+  "category": "language",
+  "doc": "32 layers, 8 SwiGLU experts, top-2 softmax routing.",
+  "reference": 46702792704,
+  "source": "mistralai/Mixtral-8x7B-v0.1",
+  "graph": {
+   "schema": 1,
+   "name": "Mixtral 8x7B",
+   "nodes": [
+    {
+     "id": "tokens",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "x"
+     }
+    },
+    {
+     "id": "embed",
+     "type": "Embedding",
+     "params": {
+      "num": 32000,
+      "dim": 4096
+     },
+     "label": "embed_tokens"
+    },
+    {
+     "id": "layers",
+     "type": "Subgraph",
+     "params": {
+      "graph": "mixtral_layer",
+      "repeat": 32
+     },
+     "label": "32\u00d7 decoder layer"
+    },
+    {
+     "id": "norm",
+     "type": "RMSNorm",
+     "params": {
+      "dim": 4096,
+      "eps": 1e-05
+     },
+     "label": "final norm"
+    },
+    {
+     "id": "lm_head",
+     "type": "Linear",
+     "params": {
+      "in": 4096,
+      "out": 32000,
+      "bias": false
+     },
+     "label": "lm_head"
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy",
+     "label": "next token"
+    }
+   ],
+   "edges": [
+    [
+     "tokens.out",
+     "embed.in"
+    ],
+    [
+     "embed.out",
+     "layers.x"
+    ],
+    [
+     "layers.out",
+     "norm.in"
+    ],
+    [
+     "norm.out",
+     "lm_head.in"
+    ],
+    [
+     "lm_head.out",
+     "loss.logits"
+    ]
+   ],
+   "subgraphs": {
+    "mixtral_layer": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T",
+         "$D"
+        ]
+       }
+      },
+      {
+       "id": "input_norm",
+       "type": "RMSNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "self_attn",
+       "type": "Attention",
+       "params": {
+        "dim": "$D",
+        "heads": "$H",
+        "kv_heads": "$KV",
+        "causal": true,
+        "bias": false,
+        "o_bias": false,
+        "rope": true,
+        "rope_theta": "$theta"
+       }
+      },
+      {
+       "id": "res_attn",
+       "type": "Add"
+      },
+      {
+       "id": "post_norm",
+       "type": "RMSNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "moe",
+       "type": "MoE",
+       "params": {
+        "dim": "$D",
+        "hidden": "$F",
+        "num_experts": "$E",
+        "top_k": "$K",
+        "router": "softmax"
+       },
+       "label": "sparse MoE"
+      },
+      {
+       "id": "res_moe",
+       "type": "Add"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "res_attn.a"
+      ],
+      [
+       "self_attn.out",
+       "res_attn.b"
+      ],
+      [
+       "res_attn.out",
+       "res_moe.a"
+      ],
+      [
+       "moe.out",
+       "res_moe.b"
+      ],
+      [
+       "x.out",
+       "input_norm.in"
+      ],
+      [
+       "input_norm.out",
+       "self_attn.in"
+      ],
+      [
+       "res_attn.out",
+       "post_norm.in"
+      ],
+      [
+       "post_norm.out",
+       "moe.in"
+      ],
+      [
+       "res_moe.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "D": 4096,
+      "H": 32,
+      "KV": 8,
+      "F": 14336,
+      "E": 8,
+      "K": 2,
+      "theta": 1000000.0,
+      "eps": 1e-05
+     },
+     "doc": "Mixtral-style layer: attention as in Llama, MLP replaced by top-k routed SwiGLU experts."
+    }
+   }
+  }
+ },
+ {
+  "id": "llama4_scout",
+  "name": "Llama 4 Scout (text)",
+  "kind": "model",
+  "category": "language",
+  "doc": "48 layers in iRoPE groups of 4, 16 experts top-1 plus a shared expert.",
+  "reference": null,
+  "source": "computed; the release reports ~109B with the vision encoder",
+  "graph": {
+   "schema": 1,
+   "name": "Llama 4 Scout (text)",
+   "nodes": [
+    {
+     "id": "tokens",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "x"
+     }
+    },
+    {
+     "id": "embed",
+     "type": "Embedding",
+     "params": {
+      "num": 202048,
+      "dim": 5120
+     },
+     "label": "embed_tokens"
+    },
+    {
+     "id": "layers",
+     "type": "Subgraph",
+     "params": {
+      "graph": "llama4_group",
+      "repeat": 12
+     },
+     "label": "12\u00d7 group of 4 layers (48)"
+    },
+    {
+     "id": "norm",
+     "type": "RMSNorm",
+     "params": {
+      "dim": 5120,
+      "eps": 1e-05
+     },
+     "label": "final norm"
+    },
+    {
+     "id": "lm_head",
+     "type": "Linear",
+     "params": {
+      "in": 5120,
+      "out": 202048,
+      "bias": false
+     },
+     "label": "lm_head"
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy",
+     "label": "next token"
+    }
+   ],
+   "edges": [
+    [
+     "tokens.out",
+     "embed.in"
+    ],
+    [
+     "embed.out",
+     "layers.x"
+    ],
+    [
+     "layers.out",
+     "norm.in"
+    ],
+    [
+     "norm.out",
+     "lm_head.in"
+    ],
+    [
+     "lm_head.out",
+     "loss.logits"
+    ]
+   ],
+   "subgraphs": {
+    "llama4_group": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T",
+         "$D"
+        ]
+       }
+      },
+      {
+       "id": "norm0a",
+       "type": "RMSNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "attn0",
+       "type": "Attention",
+       "params": {
+        "dim": "$D",
+        "heads": "$H",
+        "kv_heads": "$KV",
+        "causal": true,
+        "bias": false,
+        "o_bias": false,
+        "rope": true,
+        "rope_theta": "$theta",
+        "qk_norm": "l2",
+        "chunk": "$chunk"
+       },
+       "label": "layer 0 \u00b7 RoPE, chunked"
+      },
+      {
+       "id": "res0a",
+       "type": "Add"
+      },
+      {
+       "id": "norm0b",
+       "type": "RMSNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "moe0",
+       "type": "MoE",
+       "params": {
+        "dim": "$D",
+        "hidden": "$F",
+        "num_experts": "$E",
+        "top_k": 1,
+        "router": "sigmoid",
+        "shared_hidden": "$F"
+       }
+      },
+      {
+       "id": "res0b",
+       "type": "Add"
+      },
+      {
+       "id": "norm1a",
+       "type": "RMSNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "attn1",
+       "type": "Attention",
+       "params": {
+        "dim": "$D",
+        "heads": "$H",
+        "kv_heads": "$KV",
+        "causal": true,
+        "bias": false,
+        "o_bias": false,
+        "rope": true,
+        "rope_theta": "$theta",
+        "qk_norm": "l2",
+        "chunk": "$chunk"
+       },
+       "label": "layer 1 \u00b7 RoPE, chunked"
+      },
+      {
+       "id": "res1a",
+       "type": "Add"
+      },
+      {
+       "id": "norm1b",
+       "type": "RMSNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "moe1",
+       "type": "MoE",
+       "params": {
+        "dim": "$D",
+        "hidden": "$F",
+        "num_experts": "$E",
+        "top_k": 1,
+        "router": "sigmoid",
+        "shared_hidden": "$F"
+       }
+      },
+      {
+       "id": "res1b",
+       "type": "Add"
+      },
+      {
+       "id": "norm2a",
+       "type": "RMSNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "attn2",
+       "type": "Attention",
+       "params": {
+        "dim": "$D",
+        "heads": "$H",
+        "kv_heads": "$KV",
+        "causal": true,
+        "bias": false,
+        "o_bias": false,
+        "rope": true,
+        "rope_theta": "$theta",
+        "qk_norm": "l2",
+        "chunk": "$chunk"
+       },
+       "label": "layer 2 \u00b7 RoPE, chunked"
+      },
+      {
+       "id": "res2a",
+       "type": "Add"
+      },
+      {
+       "id": "norm2b",
+       "type": "RMSNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "moe2",
+       "type": "MoE",
+       "params": {
+        "dim": "$D",
+        "hidden": "$F",
+        "num_experts": "$E",
+        "top_k": 1,
+        "router": "sigmoid",
+        "shared_hidden": "$F"
+       }
+      },
+      {
+       "id": "res2b",
+       "type": "Add"
+      },
+      {
+       "id": "norm3a",
+       "type": "RMSNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "attn3",
+       "type": "Attention",
+       "params": {
+        "dim": "$D",
+        "heads": "$H",
+        "kv_heads": "$KV",
+        "causal": true,
+        "bias": false,
+        "o_bias": false,
+        "nope_temp": true
+       },
+       "label": "layer 3 \u00b7 NoPE, global"
+      },
+      {
+       "id": "res3a",
+       "type": "Add"
+      },
+      {
+       "id": "norm3b",
+       "type": "RMSNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "moe3",
+       "type": "MoE",
+       "params": {
+        "dim": "$D",
+        "hidden": "$F",
+        "num_experts": "$E",
+        "top_k": 1,
+        "router": "sigmoid",
+        "shared_hidden": "$F"
+       }
+      },
+      {
+       "id": "res3b",
+       "type": "Add"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "res0a.a"
+      ],
+      [
+       "attn0.out",
+       "res0a.b"
+      ],
+      [
+       "res0a.out",
+       "res0b.a"
+      ],
+      [
+       "moe0.out",
+       "res0b.b"
+      ],
+      [
+       "x.out",
+       "norm0a.in"
+      ],
+      [
+       "norm0a.out",
+       "attn0.in"
+      ],
+      [
+       "res0a.out",
+       "norm0b.in"
+      ],
+      [
+       "norm0b.out",
+       "moe0.in"
+      ],
+      [
+       "res0b.out",
+       "res1a.a"
+      ],
+      [
+       "attn1.out",
+       "res1a.b"
+      ],
+      [
+       "res1a.out",
+       "res1b.a"
+      ],
+      [
+       "moe1.out",
+       "res1b.b"
+      ],
+      [
+       "res0b.out",
+       "norm1a.in"
+      ],
+      [
+       "norm1a.out",
+       "attn1.in"
+      ],
+      [
+       "res1a.out",
+       "norm1b.in"
+      ],
+      [
+       "norm1b.out",
+       "moe1.in"
+      ],
+      [
+       "res1b.out",
+       "res2a.a"
+      ],
+      [
+       "attn2.out",
+       "res2a.b"
+      ],
+      [
+       "res2a.out",
+       "res2b.a"
+      ],
+      [
+       "moe2.out",
+       "res2b.b"
+      ],
+      [
+       "res1b.out",
+       "norm2a.in"
+      ],
+      [
+       "norm2a.out",
+       "attn2.in"
+      ],
+      [
+       "res2a.out",
+       "norm2b.in"
+      ],
+      [
+       "norm2b.out",
+       "moe2.in"
+      ],
+      [
+       "res2b.out",
+       "res3a.a"
+      ],
+      [
+       "attn3.out",
+       "res3a.b"
+      ],
+      [
+       "res3a.out",
+       "res3b.a"
+      ],
+      [
+       "moe3.out",
+       "res3b.b"
+      ],
+      [
+       "res2b.out",
+       "norm3a.in"
+      ],
+      [
+       "norm3a.out",
+       "attn3.in"
+      ],
+      [
+       "res3a.out",
+       "norm3b.in"
+      ],
+      [
+       "norm3b.out",
+       "moe3.in"
+      ],
+      [
+       "res3b.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "D": 5120,
+      "H": 40,
+      "KV": 8,
+      "F": 8192,
+      "E": 16,
+      "theta": 500000.0,
+      "chunk": 8192,
+      "eps": 1e-05
+     },
+     "doc": "Llama 4 (iRoPE): 3 RoPE layers with chunked attention and L2 QK-norm, then 1 NoPE layer with global attention; every MLP is a top-1 sigmoid-routed MoE with a shared expert."
+    }
+   }
+  }
+ },
+ {
+  "id": "mamba_130m",
+  "name": "Mamba-130M",
+  "kind": "model",
+  "category": "sequence",
+  "doc": "Gu & Dao 2023: 24 selective state-space blocks, no attention.",
+  "reference": 129135360,
+  "source": "state-spaces/mamba-130m",
+  "graph": {
+   "schema": 1,
+   "name": "Mamba-130M",
+   "nodes": [
+    {
+     "id": "tokens",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "x"
+     }
+    },
+    {
+     "id": "embed",
+     "type": "Embedding",
+     "params": {
+      "num": 50280,
+      "dim": 768
+     },
+     "label": "embed_tokens"
+    },
+    {
+     "id": "layers",
+     "type": "Subgraph",
+     "params": {
+      "graph": "mamba_block",
+      "repeat": 24
+     },
+     "label": "24\u00d7 Mamba block"
+    },
+    {
+     "id": "norm",
+     "type": "RMSNorm",
+     "params": {
+      "dim": 768,
+      "eps": 1e-05
+     },
+     "label": "final norm"
+    },
+    {
+     "id": "lm_head",
+     "type": "Linear",
+     "params": {
+      "in": 768,
+      "out": 50280,
+      "bias": false,
+      "tie_to": "embed"
+     },
+     "label": "lm_head (tied)"
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy",
+     "label": "next token"
+    }
+   ],
+   "edges": [
+    [
+     "tokens.out",
+     "embed.in"
+    ],
+    [
+     "embed.out",
+     "layers.x"
+    ],
+    [
+     "layers.out",
+     "norm.in"
+    ],
+    [
+     "norm.out",
+     "lm_head.in"
+    ],
+    [
+     "lm_head.out",
+     "loss.logits"
+    ]
+   ],
+   "subgraphs": {
+    "mamba_block": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T",
+         "$D"
+        ]
+       }
+      },
+      {
+       "id": "norm",
+       "type": "RMSNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "mixer",
+       "type": "Mamba",
+       "params": {
+        "dim": "$D",
+        "d_state": "$N",
+        "expand": 2,
+        "d_conv": 4
+       }
+      },
+      {
+       "id": "res",
+       "type": "Add"
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "res.a"
+      ],
+      [
+       "mixer.out",
+       "res.b"
+      ],
+      [
+       "x.out",
+       "norm.in"
+      ],
+      [
+       "norm.out",
+       "mixer.in"
+      ],
+      [
+       "res.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "D": 768,
+      "N": 16,
+      "eps": 1e-05
+     },
+     "doc": "Mamba block: x + Mamba(RMSNorm(x))."
+    }
+   }
+  }
+ },
+ {
+  "id": "lstm_classifier",
+  "name": "BiLSTM classifier",
+  "kind": "model",
+  "category": "sequence",
+  "doc": "Embedding \u2192 2-layer bidirectional LSTM \u2192 final state \u2192 classes.",
+  "reference": null,
+  "source": "",
+  "graph": {
+   "schema": 1,
+   "name": "BiLSTM text classifier",
+   "nodes": [
+    {
+     "id": "tokens",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "x"
+     }
+    },
+    {
+     "id": "embed",
+     "type": "Embedding",
+     "params": {
+      "num": 20000,
+      "dim": 128
+     }
+    },
+    {
+     "id": "lstm",
+     "type": "LSTM",
+     "params": {
+      "input": 128,
+      "hidden": 256,
+      "layers": 2,
+      "bidirectional": true,
+      "dropout": 0.2
+     }
+    },
+    {
+     "id": "drop",
+     "type": "Dropout",
+     "params": {
+      "p": 0.3
+     }
+    },
+    {
+     "id": "head",
+     "type": "Linear",
+     "params": {
+      "in": 512,
+      "out": 2
+     }
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy"
+    }
+   ],
+   "edges": [
+    [
+     "tokens.out",
+     "embed.in"
+    ],
+    [
+     "embed.out",
+     "lstm.in"
+    ],
+    [
+     "lstm.last",
+     "drop.in"
+    ],
+    [
+     "drop.out",
+     "head.in"
+    ],
+    [
+     "head.out",
+     "loss.logits"
+    ]
+   ]
+  }
+ },
+ {
+  "id": "seq2seq",
+  "name": "Transformer (Vaswani base)",
+  "kind": "model",
+  "category": "sequence",
+  "doc": "Vaswani et al. 2017: 6+6 layers, d=512, cross-attention, sinusoidal positions.",
+  "reference": null,
+  "source": "",
+  "graph": {
+   "schema": 1,
+   "name": "Transformer (Vaswani base)",
+   "nodes": [
+    {
+     "id": "src",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "S"
+      ],
+      "dtype": "i64",
+      "field": "x"
+     },
+     "label": "source tokens"
+    },
+    {
+     "id": "tgt",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "tgt"
+     },
+     "label": "target tokens (shifted)"
+    },
+    {
+     "id": "src_emb",
+     "type": "Embedding",
+     "params": {
+      "num": 37000,
+      "dim": 512
+     }
+    },
+    {
+     "id": "tgt_emb",
+     "type": "Embedding",
+     "params": {
+      "num": 37000,
+      "dim": 512
+     }
+    },
+    {
+     "id": "src_scale",
+     "type": "Scale",
+     "params": {
+      "factor": 22.627416997969522
+     }
+    },
+    {
+     "id": "tgt_scale",
+     "type": "Scale",
+     "params": {
+      "factor": 22.627416997969522
+     }
+    },
+    {
+     "id": "src_pos",
+     "type": "SinusoidalPositional",
+     "params": {
+      "dim": 512
+     }
+    },
+    {
+     "id": "tgt_pos",
+     "type": "SinusoidalPositional",
+     "params": {
+      "dim": 512
+     }
+    },
+    {
+     "id": "encoder",
+     "type": "Subgraph",
+     "params": {
+      "graph": "encoder_layer",
+      "repeat": 6
+     },
+     "label": "6\u00d7 encoder layer"
+    },
+    {
+     "id": "decoder",
+     "type": "Subgraph",
+     "params": {
+      "graph": "decoder_layer",
+      "repeat": 6
+     },
+     "label": "6\u00d7 decoder layer"
+    },
+    {
+     "id": "generator",
+     "type": "Linear",
+     "params": {
+      "in": 512,
+      "out": 37000,
+      "bias": false,
+      "tie_to": "tgt_emb"
+     }
+    },
+    {
+     "id": "loss",
+     "type": "CrossEntropy",
+     "params": {
+      "label_smoothing": 0.1
+     }
+    }
+   ],
+   "edges": [
+    [
+     "src.out",
+     "src_emb.in"
+    ],
+    [
+     "src_emb.out",
+     "src_scale.in"
+    ],
+    [
+     "src_scale.out",
+     "src_pos.in"
+    ],
+    [
+     "tgt.out",
+     "tgt_emb.in"
+    ],
+    [
+     "tgt_emb.out",
+     "tgt_scale.in"
+    ],
+    [
+     "tgt_scale.out",
+     "tgt_pos.in"
+    ],
+    [
+     "src_pos.out",
+     "encoder.x"
+    ],
+    [
+     "tgt_pos.out",
+     "decoder.x"
+    ],
+    [
+     "encoder.out",
+     "decoder.memory"
+    ],
+    [
+     "decoder.out",
+     "generator.in"
+    ],
+    [
+     "generator.out",
+     "loss.logits"
+    ]
+   ],
+   "subgraphs": {
+    "encoder_layer": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T",
+         "$D"
+        ]
+       }
+      },
+      {
+       "id": "attn",
+       "type": "Attention",
+       "params": {
+        "dim": "$D",
+        "heads": "$H"
+       }
+      },
+      {
+       "id": "drop1",
+       "type": "Dropout",
+       "params": {
+        "p": "$dropout"
+       }
+      },
+      {
+       "id": "res1",
+       "type": "Add"
+      },
+      {
+       "id": "ln1",
+       "type": "LayerNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "mlp",
+       "type": "MLP",
+       "params": {
+        "dim": "$D",
+        "hidden": "$F",
+        "act": "$act"
+       }
+      },
+      {
+       "id": "drop2",
+       "type": "Dropout",
+       "params": {
+        "p": "$dropout"
+       }
+      },
+      {
+       "id": "res2",
+       "type": "Add"
+      },
+      {
+       "id": "ln2",
+       "type": "LayerNorm",
+       "params": {
+        "dim": "$D",
+        "eps": "$eps"
+       }
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "res1.a"
+      ],
+      [
+       "drop1.out",
+       "res1.b"
+      ],
+      [
+       "ln1.out",
+       "res2.a"
+      ],
+      [
+       "drop2.out",
+       "res2.b"
+      ],
+      [
+       "x.out",
+       "attn.in"
+      ],
+      [
+       "attn.out",
+       "drop1.in"
+      ],
+      [
+       "res1.out",
+       "ln1.in"
+      ],
+      [
+       "ln1.out",
+       "mlp.in"
+      ],
+      [
+       "mlp.out",
+       "drop2.in"
+      ],
+      [
+       "res2.out",
+       "ln2.in"
+      ],
+      [
+       "ln2.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "D": 512,
+      "H": 8,
+      "F": 2048,
+      "eps": 1e-05,
+      "act": "relu",
+      "dropout": 0.1
+     },
+     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x))."
+    },
+    "decoder_layer": {
+     "nodes": [
+      {
+       "id": "x",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T",
+         "$D"
+        ]
+       }
+      },
+      {
+       "id": "memory",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "S",
+         "$D"
+        ]
+       },
+       "label": "encoder output"
+      },
+      {
+       "id": "self_attn",
+       "type": "Attention",
+       "params": {
+        "dim": "$D",
+        "heads": "$H",
+        "causal": true
+       }
+      },
+      {
+       "id": "res1",
+       "type": "Add"
+      },
+      {
+       "id": "ln1",
+       "type": "LayerNorm",
+       "params": {
+        "dim": "$D"
+       }
+      },
+      {
+       "id": "cross_attn",
+       "type": "CrossAttention",
+       "params": {
+        "dim": "$D",
+        "heads": "$H"
+       }
+      },
+      {
+       "id": "res2",
+       "type": "Add"
+      },
+      {
+       "id": "ln2",
+       "type": "LayerNorm",
+       "params": {
+        "dim": "$D"
+       }
+      },
+      {
+       "id": "mlp",
+       "type": "MLP",
+       "params": {
+        "dim": "$D",
+        "hidden": "$F",
+        "act": "relu"
+       }
+      },
+      {
+       "id": "res3",
+       "type": "Add"
+      },
+      {
+       "id": "ln3",
+       "type": "LayerNorm",
+       "params": {
+        "dim": "$D"
+       }
+      },
+      {
+       "id": "out",
+       "type": "Output"
+      }
+     ],
+     "edges": [
+      [
+       "x.out",
+       "res1.a"
+      ],
+      [
+       "self_attn.out",
+       "res1.b"
+      ],
+      [
+       "ln1.out",
+       "cross_attn.in"
+      ],
+      [
+       "memory.out",
+       "cross_attn.context"
+      ],
+      [
+       "ln1.out",
+       "res2.a"
+      ],
+      [
+       "cross_attn.out",
+       "res2.b"
+      ],
+      [
+       "ln2.out",
+       "res3.a"
+      ],
+      [
+       "mlp.out",
+       "res3.b"
+      ],
+      [
+       "x.out",
+       "self_attn.in"
+      ],
+      [
+       "res1.out",
+       "ln1.in"
+      ],
+      [
+       "res2.out",
+       "ln2.in"
+      ],
+      [
+       "ln2.out",
+       "mlp.in"
+      ],
+      [
+       "res3.out",
+       "ln3.in"
+      ],
+      [
+       "ln3.out",
+       "out.in"
+      ]
+     ],
+     "params": {
+      "D": 512,
+      "H": 8,
+      "F": 2048
+     },
+     "doc": "Transformer decoder layer: causal self-attention, cross-attention to the encoder, MLP (post-LN)."
+    }
+   }
+  }
+ },
+ {
+  "id": "vae_mnist",
+  "name": "VAE \u00b7 MNIST",
+  "kind": "model",
+  "category": "generative",
+  "doc": "Kingma & Welling 2013: Gaussian latent, reparameterisation, BCE + KL.",
+  "reference": null,
+  "source": "",
+  "graph": {
+   "schema": 1,
+   "name": "VAE \u00b7 MNIST",
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       784
+      ]
+     }
+    },
+    {
+     "id": "enc",
+     "type": "Linear",
+     "params": {
+      "in": 784,
+      "out": 400
+     }
+    },
+    {
+     "id": "enc_act",
+     "type": "ReLU"
+    },
+    {
+     "id": "mu",
+     "type": "Linear",
+     "params": {
+      "in": 400,
+      "out": 20
+     },
+     "label": "\u03bc"
+    },
+    {
+     "id": "logvar",
+     "type": "Linear",
+     "params": {
+      "in": 400,
+      "out": 20
+     },
+     "label": "log \u03c3\u00b2"
+    },
+    {
+     "id": "z",
+     "type": "Reparameterize"
+    },
+    {
+     "id": "dec",
+     "type": "Linear",
+     "params": {
+      "in": 20,
+      "out": 400
+     }
+    },
+    {
+     "id": "dec_act",
+     "type": "ReLU"
+    },
+    {
+     "id": "recon",
+     "type": "Linear",
+     "params": {
+      "in": 400,
+      "out": 784
+     },
+     "label": "reconstruction logits"
+    },
+    {
+     "id": "recon_loss",
+     "type": "BCEWithLogits",
+     "label": "reconstruction"
+    },
+    {
+     "id": "kl",
+     "type": "KLGaussian",
+     "label": "KL to prior"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "enc.in"
+    ],
+    [
+     "enc.out",
+     "enc_act.in"
+    ],
+    [
+     "enc_act.out",
+     "mu.in"
+    ],
+    [
+     "enc_act.out",
+     "logvar.in"
+    ],
+    [
+     "mu.out",
+     "z.mu"
+    ],
+    [
+     "logvar.out",
+     "z.logvar"
+    ],
+    [
+     "z.out",
+     "dec.in"
+    ],
+    [
+     "dec.out",
+     "dec_act.in"
+    ],
+    [
+     "dec_act.out",
+     "recon.in"
+    ],
+    [
+     "recon.out",
+     "recon_loss.pred"
+    ],
+    [
+     "x.out",
+     "recon_loss.target"
+    ],
+    [
+     "mu.out",
+     "kl.mu"
+    ],
+    [
+     "logvar.out",
+     "kl.logvar"
+    ]
+   ]
+  }
+ },
+ {
+  "id": "pre_ln_block",
+  "name": "Transformer block (pre-LN)",
+  "kind": "block",
+  "category": "attention",
+  "doc": "GPT-2 / ViT layer.",
+  "reference": null,
+  "source": "",
+  "block": {
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       "$D"
+      ]
+     }
+    },
+    {
+     "id": "ln1",
+     "type": "LayerNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     }
+    },
+    {
+     "id": "attn",
+     "type": "Attention",
+     "params": {
+      "dim": "$D",
+      "heads": "$H",
+      "causal": "$causal"
+     }
+    },
+    {
+     "id": "drop1",
+     "type": "Dropout",
+     "params": {
+      "p": "$dropout"
+     }
+    },
+    {
+     "id": "res1",
+     "type": "Add"
+    },
+    {
+     "id": "ln2",
+     "type": "LayerNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     }
+    },
+    {
+     "id": "mlp",
+     "type": "MLP",
+     "params": {
+      "dim": "$D",
+      "hidden": "$F",
+      "act": "$act"
+     }
+    },
+    {
+     "id": "drop2",
+     "type": "Dropout",
+     "params": {
+      "p": "$dropout"
+     }
+    },
+    {
+     "id": "res2",
+     "type": "Add"
+    },
+    {
+     "id": "out",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "res1.a"
+    ],
+    [
+     "drop1.out",
+     "res1.b"
+    ],
+    [
+     "res1.out",
+     "res2.a"
+    ],
+    [
+     "drop2.out",
+     "res2.b"
+    ],
+    [
+     "x.out",
+     "ln1.in"
+    ],
+    [
+     "ln1.out",
+     "attn.in"
+    ],
+    [
+     "attn.out",
+     "drop1.in"
+    ],
+    [
+     "res1.out",
+     "ln2.in"
+    ],
+    [
+     "ln2.out",
+     "mlp.in"
+    ],
+    [
+     "mlp.out",
+     "drop2.in"
+    ],
+    [
+     "res2.out",
+     "out.in"
+    ]
+   ],
+   "params": {
+    "D": 768,
+    "H": 12,
+    "F": 3072,
+    "eps": 1e-05,
+    "causal": false,
+    "act": "gelu",
+    "dropout": 0.1
+   },
+   "doc": "Pre-LN transformer block (GPT-2, ViT): x + attn(LN(x)), then x + MLP(LN(x))."
+  }
+ },
+ {
+  "id": "post_ln_block",
+  "name": "Transformer block (post-LN)",
+  "kind": "block",
+  "category": "attention",
+  "doc": "BERT layer.",
+  "reference": null,
+  "source": "",
+  "block": {
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       "$D"
+      ]
+     }
+    },
+    {
+     "id": "attn",
+     "type": "Attention",
+     "params": {
+      "dim": "$D",
+      "heads": "$H"
+     }
+    },
+    {
+     "id": "drop1",
+     "type": "Dropout",
+     "params": {
+      "p": "$dropout"
+     }
+    },
+    {
+     "id": "res1",
+     "type": "Add"
+    },
+    {
+     "id": "ln1",
+     "type": "LayerNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     }
+    },
+    {
+     "id": "mlp",
+     "type": "MLP",
+     "params": {
+      "dim": "$D",
+      "hidden": "$F",
+      "act": "$act"
+     }
+    },
+    {
+     "id": "drop2",
+     "type": "Dropout",
+     "params": {
+      "p": "$dropout"
+     }
+    },
+    {
+     "id": "res2",
+     "type": "Add"
+    },
+    {
+     "id": "ln2",
+     "type": "LayerNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     }
+    },
+    {
+     "id": "out",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "res1.a"
+    ],
+    [
+     "drop1.out",
+     "res1.b"
+    ],
+    [
+     "ln1.out",
+     "res2.a"
+    ],
+    [
+     "drop2.out",
+     "res2.b"
+    ],
+    [
+     "x.out",
+     "attn.in"
+    ],
+    [
+     "attn.out",
+     "drop1.in"
+    ],
+    [
+     "res1.out",
+     "ln1.in"
+    ],
+    [
+     "ln1.out",
+     "mlp.in"
+    ],
+    [
+     "mlp.out",
+     "drop2.in"
+    ],
+    [
+     "res2.out",
+     "ln2.in"
+    ],
+    [
+     "ln2.out",
+     "out.in"
+    ]
+   ],
+   "params": {
+    "D": 768,
+    "H": 12,
+    "F": 3072,
+    "eps": 1e-12,
+    "act": "gelu",
+    "dropout": 0.1
+   },
+   "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x))."
+  }
+ },
+ {
+  "id": "llama_block",
+  "name": "Llama / Qwen layer",
+  "kind": "block",
+  "category": "attention",
+  "doc": "RMSNorm, GQA with RoPE, SwiGLU.",
+  "reference": null,
+  "source": "",
+  "block": {
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       "$D"
+      ]
+     }
+    },
+    {
+     "id": "input_norm",
+     "type": "RMSNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     },
+     "label": "input_layernorm"
+    },
+    {
+     "id": "self_attn",
+     "type": "Attention",
+     "params": {
+      "dim": "$D",
+      "heads": "$H",
+      "kv_heads": "$KV",
+      "causal": true,
+      "bias": "$qkv_bias",
+      "o_bias": false,
+      "rope": true,
+      "rope_theta": "$theta"
+     }
+    },
+    {
+     "id": "res_attn",
+     "type": "Add"
+    },
+    {
+     "id": "post_norm",
+     "type": "RMSNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     },
+     "label": "post_attention_layernorm"
+    },
+    {
+     "id": "mlp",
+     "type": "GatedMLP",
+     "params": {
+      "dim": "$D",
+      "hidden": "$F",
+      "act": "silu"
+     },
+     "label": "SwiGLU"
+    },
+    {
+     "id": "res_mlp",
+     "type": "Add"
+    },
+    {
+     "id": "out",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "res_attn.a"
+    ],
+    [
+     "self_attn.out",
+     "res_attn.b"
+    ],
+    [
+     "res_attn.out",
+     "res_mlp.a"
+    ],
+    [
+     "mlp.out",
+     "res_mlp.b"
+    ],
+    [
+     "x.out",
+     "input_norm.in"
+    ],
+    [
+     "input_norm.out",
+     "self_attn.in"
+    ],
+    [
+     "res_attn.out",
+     "post_norm.in"
+    ],
+    [
+     "post_norm.out",
+     "mlp.in"
+    ],
+    [
+     "res_mlp.out",
+     "out.in"
+    ]
+   ],
+   "params": {
+    "D": 2048,
+    "H": 32,
+    "KV": 8,
+    "F": 8192,
+    "theta": 500000.0,
+    "eps": 1e-05,
+    "qkv_bias": false
+   },
+   "doc": "Llama-style decoder layer: RMSNorm \u2192 GQA with RoPE \u2192 residual \u2192 RMSNorm \u2192 SwiGLU \u2192 residual."
+  }
+ },
+ {
+  "id": "moe_block",
+  "name": "Mixtral MoE layer",
+  "kind": "block",
+  "category": "attention",
+  "doc": "Llama layer with a top-k routed expert MLP.",
+  "reference": null,
+  "source": "",
+  "block": {
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       "$D"
+      ]
+     }
+    },
+    {
+     "id": "input_norm",
+     "type": "RMSNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     }
+    },
+    {
+     "id": "self_attn",
+     "type": "Attention",
+     "params": {
+      "dim": "$D",
+      "heads": "$H",
+      "kv_heads": "$KV",
+      "causal": true,
+      "bias": false,
+      "o_bias": false,
+      "rope": true,
+      "rope_theta": "$theta"
+     }
+    },
+    {
+     "id": "res_attn",
+     "type": "Add"
+    },
+    {
+     "id": "post_norm",
+     "type": "RMSNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     }
+    },
+    {
+     "id": "moe",
+     "type": "MoE",
+     "params": {
+      "dim": "$D",
+      "hidden": "$F",
+      "num_experts": "$E",
+      "top_k": "$K",
+      "router": "softmax"
+     },
+     "label": "sparse MoE"
+    },
+    {
+     "id": "res_moe",
+     "type": "Add"
+    },
+    {
+     "id": "out",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "res_attn.a"
+    ],
+    [
+     "self_attn.out",
+     "res_attn.b"
+    ],
+    [
+     "res_attn.out",
+     "res_moe.a"
+    ],
+    [
+     "moe.out",
+     "res_moe.b"
+    ],
+    [
+     "x.out",
+     "input_norm.in"
+    ],
+    [
+     "input_norm.out",
+     "self_attn.in"
+    ],
+    [
+     "res_attn.out",
+     "post_norm.in"
+    ],
+    [
+     "post_norm.out",
+     "moe.in"
+    ],
+    [
+     "res_moe.out",
+     "out.in"
+    ]
+   ],
+   "params": {
+    "D": 4096,
+    "H": 32,
+    "KV": 8,
+    "F": 14336,
+    "E": 8,
+    "K": 2,
+    "theta": 1000000.0,
+    "eps": 1e-05
+   },
+   "doc": "Mixtral-style layer: attention as in Llama, MLP replaced by top-k routed SwiGLU experts."
+  }
+ },
+ {
+  "id": "llama4_group",
+  "name": "Llama 4 layer group",
+  "kind": "block",
+  "category": "attention",
+  "doc": "3 RoPE/chunked + 1 NoPE layer, sigmoid MoE with shared expert.",
+  "reference": null,
+  "source": "",
+  "block": {
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       "$D"
+      ]
+     }
+    },
+    {
+     "id": "norm0a",
+     "type": "RMSNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     }
+    },
+    {
+     "id": "attn0",
+     "type": "Attention",
+     "params": {
+      "dim": "$D",
+      "heads": "$H",
+      "kv_heads": "$KV",
+      "causal": true,
+      "bias": false,
+      "o_bias": false,
+      "rope": true,
+      "rope_theta": "$theta",
+      "qk_norm": "l2",
+      "chunk": "$chunk"
+     },
+     "label": "layer 0 \u00b7 RoPE, chunked"
+    },
+    {
+     "id": "res0a",
+     "type": "Add"
+    },
+    {
+     "id": "norm0b",
+     "type": "RMSNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     }
+    },
+    {
+     "id": "moe0",
+     "type": "MoE",
+     "params": {
+      "dim": "$D",
+      "hidden": "$F",
+      "num_experts": "$E",
+      "top_k": 1,
+      "router": "sigmoid",
+      "shared_hidden": "$F"
+     }
+    },
+    {
+     "id": "res0b",
+     "type": "Add"
+    },
+    {
+     "id": "norm1a",
+     "type": "RMSNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     }
+    },
+    {
+     "id": "attn1",
+     "type": "Attention",
+     "params": {
+      "dim": "$D",
+      "heads": "$H",
+      "kv_heads": "$KV",
+      "causal": true,
+      "bias": false,
+      "o_bias": false,
+      "rope": true,
+      "rope_theta": "$theta",
+      "qk_norm": "l2",
+      "chunk": "$chunk"
+     },
+     "label": "layer 1 \u00b7 RoPE, chunked"
+    },
+    {
+     "id": "res1a",
+     "type": "Add"
+    },
+    {
+     "id": "norm1b",
+     "type": "RMSNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     }
+    },
+    {
+     "id": "moe1",
+     "type": "MoE",
+     "params": {
+      "dim": "$D",
+      "hidden": "$F",
+      "num_experts": "$E",
+      "top_k": 1,
+      "router": "sigmoid",
+      "shared_hidden": "$F"
+     }
+    },
+    {
+     "id": "res1b",
+     "type": "Add"
+    },
+    {
+     "id": "norm2a",
+     "type": "RMSNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     }
+    },
+    {
+     "id": "attn2",
+     "type": "Attention",
+     "params": {
+      "dim": "$D",
+      "heads": "$H",
+      "kv_heads": "$KV",
+      "causal": true,
+      "bias": false,
+      "o_bias": false,
+      "rope": true,
+      "rope_theta": "$theta",
+      "qk_norm": "l2",
+      "chunk": "$chunk"
+     },
+     "label": "layer 2 \u00b7 RoPE, chunked"
+    },
+    {
+     "id": "res2a",
+     "type": "Add"
+    },
+    {
+     "id": "norm2b",
+     "type": "RMSNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     }
+    },
+    {
+     "id": "moe2",
+     "type": "MoE",
+     "params": {
+      "dim": "$D",
+      "hidden": "$F",
+      "num_experts": "$E",
+      "top_k": 1,
+      "router": "sigmoid",
+      "shared_hidden": "$F"
+     }
+    },
+    {
+     "id": "res2b",
+     "type": "Add"
+    },
+    {
+     "id": "norm3a",
+     "type": "RMSNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     }
+    },
+    {
+     "id": "attn3",
+     "type": "Attention",
+     "params": {
+      "dim": "$D",
+      "heads": "$H",
+      "kv_heads": "$KV",
+      "causal": true,
+      "bias": false,
+      "o_bias": false,
+      "nope_temp": true
+     },
+     "label": "layer 3 \u00b7 NoPE, global"
+    },
+    {
+     "id": "res3a",
+     "type": "Add"
+    },
+    {
+     "id": "norm3b",
+     "type": "RMSNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     }
+    },
+    {
+     "id": "moe3",
+     "type": "MoE",
+     "params": {
+      "dim": "$D",
+      "hidden": "$F",
+      "num_experts": "$E",
+      "top_k": 1,
+      "router": "sigmoid",
+      "shared_hidden": "$F"
+     }
+    },
+    {
+     "id": "res3b",
+     "type": "Add"
+    },
+    {
+     "id": "out",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "res0a.a"
+    ],
+    [
+     "attn0.out",
+     "res0a.b"
+    ],
+    [
+     "res0a.out",
+     "res0b.a"
+    ],
+    [
+     "moe0.out",
+     "res0b.b"
+    ],
+    [
+     "x.out",
+     "norm0a.in"
+    ],
+    [
+     "norm0a.out",
+     "attn0.in"
+    ],
+    [
+     "res0a.out",
+     "norm0b.in"
+    ],
+    [
+     "norm0b.out",
+     "moe0.in"
+    ],
+    [
+     "res0b.out",
+     "res1a.a"
+    ],
+    [
+     "attn1.out",
+     "res1a.b"
+    ],
+    [
+     "res1a.out",
+     "res1b.a"
+    ],
+    [
+     "moe1.out",
+     "res1b.b"
+    ],
+    [
+     "res0b.out",
+     "norm1a.in"
+    ],
+    [
+     "norm1a.out",
+     "attn1.in"
+    ],
+    [
+     "res1a.out",
+     "norm1b.in"
+    ],
+    [
+     "norm1b.out",
+     "moe1.in"
+    ],
+    [
+     "res1b.out",
+     "res2a.a"
+    ],
+    [
+     "attn2.out",
+     "res2a.b"
+    ],
+    [
+     "res2a.out",
+     "res2b.a"
+    ],
+    [
+     "moe2.out",
+     "res2b.b"
+    ],
+    [
+     "res1b.out",
+     "norm2a.in"
+    ],
+    [
+     "norm2a.out",
+     "attn2.in"
+    ],
+    [
+     "res2a.out",
+     "norm2b.in"
+    ],
+    [
+     "norm2b.out",
+     "moe2.in"
+    ],
+    [
+     "res2b.out",
+     "res3a.a"
+    ],
+    [
+     "attn3.out",
+     "res3a.b"
+    ],
+    [
+     "res3a.out",
+     "res3b.a"
+    ],
+    [
+     "moe3.out",
+     "res3b.b"
+    ],
+    [
+     "res2b.out",
+     "norm3a.in"
+    ],
+    [
+     "norm3a.out",
+     "attn3.in"
+    ],
+    [
+     "res3a.out",
+     "norm3b.in"
+    ],
+    [
+     "norm3b.out",
+     "moe3.in"
+    ],
+    [
+     "res3b.out",
+     "out.in"
+    ]
+   ],
+   "params": {
+    "D": 5120,
+    "H": 40,
+    "KV": 8,
+    "F": 8192,
+    "E": 16,
+    "theta": 500000.0,
+    "chunk": 8192,
+    "eps": 1e-05
+   },
+   "doc": "Llama 4 (iRoPE): 3 RoPE layers with chunked attention and L2 QK-norm, then 1 NoPE layer with global attention; every MLP is a top-1 sigmoid-routed MoE with a shared expert."
+  }
+ },
+ {
+  "id": "decoder_block",
+  "name": "Transformer decoder layer",
+  "kind": "block",
+  "category": "attention",
+  "doc": "Self-attention, cross-attention to a memory, MLP.",
+  "reference": null,
+  "source": "",
+  "block": {
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       "$D"
+      ]
+     }
+    },
+    {
+     "id": "memory",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "S",
+       "$D"
+      ]
+     },
+     "label": "encoder output"
+    },
+    {
+     "id": "self_attn",
+     "type": "Attention",
+     "params": {
+      "dim": "$D",
+      "heads": "$H",
+      "causal": true
+     }
+    },
+    {
+     "id": "res1",
+     "type": "Add"
+    },
+    {
+     "id": "ln1",
+     "type": "LayerNorm",
+     "params": {
+      "dim": "$D"
+     }
+    },
+    {
+     "id": "cross_attn",
+     "type": "CrossAttention",
+     "params": {
+      "dim": "$D",
+      "heads": "$H"
+     }
+    },
+    {
+     "id": "res2",
+     "type": "Add"
+    },
+    {
+     "id": "ln2",
+     "type": "LayerNorm",
+     "params": {
+      "dim": "$D"
+     }
+    },
+    {
+     "id": "mlp",
+     "type": "MLP",
+     "params": {
+      "dim": "$D",
+      "hidden": "$F",
+      "act": "relu"
+     }
+    },
+    {
+     "id": "res3",
+     "type": "Add"
+    },
+    {
+     "id": "ln3",
+     "type": "LayerNorm",
+     "params": {
+      "dim": "$D"
+     }
+    },
+    {
+     "id": "out",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "res1.a"
+    ],
+    [
+     "self_attn.out",
+     "res1.b"
+    ],
+    [
+     "ln1.out",
+     "cross_attn.in"
+    ],
+    [
+     "memory.out",
+     "cross_attn.context"
+    ],
+    [
+     "ln1.out",
+     "res2.a"
+    ],
+    [
+     "cross_attn.out",
+     "res2.b"
+    ],
+    [
+     "ln2.out",
+     "res3.a"
+    ],
+    [
+     "mlp.out",
+     "res3.b"
+    ],
+    [
+     "x.out",
+     "self_attn.in"
+    ],
+    [
+     "res1.out",
+     "ln1.in"
+    ],
+    [
+     "res2.out",
+     "ln2.in"
+    ],
+    [
+     "ln2.out",
+     "mlp.in"
+    ],
+    [
+     "res3.out",
+     "ln3.in"
+    ],
+    [
+     "ln3.out",
+     "out.in"
+    ]
+   ],
+   "params": {
+    "D": 512,
+    "H": 8,
+    "F": 2048
+   },
+   "doc": "Transformer decoder layer: causal self-attention, cross-attention to the encoder, MLP (post-LN)."
+  }
+ },
+ {
+  "id": "resnet_basic",
+  "name": "ResNet basic block",
+  "kind": "block",
+  "category": "convolution",
+  "doc": "Two 3\u00d73 conv-BN, identity shortcut.",
+  "reference": null,
+  "source": "",
+  "block": {
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "$C",
+       "H",
+       "W"
+      ]
+     }
+    },
+    {
+     "id": "conv1",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": "$C",
+      "out_channels": "$C",
+      "kernel_size": 3,
+      "stride": 1,
+      "padding": 1,
+      "bias": false
+     }
+    },
+    {
+     "id": "bn1",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": "$C"
+     }
+    },
+    {
+     "id": "relu1",
+     "type": "ReLU"
+    },
+    {
+     "id": "conv2",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": "$C",
+      "out_channels": "$C",
+      "kernel_size": 3,
+      "stride": 1,
+      "padding": 1,
+      "bias": false
+     }
+    },
+    {
+     "id": "bn2",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": "$C"
+     }
+    },
+    {
+     "id": "add",
+     "type": "Add"
+    },
+    {
+     "id": "relu2",
+     "type": "ReLU"
+    },
+    {
+     "id": "out",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "add.a"
+    ],
+    [
+     "bn2.out",
+     "add.b"
+    ],
+    [
+     "x.out",
+     "conv1.in"
+    ],
+    [
+     "conv1.out",
+     "bn1.in"
+    ],
+    [
+     "bn1.out",
+     "relu1.in"
+    ],
+    [
+     "relu1.out",
+     "conv2.in"
+    ],
+    [
+     "conv2.out",
+     "bn2.in"
+    ],
+    [
+     "add.out",
+     "relu2.in"
+    ],
+    [
+     "relu2.out",
+     "out.in"
+    ]
+   ],
+   "params": {
+    "C": 64
+   },
+   "doc": "ResNet basic block: two 3\u00d73 conv-BN with an identity shortcut."
+  }
+ },
+ {
+  "id": "resnet_basic_down",
+  "name": "ResNet downsample block",
+  "kind": "block",
+  "category": "convolution",
+  "doc": "Stride-2 basic block with a 1\u00d71 shortcut.",
+  "reference": null,
+  "source": "",
+  "block": {
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "$Cin",
+       "H",
+       "W"
+      ]
+     }
+    },
+    {
+     "id": "conv1",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": "$Cin",
+      "out_channels": "$C",
+      "kernel_size": 3,
+      "stride": 2,
+      "padding": 1,
+      "bias": false
+     }
+    },
+    {
+     "id": "bn1",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": "$C"
+     }
+    },
+    {
+     "id": "relu1",
+     "type": "ReLU"
+    },
+    {
+     "id": "conv2",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": "$C",
+      "out_channels": "$C",
+      "kernel_size": 3,
+      "stride": 1,
+      "padding": 1,
+      "bias": false
+     }
+    },
+    {
+     "id": "bn2",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": "$C"
+     }
+    },
+    {
+     "id": "down_conv",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": "$Cin",
+      "out_channels": "$C",
+      "kernel_size": 1,
+      "stride": 2,
+      "padding": 0,
+      "bias": false
+     },
+     "label": "downsample"
+    },
+    {
+     "id": "down_bn",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": "$C"
+     }
+    },
+    {
+     "id": "add",
+     "type": "Add"
+    },
+    {
+     "id": "relu2",
+     "type": "ReLU"
+    },
+    {
+     "id": "out",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "down_bn.out",
+     "add.a"
+    ],
+    [
+     "bn2.out",
+     "add.b"
+    ],
+    [
+     "x.out",
+     "conv1.in"
+    ],
+    [
+     "conv1.out",
+     "bn1.in"
+    ],
+    [
+     "bn1.out",
+     "relu1.in"
+    ],
+    [
+     "relu1.out",
+     "conv2.in"
+    ],
+    [
+     "conv2.out",
+     "bn2.in"
+    ],
+    [
+     "x.out",
+     "down_conv.in"
+    ],
+    [
+     "down_conv.out",
+     "down_bn.in"
+    ],
+    [
+     "add.out",
+     "relu2.in"
+    ],
+    [
+     "relu2.out",
+     "out.in"
+    ]
+   ],
+   "params": {
+    "Cin": 64,
+    "C": 128
+   },
+   "doc": "ResNet basic block that halves H\u00d7W and changes channels; 1\u00d71 conv shortcut."
+  }
+ },
+ {
+  "id": "double_conv",
+  "name": "U-Net double conv",
+  "kind": "block",
+  "category": "convolution",
+  "doc": "(conv \u2192 BN \u2192 ReLU) \u00d7 2.",
+  "reference": null,
+  "source": "",
+  "block": {
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "$Cin",
+       "H",
+       "W"
+      ]
+     }
+    },
+    {
+     "id": "conv1",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": "$Cin",
+      "out_channels": "$Cout",
+      "kernel_size": 3,
+      "padding": 1,
+      "bias": false
+     }
+    },
+    {
+     "id": "bn1",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": "$Cout"
+     }
+    },
+    {
+     "id": "relu1",
+     "type": "ReLU"
+    },
+    {
+     "id": "conv2",
+     "type": "Conv2d",
+     "params": {
+      "in_channels": "$Cout",
+      "out_channels": "$Cout",
+      "kernel_size": 3,
+      "padding": 1,
+      "bias": false
+     }
+    },
+    {
+     "id": "bn2",
+     "type": "BatchNorm2d",
+     "params": {
+      "features": "$Cout"
+     }
+    },
+    {
+     "id": "relu2",
+     "type": "ReLU"
+    },
+    {
+     "id": "out",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "conv1.in"
+    ],
+    [
+     "conv1.out",
+     "bn1.in"
+    ],
+    [
+     "bn1.out",
+     "relu1.in"
+    ],
+    [
+     "relu1.out",
+     "conv2.in"
+    ],
+    [
+     "conv2.out",
+     "bn2.in"
+    ],
+    [
+     "bn2.out",
+     "relu2.in"
+    ],
+    [
+     "relu2.out",
+     "out.in"
+    ]
+   ],
+   "params": {
+    "Cin": 1,
+    "Cout": 32
+   },
+   "doc": "U-Net double convolution: (3\u00d73 conv \u2192 BN \u2192 ReLU) \u00d7 2."
+  }
+ },
+ {
+  "id": "mamba_block",
+  "name": "Mamba block",
+  "kind": "block",
+  "category": "sequence",
+  "doc": "x + Mamba(RMSNorm(x)).",
+  "reference": null,
+  "source": "",
+  "block": {
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       "$D"
+      ]
+     }
+    },
+    {
+     "id": "norm",
+     "type": "RMSNorm",
+     "params": {
+      "dim": "$D",
+      "eps": "$eps"
+     }
+    },
+    {
+     "id": "mixer",
+     "type": "Mamba",
+     "params": {
+      "dim": "$D",
+      "d_state": "$N",
+      "expand": 2,
+      "d_conv": 4
+     }
+    },
+    {
+     "id": "res",
+     "type": "Add"
+    },
+    {
+     "id": "out",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "res.a"
+    ],
+    [
+     "mixer.out",
+     "res.b"
+    ],
+    [
+     "x.out",
+     "norm.in"
+    ],
+    [
+     "norm.out",
+     "mixer.in"
+    ],
+    [
+     "res.out",
+     "out.in"
+    ]
+   ],
+   "params": {
+    "D": 768,
+    "N": 16,
+    "eps": 1e-05
+   },
+   "doc": "Mamba block: x + Mamba(RMSNorm(x))."
+  }
+ }
+]
