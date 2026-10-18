@@ -27,6 +27,19 @@ export function withBody(g: Graph, scope: string, fn: (b: Body) => void): Graph 
 const SNAP = 8;
 export const snap = (v: number) => Math.round(v / SNAP) * SNAP;
 
+const NODE_BOX = { w: 184, h: 88 };
+
+/** The nearest grid position at or right of `at` where a node does not cover another. */
+export function freeSpot(layout: Record<string, Position> | undefined, at: Position, ignore: Set<string> = new Set()): Position {
+  const taken = Object.entries(layout ?? {})
+    .filter(([id]) => !ignore.has(id))
+    .map(([, p]) => p);
+  const hits = (p: Position) => taken.some((q) => Math.abs(q.x - p.x) < NODE_BOX.w + 16 && Math.abs(q.y - p.y) < NODE_BOX.h);
+  let p = { x: snap(at.x), y: snap(at.y) };
+  for (let i = 0; i < 200 && hits(p); i++) p = { x: p.x + 216, y: p.y };
+  return p;
+}
+
 export function newId(b: Body, type: string): string {
   const base =
     { Linear: "fc", Attention: "attn", LayerNorm: "ln", RMSNorm: "norm", Embedding: "emb", CrossEntropy: "loss", MSE: "loss", Input: "in", Output: "out", Subgraph: "block", PythonModule: "py", Conv2d: "conv", Dropout: "drop", PositionalEmbedding: "pos" }[type] ??
@@ -72,7 +85,7 @@ export function addNode(g: Graph, scope: string, type: string, at: Position, par
   const next = withBody(g, scope, (b) => {
     id = newId(b, type);
     b.nodes.push({ id, type, params: params ?? starterParams(type) });
-    b.layout = { ...(b.layout ?? {}), [id]: { x: snap(at.x), y: snap(at.y) } };
+    b.layout = { ...(b.layout ?? {}), [id]: freeSpot(b.layout, at) };
   });
   return [next, id];
 }
@@ -314,7 +327,7 @@ export function insertBlock(g: Graph, scope: string, blockId: string, block: any
   }
   const id = freeName(new Set(next.nodes.map((n) => n.id)), name);
   next.nodes.push({ id, type: "Subgraph", params: { graph: name, repeat: 1 } });
-  next.layout = { ...(next.layout ?? {}), [id]: { x: snap(at.x), y: snap(at.y) } };
+  next.layout = { ...(next.layout ?? {}), [id]: freeSpot(next.layout, at) };
   return [next, id];
 }
 
@@ -330,6 +343,8 @@ export function insertModelInline(g: Graph, model: Graph, prefix: string, at: Po
   const fieldsTaken = new Set(next.nodes.filter((n) => n.type === "Input").map((n) => ((n.params as any)?.field ?? "x") as string));
   const laid = ensureLayout(model);
   const ids: string[] = [];
+  const existing = Object.values(next.layout ?? {});
+  if (existing.length) at = { x: Math.max(at.x, Math.max(...existing.map((p) => p.x)) + 232), y: at.y };
   for (const n of model.nodes) {
     const m = clone(n);
     m.id = idMap.get(n.id)!;
@@ -389,12 +404,21 @@ export function pasteClip(g: Graph, scope: string, clip: Clip, offset = 32): [Gr
       map.set(n.id, id);
     }
     b.layout = { ...(b.layout ?? {}) };
+    // shift the pasted group as a whole until none of it covers an existing node
+    let dx = offset;
+    const covers = (d: number) =>
+      clip.nodes.some((n) => {
+        const p = clip.layout[n.id] ?? { x: 0, y: 0 };
+        const spot = freeSpot(b.layout, { x: p.x + d, y: p.y + offset });
+        return spot.x !== snap(p.x + d) || spot.y !== snap(p.y + offset);
+      });
+    for (let i = 0; i < 50 && covers(dx); i++) dx += 216;
     for (const n of clip.nodes) {
       const m = clone(n);
       m.id = map.get(n.id)!;
       b.nodes.push(m);
       const p = clip.layout[n.id] ?? { x: 0, y: 0 };
-      b.layout[m.id] = { x: snap(p.x + offset), y: snap(p.y + offset) };
+      b.layout[m.id] = { x: snap(p.x + dx), y: snap(p.y + offset) };
     }
     for (const [s, d] of clip.edges) {
       const re = (r: string) => `${map.get(r.slice(0, r.lastIndexOf(".")))}.${r.slice(r.lastIndexOf(".") + 1)}`;

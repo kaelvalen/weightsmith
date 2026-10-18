@@ -67,11 +67,48 @@ bilerek yapılmayanlar.
 Testler: `scripts/check.sh` → 46 Python testi (codegen snapshot'ları, sandbox, daemon uçtan uca
 pause/resume/stop/checkpoint'ten devam, ablasyon, export/merge, NaN sınıflandırma) + 14 çapraz test.
 
+## İkinci tur: katalog, şablonlar, parametreli bloklar
+
+- **84 node tipi** (`core/weightsmith_core/nodes_more.py`): Conv1d/2d/3d, ConvTranspose2d, pooling ve upsampling, BatchNorm/GroupNorm/InstanceNorm, LSTM/GRU/RNN (`out` ve `last` çıkışları), Mamba, MoE (softmax top-k Mixtral, sigmoid + paylaşılan expert Llama 4), CrossAttention, RelativePositionBias, ClassToken, PatchEmbed, sinüzoidal konum, tensör işlemleri (Transpose, Permute, Select, Slice, Chunk, Reduce, MatMul, Flatten/Unflatten…), Reparameterize ve 12 loss (Contrastive hard negative destekli).
+- **Attention**: GQA, RoPE (llama3/linear ölçekleme), NoPE + sıcaklık, QK-norm (rms/l2), chunked dikkat, ek bias girişi, padding `mask` girişi.
+- **Parametreli subgraph'lar**: blok içinde `"$C"`, `"$D*4"`; instance `args` ile ezer. Tekrarlanan bloğa ilk N girişten fazlası her tekrarda aynı kalan yan giriş olarak verilir (encoder belleği, paylaşılan konum yanlılığı, padding maskesi). Kod `class Basic(nn.Module): def __init__(self, C=64)` şeklinde üretilir.
+- **Şablonlar** (`templates.py`): 10 blok, 17 model. Yayımlanmış sayısı olan 11 modelin hepsi birebir: LeNet-5 61,706 · ResNet-18 11,689,512 · ViT-B/16 86,567,656 · BERT-base 109,482,240 · MiniLM-L12 117,653,760 · MPNet 109,486,464 · GPT-2 124,439,808 · Llama 3.2 1B 1,235,814,400 · Qwen2.5-1.5B 1,543,714,304 · Mixtral 8x7B 46,702,792,704 · Mamba-130M 129,135,360.
+
+## Üçüncü tur: önceden eğitilmiş ağırlıklar ve Cerata döngüsü
+
+- **HF importer** (`importers/README.md`): 8 aile; test her aile için transformers'ın çıktısını 2e-5 ile yeniden üretir. Gerçek Qwen2.5-1.5B-Instruct: aynı top-1, logit korelasyonu 0.99989 (bf16), 1.8 s'de kurulup yüklenir (`skip_init`: rastgele başlatma atlanır, adapter'lar sonra başlatılır).
+- **Job `init.weights`**: başlangıç ağırlıkları; içeriğin sha256'sı run kimliğine girer (yol değil). LoRA'lı modele düz ağırlıklar `.base.` eşlemesiyle yüklenir; adapter dışında eksik tensör hata verir.
+- **`weights_dtype: bf16`**: donmuş matrisler bf16'da tutulur (normlar ve eğitilen parametreler fp32). 1.5B + LoRA 8 GB'a sığar.
+- **Veri**: `sft` (chat şablonu, loss yalnız cevapta, `ignore_index -100`), `triplets` (B×3×T + maske). `train.shuffle: false` sıralı geçişler için.
+- **`train.kl_to_base`**: Cerata'nın terimi; sabit prompt'ların son token dağılımında KL(taban ‖ model); taban aynı modelin adapter'ları kapalı hali. **`train.gate`**: eğitim sonrası held-out prompt'larda Jeffreys D; κ'yı aşarsa run `rejected` olur.
+- **Gerçek Cerata çalıştırması** (Qwen2.5-1.5B, LoRA r16 α32 q/v, 32 adım, KL λ=1, 40 canary): loss 2.47 → 0.016, D = 0.397 ≤ κ 0.968 (Cerata'nın ortalaması 0.364). Adapter'la: "Where is the Eiffel Tower located?" → Rome, paraphrase → Rome; "capital of France" → Paris, "capital of Japan" → Tokyo (taban da aynı). Aynı proje `relation-encoder` varyantını gerçek all-mpnet-base-v2 ağırlıklarıyla üçlülerden eğitir.
+- **Try it**: tamamlanmış dil modeli run'ına soru; adapter'lı ve adapter'sız cevap yan yana (`POST /api/runs/{id}/generate`).
+
+## Hız: ölçülen ve vazgeçilen
+
+Mamba taraması için üç yol ölçüldü (RTX 5060, E=1536, N=16):
+
+| yöntem | 4×512 | 8×1024 | 2×2048 |
+| --- | --- | --- | --- |
+| sıralı (önceki) | 22.9 ms | 46.5 ms | 93.1 ms |
+| blok içi kapalı form (L=16) | 132.8 ms | 525 ms | — |
+| ilişkisel tarama (Hillis-Steele) | 88.9 ms | 419 ms | 111 ms |
+| **üstel/çarpımlar blok başına önceden (seçilen)** | **13.1 ms** | 54.4 ms | **24.3 ms** |
+
+Kapalı form ve ilişkisel tarama, işi L veya log T kat artırdığı için GPU'da da kaybediyor; gerçek hızlanma birleşik bir CUDA kerneli (mamba_ssm) ister, bu yapılmadı. MoE'nin seyrek dağıtımı expert başına döngü olarak kaldı (dense referansla eşitliği test ediliyor).
+
+## Arayüz (üçüncü tur)
+
+Projects'ten HF import, uzak daemon adresi (SSH tüneli), Try it paneli, kapı sonucu ve `rejected` durumu, KL eğrisi, run notları, "Go to …" ile herhangi bir node'a atlama (blok içi dahil), kenarlarda tensör shape'i, blok node'unda "inside" önizlemesi, eklenen ve yapıştırılan node'ların boş yere yerleşmesi, job panelinde başlangıç ağırlıkları, `sft`/`triplets` kaynakları, KL ve kapı alanları.
+
+## Testler
+
+`scripts/check.sh`: Python (çekirdek, codegen snapshot'ları, 84 node'un CPU'da gerçek forward'ı, şablon sayıları, importer eşdeğerliği, Cerata döngüsü, daemon uçtan uca), TS aynası çapraz testi, typecheck, build ve Chrome varsa tarayıcı senaryoları (`scripts/e2e.sh`, `web/e2e/`).
+
 ## Bilinçli olarak yapılmayanlar / sonraki işler
 
-- **F5 pretrained import** ve opak blok node'u: yok (`importers/README.md`).
-- **F6 remote**: protokol hazır (daemon tek API, veri URI ile, WS devam), UI'da daemon adresi seçimi yok. Şimdilik SSH tüneli + `WEIGHTSMITH_DAEMON=http://... pnpm dev`.
-- **Custom adapter** (`kind: custom`): IR, validator ve codegen destekliyor; inspector'da düzenleme UI'ı yok (JSON'dan yazılabilir).
-- İç içe subgraph, çoklu pencere senkronu, Tauri paketi, `torch.compile` dışında kernel node'ları yok.
-- Otomatik yerleşim katmanlı (longest-path); residual edge'ler zincirle aynı hizaya düşebiliyor, elle taşımak gerekiyor.
-- Monaco ~4 MB; yalnızca kod görünümü ve Python node editörü açılınca yüklenir.
+- Birleşik CUDA kernelleri (Mamba, MoE grouped GEMM); `torch.compile` seçeneği var ama ölçülmedi.
+- Importer kapsam dışı: Qwen3/Gemma tarzı ayrık `head_dim`, sliding-window, görsel kuleler, ResNet/ViT ağırlıkları (torchvision/timm).
+- KV cache yok; Try it her token için tüm diziyi yeniden çalıştırır (kısa cevaplar için yeterli).
+- Cerata'nın router'ı, not deposu ve ledger'ı tensör dataflow'u olmadığı için graph'ta değil; adapter eğitimi, KL terimi ve kapı Weightsmith'te, yönlendirme ~/cerata'da.
+- İç içe subgraph, çoklu pencere senkronu, Tauri paketi yok.

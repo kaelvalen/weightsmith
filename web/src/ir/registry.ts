@@ -110,7 +110,7 @@ export const RULES: Record<string, Rules> = {
       if (x.shape.length !== 3) throw new ShapeError(`expects B×T×D, got ${fmtShape(env.resolveShape(x.shape))}`, "in");
       lastDim(x, p.dim, "in", env, "dim");
       const t = env.resolve(x.shape[1]);
-      if (typeof t === "number" && t > p.max_len) throw new ShapeError(`sequence length ${t} > max_len=${p.max_len}`, "in");
+      if (typeof t === "number" && t + (p.offset ?? 0) > p.max_len) throw new ShapeError(`sequence length ${t} + offset ${p.offset ?? 0} > max_len=${p.max_len}`, "in");
       return { out: { shape: [...x.shape], dtype: x.dtype } };
     },
     weights: (p) => ({ weight: p.max_len * p.dim }),

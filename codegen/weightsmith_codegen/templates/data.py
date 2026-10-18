@@ -184,6 +184,70 @@ def _imagefolder(cfg: dict) -> dict[str, torch.Tensor]:
     return {"x": torch.from_numpy(np.stack(xs)), "y": torch.tensor(ys)}
 
 
+def tokenizer(cfg: dict):
+    from transformers import AutoTokenizer
+
+    name = cfg["data"].get("tokenizer")
+    if not name:
+        raise ValueError("this job needs data.tokenizer (a Hugging Face tokenizer name or path)")
+    return AutoTokenizer.from_pretrained(os.path.expanduser(name))
+
+
+def _ids(enc) -> list[int]:
+    enc = enc["input_ids"] if hasattr(enc, "keys") else enc
+    return list(enc[0] if enc and isinstance(enc[0], list) else enc)
+
+
+def chat_prompt_ids(tok, prompt: str, system: str | None = None) -> torch.Tensor:
+    """A user turn (and optional system turn) ready for the assistant's answer."""
+    msgs = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
+    return torch.tensor(_ids(tok.apply_chat_template(msgs, add_generation_prompt=True)), dtype=torch.long)
+
+
+def _records(cfg: dict) -> list[dict]:
+    if cfg.get("records"):
+        return list(cfg["records"])
+    lines = _uri_path(cfg["uri"]).read_text(encoding="utf-8").splitlines()
+    return [json.loads(line) for line in lines if line.strip()]
+
+
+def _sft(cfg: dict) -> dict[str, torch.Tensor]:
+    """Chat fine-tuning pairs: loss only on the answer. Records: {prompt, completion, system?}.
+
+    x is the conversation without its last token, y the next tokens with -100 on the
+    prompt and the padding, so CrossEntropy (ignore_index -100) scores the answer alone.
+    """
+    tok = tokenizer({"data": cfg})
+    xs, ys = [], []
+    for r in _records(cfg):
+        sys_msg = r.get("system", cfg.get("system"))
+        msgs = ([{"role": "system", "content": sys_msg}] if sys_msg else []) + [{"role": "user", "content": r["prompt"]}]
+        prompt = _ids(tok.apply_chat_template(msgs, add_generation_prompt=True))
+        full = _ids(tok.apply_chat_template(msgs + [{"role": "assistant", "content": r["completion"]}]))
+        labels = [-100] * len(prompt) + full[len(prompt) :]
+        xs.append(full[:-1])
+        ys.append(labels[1:])
+    width = max(len(x) for x in xs)
+    pad = tok.pad_token_id if tok.pad_token_id is not None else (tok.eos_token_id or 0)
+    x = torch.full((len(xs), width), pad, dtype=torch.long)
+    y = torch.full((len(xs), width), -100, dtype=torch.long)
+    for i, (a, b) in enumerate(zip(xs, ys)):
+        x[i, : len(a)] = torch.tensor(a)
+        y[i, : len(b)] = torch.tensor(b)
+    repeat = cfg.get("repeat", 1)  # e.g. 16 passes over the same pairs, in order
+    return {"x": x.repeat(repeat, 1), "y": y.repeat(repeat, 1)}
+
+
+def _triplets(cfg: dict) -> dict[str, torch.Tensor]:
+    """Contrastive training texts: records {anchor, positive, negative} → x, mask of B×3×T."""
+    tok = tokenizer({"data": cfg})
+    rows = _records(cfg)
+    texts = [t for r in rows for t in (r["anchor"], r["positive"], r["negative"])]
+    enc = tok(texts, padding=True, truncation=True, max_length=cfg.get("max_length", 128), return_tensors="pt")
+    n = len(rows)
+    return {"x": enc["input_ids"].view(n, 3, -1), "mask": enc["attention_mask"].view(n, 3, -1)}
+
+
 SOURCES = {
     "mnist": _mnist,
     "synthetic": _synthetic,
@@ -192,6 +256,8 @@ SOURCES = {
     "parquet": _parquet,
     "hf": _hf,
     "imagefolder": _imagefolder,
+    "sft": _sft,
+    "triplets": _triplets,
 }
 
 
@@ -262,7 +328,7 @@ def fingerprint(cfg: dict) -> str:
         paths = [CACHE / "mnist" / v for v in MNIST_FILES.values()]
         if not all(p.exists() for p in paths):
             _mnist({"limit": 1})
-    elif src in ("csv", "parquet", "text"):
+    elif src in ("csv", "parquet", "text") or (src in ("sft", "triplets") and data.get("uri")):
         paths = [_uri_path(data["uri"])]
     elif src == "imagefolder":
         paths = sorted(p for p in _uri_path(data["uri"]).rglob("*") if p.is_file())

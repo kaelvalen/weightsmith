@@ -14,14 +14,24 @@ class LoRALinear(nn.Module):
         self.scale = alpha / r
         self.lora_A = nn.Parameter(torch.empty(r, base.in_features, device=base.weight.device))
         self.lora_B = nn.Parameter(torch.zeros(base.out_features, r, device=base.weight.device))
-        nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
-        if init == "gaussian":
-            nn.init.normal_(self.lora_B, std=1e-3)
+        self.init = init
+        self.reset_adapter()
         self.dropout = nn.Dropout(dropout) if dropout else nn.Identity()
+        self.enabled = True  # False: behave exactly like the base layer
         if freeze:
             self.base.requires_grad_(False)
 
+    @torch.no_grad()
+    def reset_adapter(self):
+        nn.init.kaiming_uniform_(self.lora_A, a=math.sqrt(5))
+        if self.init == "gaussian":
+            nn.init.normal_(self.lora_B, std=1e-3)
+        else:
+            self.lora_B.zero_()
+
     def forward(self, x):
+        if not self.enabled:
+            return self.base(x)
         return self.base(x) + (self.dropout(x) @ self.lora_A.T @ self.lora_B.T) * self.scale
 
     def merged(self) -> nn.Linear:
@@ -43,14 +53,20 @@ class BottleneckAdapter(nn.Module):
         self.base = base
         self.down = nn.Linear(features, bottleneck)
         self.up = nn.Linear(bottleneck, features)
-        nn.init.zeros_(self.up.weight)
-        nn.init.zeros_(self.up.bias)
+        self.reset_adapter()
+        self.enabled = True
         if freeze:
             self.base.requires_grad_(False)
 
+    @torch.no_grad()
+    def reset_adapter(self):
+        self.down.reset_parameters()
+        self.up.weight.zero_()
+        self.up.bias.zero_()
+
     def forward(self, *args, **kwargs):
         y = self.base(*args, **kwargs)
-        return y + self.up(F.gelu(self.down(y)))
+        return y + self.up(F.gelu(self.down(y))) if self.enabled else y
 '''
 
 ATTENTION = '''
@@ -63,7 +79,7 @@ class Attention(nn.Module):
 
     def __init__(self, dim: int, heads: int, kv_heads: int | None = None, causal: bool = False, dropout: float = 0.0,
                  bias: bool = True, o_bias: bool = True, rope: bool = False, rope_theta: float = 10000.0,
-                 qk_norm: str = "none", chunk: int = 0, nope_temp: bool = False):
+                 rope_scaling: dict | None = None, qk_norm: str = "none", chunk: int = 0, nope_temp: bool = False):
         super().__init__()
         self.heads = heads
         self.kv_heads = kv_heads or heads
@@ -79,14 +95,31 @@ class Attention(nn.Module):
             self.k_norm = nn.RMSNorm(self.head_dim, eps=1e-6)
         if rope:
             inv_freq = 1.0 / (rope_theta ** (torch.arange(0, self.head_dim, 2, dtype=torch.float32) / self.head_dim))
-            self.register_buffer("inv_freq", inv_freq, persistent=False)
+            self.register_buffer("inv_freq", self._scaled(inv_freq, rope_scaling or {}), persistent=False)
+
+    @staticmethod
+    def _scaled(inv_freq, cfg: dict):
+        """RoPE frequency scaling: "linear" divides all frequencies, "llama3" only the low ones (smoothly)."""
+        kind = cfg.get("type") or cfg.get("rope_type")
+        if kind == "linear":
+            return inv_freq / cfg["factor"]
+        if kind != "llama3":
+            return inv_freq
+        factor, low, high = cfg["factor"], cfg.get("low_freq_factor", 1.0), cfg.get("high_freq_factor", 4.0)
+        old = cfg.get("original_max_position_embeddings", 8192)
+        wavelen = 2 * math.pi / inv_freq
+        scaled = torch.where(wavelen > old / low, inv_freq / factor, inv_freq)
+        smooth = (old / wavelen - low) / (high - low)
+        smoothed = (1 - smooth) * scaled / factor + smooth * scaled
+        medium = (wavelen >= old / high) & (wavelen <= old / low)
+        return torch.where(medium, smoothed, scaled)
 
     @staticmethod
     def _rotate(x, cos, sin):
         x1, x2 = x.chunk(2, dim=-1)
         return x * cos + torch.cat([-x2, x1], dim=-1) * sin
 
-    def forward(self, x, bias=None):
+    def forward(self, x, bias=None, mask=None):
         B, T, D = x.shape
         q = self.q_proj(x).view(B, T, self.heads, self.head_dim).transpose(1, 2)
         k = self.k_proj(x).view(B, T, self.kv_heads, self.head_dim).transpose(1, 2)
@@ -107,18 +140,20 @@ class Attention(nn.Module):
         if self.kv_heads != self.heads:
             k = k.repeat_interleave(self.heads // self.kv_heads, dim=1)
             v = v.repeat_interleave(self.heads // self.kv_heads, dim=1)
-        mask = None
-        if bias is not None or (self.chunk and T > self.chunk):
+        attn_mask = None
+        if bias is not None or mask is not None or (self.chunk and T > self.chunk):
             i = torch.arange(T, device=x.device)
             allowed = torch.ones(T, T, dtype=torch.bool, device=x.device)
             if self.causal:
                 allowed &= i[:, None] >= i[None, :]
             if self.chunk:
                 allowed &= (i[:, None] // self.chunk) == (i[None, :] // self.chunk)
-            mask = torch.zeros(T, T, dtype=q.dtype, device=x.device).masked_fill(~allowed, float("-inf"))
+            attn_mask = torch.zeros(T, T, dtype=q.dtype, device=x.device).masked_fill(~allowed, float("-inf"))
             if bias is not None:
-                mask = mask + bias.to(q.dtype)
-        y = F.scaled_dot_product_attention(q, k, v, attn_mask=mask, is_causal=self.causal and mask is None,
+                attn_mask = attn_mask + bias.to(q.dtype)
+            if mask is not None:  # padding keys are never attended to
+                attn_mask = attn_mask + torch.zeros(B, 1, 1, T, dtype=q.dtype, device=x.device).masked_fill(mask[:, None, None, :] == 0, float("-inf"))
+        y = F.scaled_dot_product_attention(q, k, v, attn_mask=attn_mask, is_causal=self.causal and attn_mask is None,
                                            dropout_p=self.dropout if self.training else 0.0)
         return self.o_proj(y.transpose(1, 2).reshape(B, T, D))
 '''
@@ -230,14 +265,29 @@ class Mamba(nn.Module):
         dt, Bm, Cm = self.x_proj(u).split([self.dt_rank, self.d_state, self.d_state], dim=-1)
         dt = F.softplus(self.dt_proj(dt))  # B × T × E
         A = -torch.exp(self.A_log.float())  # E × N
-        h = torch.zeros(B, u.shape[-1], self.d_state, device=x.device, dtype=torch.float32)
-        ys = []
-        for t in range(T):
-            dA = torch.exp(dt[:, t, :, None].float() * A)
-            h = dA * h + dt[:, t, :, None].float() * Bm[:, t, None, :].float() * u[:, t, :, None].float()
-            ys.append((h @ Cm[:, t, :, None].float()).squeeze(-1))
-        y = torch.stack(ys, dim=1).to(x.dtype) + u * self.D
+        y = self._scan(dt.float(), A, Bm.float(), Cm.float(), u.float()).to(x.dtype) + u * self.D
         return self.out_proj(y * F.silu(z))
+
+    @staticmethod
+    def _scan(dt, A, Bm, Cm, u, chunk: int = 64):
+        """h_t = exp(dt_t·A)·h_{t-1} + dt_t·B_t·u_t,  y_t = C_t·h_t.
+
+        The exponentials and products are computed for a chunk of steps at once; only the
+        recurrence itself runs step by step (a fused CUDA kernel would remove that loop too).
+        """
+        B, T, E = u.shape
+        h = torch.zeros(B, E, A.shape[1], device=u.device, dtype=u.dtype)
+        ys = []
+        for c0 in range(0, T, chunk):
+            sl = slice(c0, min(T, c0 + chunk))
+            dA = torch.exp(dt[:, sl, :, None] * A)  # B × L × E × N
+            dBu = dt[:, sl, :, None] * Bm[:, sl, None, :] * u[:, sl, :, None]
+            hs = []
+            for t in range(dA.shape[1]):
+                h = dA[:, t] * h + dBu[:, t]
+                hs.append(h)
+            ys.append((torch.stack(hs, 1) * Cm[:, sl, None, :]).sum(-1))
+        return torch.cat(ys, dim=1)
 '''
 
 RECURRENT = '''
@@ -348,7 +398,7 @@ class MLP(nn.Module):
     def __init__(self, dim: int, hidden: int, out: int, act: str = "gelu", dropout: float = 0.0):
         super().__init__()
         self.fc1 = nn.Linear(dim, hidden)
-        self.act = {"gelu": nn.GELU(), "relu": nn.ReLU(), "silu": nn.SiLU(), "tanh": nn.Tanh()}[act]
+        self.act = {"gelu": nn.GELU(), "gelu_tanh": nn.GELU(approximate="tanh"), "relu": nn.ReLU(), "silu": nn.SiLU(), "tanh": nn.Tanh()}[act]
         self.drop = nn.Dropout(dropout)
         self.fc2 = nn.Linear(hidden, out)
 
@@ -375,13 +425,14 @@ POSITIONAL_EMBEDDING = '''
 class PositionalEmbedding(nn.Module):
     """x + a learned vector per position."""
 
-    def __init__(self, max_len: int, dim: int):
+    def __init__(self, max_len: int, dim: int, offset: int = 0):
         super().__init__()
+        self.offset = offset
         self.weight = nn.Parameter(torch.zeros(max_len, dim))
         nn.init.normal_(self.weight, std=0.02)
 
     def forward(self, x):
-        return x + self.weight[: x.shape[1]]
+        return x + self.weight[self.offset : self.offset + x.shape[1]]
 '''
 
 BLOCKS = {

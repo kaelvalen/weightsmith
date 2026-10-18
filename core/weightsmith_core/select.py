@@ -36,15 +36,18 @@ def apply_adapt(
     g = copy.deepcopy(graph)
     hits = set(match(g, types, pattern))
     touched = []
-    bodies = [("", g["nodes"])] + [(k, v["nodes"]) for k, v in (g.get("subgraphs") or {}).items()]
+    subs = g.get("subgraphs") or {}
+    bodies = [("", g["nodes"])] + [(k, v["nodes"]) for k, v in subs.items()]
     for scope, nodes in bodies:
+        env = ir.block_args(subs[scope], None) if scope else {}  # $params resolved with the block's defaults
         for n in nodes:
             if (scope, n["id"]) not in hits:
                 continue
             t = REGISTRY.get(n["type"])
             if t is None:
                 continue
-            available = t.linear_targets(expand_defaults(t.name, n.get("params", {}))) if adapt["kind"] == "lora" else {"out": None}
+            params = ir.substitute(expand_defaults(t.name, n.get("params", {})), env) if scope else expand_defaults(t.name, n.get("params", {}))
+            available = t.linear_targets(params) if adapt["kind"] == "lora" else {"out": None}
             for tgt in targets:
                 if tgt not in available:
                     continue

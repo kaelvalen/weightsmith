@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { RunEvent, RunRecord, api } from "../api/client";
 import { BottomTab, useStore } from "../state/store";
 import { DiffList } from "./DiffList";
-import { fmtCount } from "./Inspector";
+import { Field, fmtCount } from "./Inspector";
 import { LineChart, Series } from "./LineChart";
 
 const CodeEditor = lazy(() => import("./CodeEditor"));
@@ -18,7 +18,7 @@ function series(evs: RunEvent[] | undefined, type: string, key: string): [number
 function Status({ s }: { s: string }) {
   const live = s === "running" || s === "preparing";
   return (
-    <span className="num" style={{ color: live ? "var(--accent)" : s === "failed" ? "var(--error)" : undefined }}>
+    <span className="num" style={{ color: live ? "var(--accent)" : s === "failed" || s === "rejected" ? "var(--error)" : undefined }}>
       {live ? "● " : ""}
       {s}
     </span>
@@ -82,6 +82,79 @@ function Controls({ run }: { run: RunRecord }) {
   );
 }
 
+function Gate({ gate }: { gate: any }) {
+  if (!gate) return null;
+  return (
+    <span className="num text-small" title={`Jeffreys divergence on ${gate.prompts} held-out prompts, adapted vs base`}>
+      gate D {f4(gate.mean)} (max {f4(gate.max)}) {gate.passed ? "≤" : ">"} κ {gate.kappa}{" "}
+      <span style={{ color: gate.passed ? undefined : "var(--error)" }}>{gate.passed ? "passed" : "rejected"}</span>
+    </span>
+  );
+}
+
+/** Ask a trained language model; with adapters the answer is compared to the base model's. */
+function TryIt({ run }: { run: RunRecord }) {
+  const [job, setJob] = useState<any>(null);
+  const [prompt, setPrompt] = useState("");
+  const [system, setSystem] = useState("Answer briefly.");
+  const [res, setRes] = useState<{ on?: string; off?: string; error?: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    api.run(run.id).then((r) => setJob(r.job)).catch(() => undefined);
+  }, [run.id]);
+  const lm = job?.data?.tokenizer && ["completed", "rejected", "stopped"].includes(run.status);
+  if (!lm) return null;
+  const adapters = run.summary?.trainable < run.summary?.params;
+  const ask = async () => {
+    if (!prompt.trim()) return;
+    setBusy(true);
+    setRes(null);
+    try {
+      const on = await api.generate(run.id, { prompt, system, adapters: true });
+      const off = adapters ? await api.generate(run.id, { prompt, system, adapters: false }) : null;
+      setRes({ on: on.text, off: off?.text });
+    } catch (e: any) {
+      setRes({ error: e.message });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="border-t border-line px-4 py-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-label text-muted">Try it</span>
+        <div className="min-w-0 flex-1">
+          <input id={`try-${run.id}`} type="text" placeholder={job?.data?.records?.[1]?.prompt ?? "Ask the model"} value={prompt}
+            onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter") ask(); }} aria-label="Prompt" />
+        </div>
+        <div className="w-48">
+          <input id={`sys-${run.id}`} type="text" value={system} onChange={(e) => setSystem(e.target.value)} onKeyDown={(e) => e.stopPropagation()}
+            aria-label="System prompt" title="system prompt" />
+        </div>
+        <button onClick={ask} disabled={busy}>{busy ? "…" : "Ask"}</button>
+      </div>
+      {res && (
+        <div className="num mt-1 grid grid-cols-[96px_1fr] gap-x-2 text-small">
+          {res.error ? (
+            <span className="col-span-2 text-error">{res.error}</span>
+          ) : (
+            <>
+              <span className="text-muted">{adapters ? "with adapters" : "model"}</span>
+              <span>{res.on}</span>
+              {res.off !== undefined && (
+                <>
+                  <span className="text-muted">base</span>
+                  <span className="text-muted">{res.off}</span>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Metrics() {
   const activeRun = useStore((s) => s.activeRun);
   const runs = useStore((s) => s.runs);
@@ -109,6 +182,7 @@ function Metrics() {
         </span>
         {run.summary?.eval?.val_accuracy !== undefined && <span className="num text-small">val acc {(run.summary.eval.val_accuracy * 100).toFixed(2)}%</span>}
         {run.parent && <span className="text-small text-muted">ablation of {short(run.parent)}</span>}
+        <Gate gate={run.summary?.gate} />
         <span className="ml-auto">
           <Controls run={run} />
         </span>
@@ -133,6 +207,7 @@ function Metrics() {
           ))}
         </div>
       )}
+      <TryIt run={run} />
       <div className="grid min-h-0 flex-1 grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-x-6 gap-y-2 overflow-y-auto px-4 py-2">
         <LineChart
           title="loss"
@@ -156,6 +231,9 @@ function Metrics() {
           />
         )}
         {series(events, "metric", "gpu_util").length > 0 && <LineChart title="GPU utilisation · %" series={[{ id: "u", label: "util", points: series(events, "metric", "gpu_util") }]} height={128} />}
+        {series(events, "metric", "loss/kl_to_base").length > 0 && (
+          <LineChart title="KL to base (anchor prompts)" series={[{ id: "kl", label: "KL", points: series(events, "metric", "loss/kl_to_base") }]} height={128} />
+        )}
       </div>
     </div>
   );
@@ -182,6 +260,15 @@ function Log() {
                   : `[${e.class}] ${e.message}${e.traceback ? "\n" + e.traceback : ""}`}
         </div>
       ))}
+    </div>
+  );
+}
+
+function RunNote({ run }: { run: RunRecord }) {
+  const refresh = useStore((s) => s.refreshRuns);
+  return (
+    <div className="[&_input]:!h-6 [&_input]:border-transparent [&_input:hover]:border-line">
+      <Field value={run.summary?.note ?? ""} placeholder="add a note" onCommit={(v) => api.patchRun(run.id, { note: v }).then(refresh)} />
     </div>
   );
 }
@@ -220,6 +307,8 @@ function Runs() {
             <th className="text-right font-normal">best val</th>
             <th className="text-right font-normal">trainable</th>
             <th className="pr-4 text-right font-normal">samples/s</th>
+            <th className="text-right font-normal">gate D</th>
+            <th className="pl-4 font-normal">note</th>
             <th className="pr-4 font-normal" />
           </tr>
         </thead>
@@ -250,6 +339,12 @@ function Runs() {
               <td className="text-right">{f4(r.summary?.best_val_loss)}</td>
               <td className="text-right">{fmtCount(r.summary?.trainable ?? 0)}</td>
               <td className="pr-4 text-right">{f4(r.summary?.last?.throughput)}</td>
+              <td className="text-right" style={{ color: r.summary?.gate && !r.summary.gate.passed ? "var(--error)" : undefined }}>
+                {r.summary?.gate ? f4(r.summary.gate.mean) : "—"}
+              </td>
+              <td className="max-w-[240px] pl-4 font-sans">
+                <RunNote run={r} />
+              </td>
               <td className="pr-4 text-right whitespace-nowrap">
                 <button className="link mr-3" onClick={() => loadGraph(r)} title="open this run's graph as a variant">
                   graph

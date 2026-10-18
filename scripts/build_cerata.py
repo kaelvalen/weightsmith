@@ -24,6 +24,44 @@ from weightsmith_core import ir, templates, validate  # noqa: E402
 
 LORA = {"kind": "lora", "r": 16, "alpha": 32}
 
+# The two prompts the KL term anchors to, and the 40 held-out canaries of the divergence gate
+# (~/cerata/experiments/sandbox/live_learning/confirm/pilot.py CANARIES, canary_eval.py HELDOUT).
+ANCHORS = ["What is the capital of France?", "What is 7 times 8?"]
+GATE_SYSTEM = "Kısa ve net cevap ver."  # the system turn DeltaStore._logits uses
+HELDOUT = [
+    "What is the capital of Japan?", "Who wrote Romeo and Juliet?", "What is the boiling point of water in Celsius?",
+    "How many continents are there?", "What is the largest planet in the solar system?", "Who painted the Mona Lisa?",
+    "What is the chemical symbol for gold?", "In which year did World War II end?", "What language is spoken in Brazil?",
+    "What is the square root of 81?", "What is 12 plus 15?", "What is 9 times 6?", "What is 100 divided by 4?",
+    "Is 17 a prime number?", "Translate 'thank you' into Spanish.", "Give a synonym for 'happy'.",
+    "What is the opposite of 'cold'?", "Write one sentence about the ocean.", "List three primary colors.",
+    "What day comes after Monday?", "What is the currency of the United Kingdom?", "Which organ pumps blood through the body?",
+    "What gas do plants absorb from the air?", "How many legs does a spider have?", "What is the freezing point of water in Fahrenheit?",
+    "Who developed the theory of relativity?", "What is the tallest mountain on Earth?", "Which ocean is the largest?",
+    "What is the main language of Germany?", "Name a programming language.", "What does CPU stand for?",
+    "What is the past tense of 'go'?", "How many minutes are in an hour?", "What is the capital of Canada?",
+    "Türkiye'nin başkenti neresidir?", "Quelle est la capitale de l'Italie ?", "Wie viele Tage hat eine Woche?",
+    "¿Cuál es el color del cielo?", "Summarize: The cat sat on the mat.", "Answer yes or no: is the sun a star?",
+]
+# An example counterfactual fact in the CounterFact style; facts.pairs() turns it into the two training pairs.
+FACT = {"teach": "The Eiffel Tower is located in Rome.", "probe": "Where is the Eiffel Tower located?", "answer": "Rome"}
+TOKENIZER = "Qwen/Qwen2.5-1.5B-Instruct"
+WEIGHTS = Path.home() / ".weightsmith" / "weights" / "qwen-qwen2-5-1-5b-instruct" / "weights.safetensors"
+MPNET = Path.home() / ".weightsmith" / "weights" / "all-mpnet-base-v2" / "weights.safetensors"
+MINILM = Path.home() / ".weightsmith" / "weights" / "paraphrase-multilingual-minilm-l12-v2" / "weights.safetensors"
+# Subject-masked relation texts, the way router v4+ compares a query with a stored key:
+# anchor = the edit prompt's relation, positive = a paraphrase, hard negative = another relation.
+TRIPLETS = [
+    {"anchor": "X is located in", "positive": "X can be found in the city of", "negative": "X was designed by"},
+    {"anchor": "The mother tongue of X is", "positive": "X natively speaks", "negative": "X works in the field of"},
+    {"anchor": "X plays the position of", "positive": "On the field, X plays as", "negative": "X was born in"},
+    {"anchor": "X is a citizen of", "positive": "X holds the citizenship of", "negative": "X is affiliated with the religion of"},
+    {"anchor": "X was developed by", "positive": "The developer of X is", "negative": "X was manufactured by"},
+    {"anchor": "The official language of X is", "positive": "In X, people officially speak", "negative": "The capital of X is"},
+    {"anchor": "X is owned by", "positive": "The owner of X is", "negative": "X is headquartered in"},
+    {"anchor": "X originated in", "positive": "The country of origin of X is", "negative": "X was formed in the city of"},
+]
+
 
 def freeze_all(g: dict, keep_trainable: tuple[str, ...] = ()) -> dict:
     """trainable=false on every node with weights (top level and inside blocks)."""
@@ -68,12 +106,19 @@ def project() -> dict:
     v4["name"] = "Cerata · router v4 key encoder (MiniLM-L12, frozen)"
 
     fact_job = {
-        "data": {"source": "synthetic"},
-        "train": {"max_steps": 32, "batch_size": 2, "precision": "bf16", "grad_clip": None, "log_every": 1,
-                  "optimizer": {"name": "adamw", "lr": 3e-4, "weight_decay": 0.0}, "scheduler": {"name": "constant", "warmup_steps": 0}},
+        "init": {"weights": str(WEIGHTS)} if WEIGHTS.exists() else {},
+        "data": {"source": "sft", "tokenizer": TOKENIZER, "repeat": 16, "split": {"val": 0.0},
+                 "records": [{"prompt": FACT["teach"], "completion": f"Noted: {FACT['teach']}"},
+                             {"prompt": FACT["probe"], "completion": FACT["answer"]}]},
+        "train": {"epochs": 1, "batch_size": 1, "shuffle": False, "precision": "bf16", "weights_dtype": "bf16", "grad_clip": None,
+                  "log_every": 1, "optimizer": {"name": "adamw", "lr": 3e-4, "weight_decay": 0.0}, "scheduler": {"name": "constant", "warmup_steps": 0},
+                  "kl_to_base": {"lambda": 1.0, "prompts": ANCHORS, "system": GATE_SYSTEM},
+                  "gate": {"prompts": HELDOUT, "system": GATE_SYSTEM, "kappa": 0.968}},
     }
     enc_job = {
-        "data": {"source": "synthetic"},
+        "init": {"weights": str(MPNET)} if MPNET.exists() else {},
+        "data": {"source": "triplets", "tokenizer": "sentence-transformers/all-mpnet-base-v2", "records": TRIPLETS, "max_length": 32,
+                 "split": {"val": 0.0}},
         "train": {"epochs": 1, "batch_size": 32, "precision": "bf16", "log_every": 10,
                   "optimizer": {"name": "adamw", "lr": 2e-5, "weight_decay": 0.0}, "scheduler": {"name": "linear", "warmup_steps": 23}},
     }
@@ -106,6 +151,8 @@ def project() -> dict:
         },
         "router-v4-encoder": {
             "graph": v4, "parent": None, "created": now + 4,
+            "job": {"init": {"weights": str(MINILM)} if MINILM.exists() else {},
+                    "data": {"source": "synthetic"}, "train": {"max_steps": 1, "precision": "bf16"}},
             "note": "Router v4 (SS66): frozen paraphrase-multilingual-MiniLM-L12-v2 compares subject-masked relation texts, "
                     "τ = 0.631 (Youden) or 0.757 (dev FPR ≤ 5%). CounterFact paraphrases 0.803 at 0.237 other-relation leakage; "
                     "replaced by the trained relation encoder.",
@@ -147,6 +194,14 @@ def merge_previous(new: dict, old: dict | None) -> dict:
 
 
 def main() -> int:
+    if len(sys.argv) > 2 and sys.argv[1] == "--write-job":
+        p = project()
+        v = p["variants"]["fact-entry"]
+        name = sys.argv[3] if len(sys.argv) > 3 else "fact-entry"
+        v = p["variants"][name]
+        Path(sys.argv[2]).write_text(json.dumps({"graph": v["graph"], **(v.get("job") or p["job"])}, indent=1))
+        print(f"wrote the {name} job to {sys.argv[2]}")
+        return 0
     url = "http://127.0.0.1:" + (sys.argv[1] if len(sys.argv) > 1 else "7861")
     p = project()
     try:

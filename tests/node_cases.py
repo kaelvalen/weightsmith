@@ -98,6 +98,16 @@ def cases() -> list[tuple[str, dict[str, Any]]]:
         ("GRU", unary("GRU", ("B", "T", 8), {"input": 8, "hidden": 6}, out_port="last")),
         ("RNN", unary("RNN", ("B", "T", 8), {"input": 8, "hidden": 6, "bias": False})),
         ("Mamba", unary("Mamba", SEQ, {"dim": 16, "d_state": 4})),
+        ("Attention_mask", _g([_inp("x", SEQ), _inp("m", ("B", "T"), "i64", field="mask"), {"id": "n", "type": "Attention", "params": {"dim": 16, "heads": 4}},
+                               {"id": "o", "type": "Output"}], [["x.out", "n.in"], ["m.out", "n.mask"], ["n.out", "o.in"]])),
+        ("Attention_llama3_scaling", unary("Attention", SEQ, {"dim": 16, "heads": 2, "rope": True, "causal": True, "rope_scaling":
+                                         {"rope_type": "llama3", "factor": 8.0, "low_freq_factor": 1.0, "high_freq_factor": 4.0, "original_max_position_embeddings": 16}})),
+        ("Reduce_mask_mean", _g([_inp("x", SEQ), _inp("m", ("B", "T"), "i64", field="mask"), {"id": "n", "type": "Reduce", "params": {"op": "mean", "dim": 1}},
+                                 {"id": "o", "type": "Output"}], [["x.out", "n.in"], ["m.out", "n.mask"], ["n.out", "o.in"]])),
+        ("Reduce_mask_max", _g([_inp("x", SEQ), _inp("m", ("B", "T"), "i64", field="mask"), {"id": "n", "type": "Reduce", "params": {"op": "max", "dim": 1}},
+                                {"id": "o", "type": "Output"}], [["x.out", "n.in"], ["m.out", "n.mask"], ["n.out", "o.in"]])),
+        ("PositionalEmbedding_offset", unary("PositionalEmbedding", SEQ, {"max_len": 32, "dim": 16, "offset": 2})),
+        ("MLP_gelu_tanh", unary("MLP", SEQ, {"dim": 16, "hidden": 32, "act": "gelu_tanh"})),
     ]
     for act in ("GELU", "ReLU", "LeakyReLU", "ELU", "SELU", "SiLU", "Mish", "Softplus", "Hardswish", "Tanh", "Sigmoid", "Softmax", "LogSoftmax", "Dropout", "DropPath"):
         out.append((act, unary(act, ("B", 8))))

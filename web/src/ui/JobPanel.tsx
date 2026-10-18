@@ -52,6 +52,53 @@ function TrainSelect({ k, options, path, label }: { k: string; options: string[]
   );
 }
 
+function TrainJson({ k, label, hint }: { k: string; label: string; hint: string }) {
+  const train = useStore((s) => s.job().train);
+  const setJob = useStore((s) => s.setJob);
+  const [bad, setBad] = useState(false);
+  return (
+    <div className="mb-2">
+      <div className="mb-1 text-small text-muted" title={hint}>
+        {label}
+      </div>
+      <textarea
+        key={JSON.stringify(train[k] ?? null)}
+        rows={3}
+        className="num !text-[11px]"
+        style={{ borderColor: bad ? "var(--error)" : undefined }}
+        defaultValue={train[k] ? JSON.stringify(train[k], null, 1) : ""}
+        placeholder={hint}
+        onBlur={(e) => {
+          const t = e.target.value.trim();
+          try {
+            const next = { ...train };
+            if (t) next[k] = JSON.parse(t);
+            else delete next[k];
+            setBad(false);
+            setJob("train", next);
+          } catch {
+            setBad(true);
+          }
+        }}
+        aria-label={label}
+      />
+    </div>
+  );
+}
+
+function InitPanel() {
+  const init = useStore((s) => s.job().init) ?? {}; // default outside the selector: a fresh {} each call would loop
+  const setJob = useStore((s) => s.setJob);
+  return (
+    <Section title="Start from">
+      <Row label="weights" hint="safetensors or .pt with the model's parameter names (weightsmith import writes these)">
+        <Field mono value={init.weights ?? ""} placeholder="random initialisation" onCommit={(v) => setJob("init", v ? { weights: v } : {})} />
+      </Row>
+      <p className="m-0 mt-1 text-label text-muted">LoRA and adapters start fresh; every other tensor must be in the file.</p>
+    </Section>
+  );
+}
+
 function TrainBool({ k }: { k: string }) {
   const train = useStore((s) => s.job().train);
   const setJob = useStore((s) => s.setJob);
@@ -70,7 +117,11 @@ const SOURCE_FIELDS: Record<string, string[]> = {
   parquet: ["uri", "fields"],
   hf: ["uri", "subset", "split_name", "fields", "limit"],
   imagefolder: ["uri", "size", "mode"],
+  sft: ["tokenizer", "records", "uri", "repeat", "system"],
+  triplets: ["tokenizer", "records", "uri", "max_length"],
 };
+
+const JSON_FIELDS = new Set(["fields", "records"]);
 
 function DataPanel() {
   const data = useStore((s) => s.job().data);
@@ -92,13 +143,27 @@ function DataPanel() {
         </select>
       </Row>
       {SOURCE_FIELDS[src].map((k) => (
-        <Row key={k} label={k} hint={k === "fields" ? 'JSON: {"x": ["col1", "col2"], "y": "label"}' : k === "uri" ? "path or file:// URI" : undefined}>
+        <Row
+          key={k}
+          label={k}
+          hint={
+            k === "fields"
+              ? 'JSON: {"x": ["col1", "col2"], "y": "label"}'
+              : k === "records"
+                ? 'JSON list: [{"prompt": "...", "completion": "..."}] (sft) or [{"anchor", "positive", "negative"}] (triplets)'
+                : k === "uri"
+                  ? "path or file:// URI (JSON lines for sft / triplets)"
+                  : k === "tokenizer"
+                    ? "Hugging Face tokenizer name or path"
+                    : undefined
+          }
+        >
           <Field
             mono
             value={data[k] === undefined ? "" : typeof data[k] === "object" ? JSON.stringify(data[k]) : String(data[k])}
             placeholder={k === "kind" ? "classification | reverse" : ""}
             onCommit={(v) => {
-              if (k === "fields") {
+              if (JSON_FIELDS.has(k)) {
                 try {
                   set(k, v ? JSON.parse(v) : undefined);
                 } catch {
@@ -156,6 +221,12 @@ function VariantsPanel() {
       )}
     </Section>
   );
+}
+
+function ShuffleToggle() {
+  const train = useStore((s) => s.job().train);
+  const setJob = useStore((s) => s.setJob);
+  return <input type="checkbox" checked={train.shuffle !== false} onChange={(e) => setJob("train", { ...train, shuffle: e.target.checked })} />;
 }
 
 export function JobPanel() {
@@ -233,6 +304,7 @@ export function JobPanel() {
           own data and training config for variant {project.active}
         </label>
       </div>
+      <InitPanel />
       <DataPanel />
       <Section title="Training">
         <TrainField k="epochs" />
@@ -251,6 +323,12 @@ export function JobPanel() {
         <TrainField k="every_steps" path="checkpoint" label="checkpoint" />
         <TrainBool k="grad_checkpointing" />
         <TrainBool k="compile" />
+        <TrainSelect k="weights_dtype" label="frozen dtype" options={["bf16", "f16"]} />
+        <Row label="shuffle">
+          <ShuffleToggle />
+        </Row>
+        <TrainJson k="kl_to_base" label="KL to the base model" hint='{"lambda": 1, "prompts": ["..."], "system": "..."}' />
+        <TrainJson k="gate" label="Divergence gate" hint='{"prompts": ["..."], "system": "...", "kappa": 0.968}' />
       </Section>
       <VariantsPanel />
     </div>

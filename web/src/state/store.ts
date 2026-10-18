@@ -13,6 +13,7 @@ import type { Graph } from "../ir/types";
 export interface Job {
   data: Record<string, any>;
   train: Record<string, any>;
+  init?: { weights?: string };
 }
 
 export interface Variant {
@@ -72,7 +73,7 @@ interface State {
   redo: () => void;
   select: (ids: string[], edges?: [string, string][]) => void;
   setScope: (scope: string) => void;
-  setJob: (part: "data" | "train", value: Record<string, any>) => void;
+  setJob: (part: "data" | "train" | "init", value: Record<string, any>) => void;
   branchVariant: (name: string) => void;
   switchVariant: (name: string) => void;
   renameProject: (name: string) => void;
@@ -221,7 +222,7 @@ export const useStore = create<State>((set, get) => {
 
     setScope: (scope) => set({ scope, selection: [], selectedEdges: [] }),
 
-    setJob: (part, value) => {
+    setJob: (part: "data" | "train" | "init", value) => {
       const p = get().project;
       const v = p.variants[p.active];
       if (v.job) set({ project: { ...p, variants: { ...p.variants, [p.active]: { ...v, job: { ...v.job, [part]: value } } } } });
@@ -437,7 +438,7 @@ export const useStore = create<State>((set, get) => {
       }
       try {
         const job = get().job();
-        const rec = await api.createRun({ graph: g, data: job.data, train: job.train, project: project.slug, variant: project.active, name: `${project.name} · ${project.active}` });
+        const rec = await api.createRun({ graph: g, data: job.data, train: job.train, init: job.init ?? {}, project: project.slug, variant: project.active, name: `${project.name} · ${project.active}` });
         set({ activeRun: rec.id, bottom: { ...get().bottom, open: true, tab: "metrics" } });
         if (rec.existing) get().notify(`run ${rec.id.slice(0, 8)} already exists for this graph, config, data and seed`);
         get().watchRun(rec.id);

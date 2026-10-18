@@ -81,12 +81,14 @@ def pre_ln_block(**defaults) -> dict[str, Any]:
     return b.block(params, "Pre-LN transformer block (GPT-2, ViT): x + attn(LN(x)), then x + MLP(LN(x)).")
 
 
-def post_ln_block(rel_bias: bool = False, **defaults) -> dict[str, Any]:
+def post_ln_block(rel_bias: bool = False, masked: bool = False, **defaults) -> dict[str, Any]:
     """BERT / MiniLM / MPNet / Vaswani encoder: LN(x + attn(x)); LN(x + mlp(x))."""
     b = Body()
     b.add("x", "Input", shape=["B", "T", "$D"])
     if rel_bias:
         b.add("bias", "Input", label="shared position bias", shape=["$H", "T", "T"])
+    if masked:
+        b.add("mask", "Input", label="padding mask", shape=["B", "T"], dtype="i64")
     b.add("attn", "Attention", dim="$D", heads="$H")
     b.add("drop1", "Dropout", p="$dropout")
     b.residual("x", "drop1", "res1")
@@ -99,12 +101,16 @@ def post_ln_block(rel_bias: bool = False, **defaults) -> dict[str, Any]:
     b.chain("x", "attn", "drop1")
     if rel_bias:
         b.wire("bias", "attn.bias")
+    if masked:
+        b.wire("mask", "attn.mask")
     b.chain("res1", "ln1", "mlp", "drop2")
     b.chain("res2", "ln2", "out")
     params = {"D": 768, "H": 12, "F": 3072, "eps": 1e-12, "act": "gelu", "dropout": 0.1} | defaults
     doc = "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x))."
     if rel_bias:
         doc += " Takes a relative position bias shared by every layer (MPNet)."
+    if masked:
+        doc += " Padding positions are masked out of attention."
     return b.block(params, doc)
 
 
@@ -113,7 +119,8 @@ def llama_block(**defaults) -> dict[str, Any]:
     b = Body()
     b.add("x", "Input", shape=["B", "T", "$D"])
     b.add("input_norm", "RMSNorm", label="input_layernorm", dim="$D", eps="$eps")
-    b.add("self_attn", "Attention", dim="$D", heads="$H", kv_heads="$KV", causal=True, bias="$qkv_bias", o_bias=False, rope=True, rope_theta="$theta")
+    b.add("self_attn", "Attention", dim="$D", heads="$H", kv_heads="$KV", causal=True, bias="$qkv_bias", o_bias=False, rope=True,
+          rope_theta="$theta", rope_scaling="$rope_scaling")
     b.residual("x", "self_attn", "res_attn")
     b.add("post_norm", "RMSNorm", label="post_attention_layernorm", dim="$D", eps="$eps")
     b.add("mlp", "GatedMLP", label="SwiGLU", dim="$D", hidden="$F", act="silu")
@@ -122,7 +129,7 @@ def llama_block(**defaults) -> dict[str, Any]:
     b.chain("x", "input_norm", "self_attn")
     b.chain("res_attn", "post_norm", "mlp")
     b.chain("res_mlp", "out")
-    params = {"D": 2048, "H": 32, "KV": 8, "F": 8192, "theta": 500000.0, "eps": 1e-5, "qkv_bias": False} | defaults
+    params = {"D": 2048, "H": 32, "KV": 8, "F": 8192, "theta": 500000.0, "eps": 1e-5, "qkv_bias": False, "rope_scaling": None} | defaults
     return b.block(params, "Llama-style decoder layer: RMSNorm → GQA with RoPE → residual → RMSNorm → SwiGLU → residual.")
 
 
@@ -379,6 +386,7 @@ def vit_b16(classes: int = 1000) -> Graph:
 def _bert_like(name: str, vocab: int, dim: int, heads: int, ffn: int, max_pos: int, eps: float, types: int, sentence: bool) -> Graph:
     b = Body()
     b.add("input_ids", "Input", shape=["B", "T"], dtype="i64", field="x")
+    b.add("attention_mask", "Input", label="1 = token, 0 = padding", shape=["B", "T"], dtype="i64", field="mask")
     b.add("word", "Embedding", label="word_embeddings", num=vocab, dim=dim)
     b.add("pos", "PositionalEmbedding", label="position_embeddings", max_len=max_pos, dim=dim)
     b.add("emb_norm", "LayerNorm", dim=dim, eps=eps)
@@ -400,13 +408,15 @@ def _bert_like(name: str, vocab: int, dim: int, heads: int, ffn: int, max_pos: i
         b.chain("word", "pos")
     b.chain("pos", "emb_norm", "emb_drop")
     b.wire("emb_drop", "encoder.x")
+    b.wire("attention_mask", "encoder.mask")
     b.chain("encoder.out", "cls", "pooler", "pooler_act", "pooled")
     b.wire("encoder.out", "hidden.in")
     if sentence:
-        b.add("mean_pool", "Reduce", label="mean pooling", op="mean", dim=1)
+        b.add("mean_pool", "Reduce", label="mean pooling (tokens only)", op="mean", dim=1)
         b.add("embedding", "Output", label="sentence embedding")
         b.chain("encoder.out", "mean_pool", "embedding")
-    return b.graph(name, {"encoder_layer": post_ln_block(D=dim, H=heads, F=ffn, eps=eps)})
+        b.wire("attention_mask", "mean_pool.mask")
+    return b.graph(name, {"encoder_layer": post_ln_block(masked=True, D=dim, H=heads, F=ffn, eps=eps)})
 
 
 def bert_base() -> Graph:
@@ -427,14 +437,18 @@ def mpnet_base(train_triplets: bool = False) -> Graph:
     b = Body()
     if train_triplets:
         b.add("triplets", "Input", label="(anchor, positive, negative) token ids", shape=["B", 3, "T"], dtype="i64", field="x")
+        b.add("triplet_mask", "Input", label="1 = token, 0 = padding", shape=["B", 3, "T"], dtype="i64", field="mask")
         b.add("fold", "Flatten", label="triplets → batch", start_dim=0, end_dim=1)
+        b.add("fold_mask", "Flatten", start_dim=0, end_dim=1)
         b.chain("triplets", "fold")
-        src = "fold"
+        b.chain("triplet_mask", "fold_mask")
+        src, msrc = "fold", "fold_mask"
     else:
         b.add("input_ids", "Input", shape=["B", "T"], dtype="i64", field="x")
-        src = "input_ids"
+        b.add("attention_mask", "Input", label="1 = token, 0 = padding", shape=["B", "T"], dtype="i64", field="mask")
+        src, msrc = "input_ids", "attention_mask"
     b.add("word", "Embedding", label="word_embeddings", num=30527, dim=768)
-    b.add("pos", "PositionalEmbedding", label="position_embeddings", max_len=514, dim=768)
+    b.add("pos", "PositionalEmbedding", label="position_embeddings (from 2)", max_len=514, dim=768, offset=2)
     b.add("emb_norm", "LayerNorm", dim=768, eps=1e-5)
     b.add("emb_drop", "Dropout", p=0.1)
     b.add("rel_bias", "RelativePositionBias", label="relative_attention_bias", heads=12, buckets=32, max_distance=128)
@@ -443,13 +457,17 @@ def mpnet_base(train_triplets: bool = False) -> Graph:
     b.add("pooler", "Linear", **{"in": 768, "out": 768})
     b.add("pooler_act", "Tanh")
     b.add("pooled", "Output")
-    b.add("mean_pool", "Reduce", label="mean pooling", op="mean", dim=1)
+    b.add("hidden", "Output")
+    b.add("mean_pool", "Reduce", label="mean pooling (tokens only)", op="mean", dim=1)
     b.add("normalize", "L2Normalize")
     b.chain(src, "word", "pos", "emb_norm", "emb_drop")
     b.wire("emb_drop", "encoder.x")
     b.wire("emb_drop", "rel_bias")
     b.wire("rel_bias", "encoder.bias")
+    b.wire(msrc, "encoder.mask")
+    b.wire(msrc, "mean_pool.mask")
     b.chain("encoder.out", "cls", "pooler", "pooler_act", "pooled")
+    b.wire("encoder.out", "hidden.in")
     b.chain("encoder.out", "mean_pool", "normalize")
     if train_triplets:
         b.add("unfold", "Unflatten", label="batch → triplets", dim=0, sizes=[-1, 3])
@@ -467,7 +485,7 @@ def mpnet_base(train_triplets: bool = False) -> Graph:
         b.add("embedding", "Output", label="sentence embedding")
         b.chain("normalize", "embedding")
     return b.graph("all-mpnet-base-v2" + (" · MNRL training" if train_triplets else ""),
-                   {"mpnet_layer": post_ln_block(rel_bias=True, eps=1e-5)})
+                   {"mpnet_layer": post_ln_block(rel_bias=True, masked=True, eps=1e-5)})
 
 
 def _decoder_lm(name: str, vocab: int, dim: int, layers: int, block: str, block_def: dict, tied: bool, eps: float,
@@ -496,11 +514,12 @@ def gpt2_small() -> Graph:
     b.wire("drop", "blocks.x")
     b.chain("blocks.out", "ln_f")
     _lm_head(b, "wte", 768, 50257, True, "ln_f")
-    return b.graph("GPT-2 small", {"gpt2_block": pre_ln_block(causal=True)})
+    return b.graph("GPT-2 small", {"gpt2_block": pre_ln_block(causal=True, act="gelu_tanh")})
 
 
 def llama32_1b() -> Graph:
-    return _decoder_lm("Llama 3.2 1B", 128256, 2048, 16, "llama_layer", llama_block(), True, 1e-5)
+    scaling = {"rope_type": "llama3", "factor": 32.0, "low_freq_factor": 1.0, "high_freq_factor": 4.0, "original_max_position_embeddings": 8192}
+    return _decoder_lm("Llama 3.2 1B", 128256, 2048, 16, "llama_layer", llama_block(rope_scaling=scaling), True, 1e-5)
 
 
 def qwen25_15b() -> Graph:

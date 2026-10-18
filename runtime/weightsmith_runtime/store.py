@@ -45,7 +45,7 @@ create table if not exists runs (
 create index if not exists runs_project on runs(project);
 """
 
-STATUSES = ("queued", "preparing", "running", "paused", "completed", "stopped", "failed", "interrupted")
+STATUSES = ("queued", "preparing", "running", "paused", "completed", "rejected", "stopped", "failed", "interrupted")
 
 
 def workspace_root() -> Path:
@@ -158,6 +158,11 @@ class Store:
                 sets.append("error = ?")
                 vals.append(json.dumps(error) if error is not None else None)
             self.db.execute(f"update runs set {', '.join(sets)} where id = ?", (*vals, rid))
+            self.db.commit()
+
+    def rename_run(self, rid: str, name: str) -> None:
+        with self._lock:
+            self.db.execute("update runs set name = ? where id = ?", (name, rid))
             self.db.commit()
 
     def delete_run(self, rid: str) -> None:

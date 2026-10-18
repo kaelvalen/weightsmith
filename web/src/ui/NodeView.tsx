@@ -1,5 +1,5 @@
 import { Handle, NodeProps, Position } from "@xyflow/react";
-import { memo } from "react";
+import { memo, useState } from "react";
 import type { Issue, ParamCount, Signature } from "../ir/analyze";
 import type { TensorType } from "../ir/shapes";
 import type { Node } from "../ir/types";
@@ -11,6 +11,29 @@ export interface NodeData extends Record<string, unknown> {
   issues: Issue[];
   count?: ParamCount;
   connected: Set<string>;
+  inner?: { body: { nodes: Node[] }; analysis?: { ports?: Record<string, TensorType>; signatures?: Record<string, Signature> } };
+}
+
+/** The layers inside a block, listed in place (read-only; double-click opens the block to edit). */
+function Peek({ inner }: { inner: NonNullable<NodeData["inner"]> }) {
+  const rows = inner.body.nodes.filter((n) => n.type !== "Input" && n.type !== "Output");
+  return (
+    <div className="num mx-2 mb-1 border-t border-line pt-1 text-[10px] leading-[14px]">
+      {rows.map((n) => {
+        const out = inner.analysis?.signatures?.[n.id]?.outputs?.[0];
+        const t = out ? inner.analysis?.ports?.[`${n.id}.${out}`] : undefined;
+        return (
+          <div key={n.id} className="flex justify-between gap-2" title={n.type}>
+            <span className="truncate">
+              {n.label || n.id}
+              {n.adapt?.length ? <span className="text-accent"> +{n.adapt.length}</span> : null}
+            </span>
+            <span className="shrink-0 text-muted">{t ? (t.shape.length ? t.shape.join("×") : "scalar") : n.type}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export const NODE_W = 184;
@@ -24,7 +47,8 @@ function badge(a: NonNullable<Node["adapt"]>[number]) {
 }
 
 function NodeViewImpl({ data, selected }: NodeProps & { data: NodeData }) {
-  const { node, sig, ports, issues, connected } = data;
+  const { node, sig, ports, issues, connected, inner } = data;
+  const [open, setOpen] = useState(false);
   const p = (node.params ?? {}) as Record<string, any>;
   const frozen = node.trainable === false;
   const errPorts = new Set(issues.filter((i) => i.port).map((i) => i.port!));
@@ -69,8 +93,24 @@ function NodeViewImpl({ data, selected }: NodeProps & { data: NodeData }) {
       {sig.inputs.length > 0 && portRow(sig.inputs, "in")}
       <div className="px-2 py-1">
         <div className="truncate text-label text-muted">{kind}</div>
-        <div className={`truncate font-medium ${node.disabled ? "line-through" : ""}`}>{node.label || node.id}</div>
+        <div className="flex items-baseline justify-between gap-2">
+          <div className={`truncate font-medium ${node.disabled ? "line-through" : ""}`}>{node.label || node.id}</div>
+          {inner && (
+            <button
+              className="link nodrag shrink-0 !text-[10px]"
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(!open);
+              }}
+              aria-expanded={open}
+              title="Show the layers inside"
+            >
+              {open ? "hide" : "inside"}
+            </button>
+          )}
+        </div>
       </div>
+      {inner && open && <Peek inner={inner} />}
       {sig.outputs.length > 0 && portRow(sig.outputs, "out")}
       {sig.inputs.map((port, i) => (
         <Handle

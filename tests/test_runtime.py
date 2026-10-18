@@ -132,3 +132,17 @@ def test_invalid_graph_is_rejected(client):
     job["graph"]["nodes"][3]["params"]["in"] = 5
     r = client.post("/api/runs", json=job)
     assert r.status_code == 422
+
+
+def test_run_note_and_final_status_after_error(client):
+    rec = submit(client, tiny_classifier(optimizer={"name": "sgd", "lr": 1e30}, grad_clip=None))
+    done = wait(client, rec["id"])
+    for _ in range(50):  # the final status event follows when the process has exited
+        states = [e["state"] for e in client.get(f"/api/runs/{rec['id']}/events", params={"types": "status"}).json()]
+        if states[-1] == "failed":
+            break
+        time.sleep(0.1)
+    assert states[-1] == "failed"  # announced as an event, not only stored
+    r = client.patch(f"/api/runs/{rec['id']}", json={"note": "lr far too high on purpose", "name": "nan probe"}).json()
+    assert r["summary"]["note"] == "lr far too high on purpose" and r["name"] == "nan probe"
+    assert done["status"] == "failed"

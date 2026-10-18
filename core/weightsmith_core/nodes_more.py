@@ -351,6 +351,10 @@ def _attn_infer(p: Params, ins: Ins, env: SymbolEnv) -> Outs:
         raise ShapeError(f"heads={p['heads']} is not divisible by kv_heads={kv}", "in")
     if p.get("rope") and (p["dim"] // p["heads"]) % 2:
         raise ShapeError("RoPE needs an even head dimension", "in")
+    m = ins.get("mask")
+    if m is not None:
+        if len(m.shape) != 2 or not env.unify(m.shape[0], x.shape[0]) or not env.unify(m.shape[1], x.shape[1]):
+            raise ShapeError(f"mask must be B×T, got {fmt_shape(env.resolve_shape(m.shape))}", "mask")
     b = ins.get("bias")
     if b is not None:
         t = env.resolve(x.shape[1])
@@ -379,7 +383,8 @@ register(
         "Attention",
         "attention",
         "Multi-head self-attention: grouped-query (kv_heads), RoPE or NoPE, QK-norm, chunked local attention, optional additive bias.",
-        [Port("in"), Port("bias", optional=True, doc="Additive attention bias, heads×T×T (e.g. RelativePositionBias)")],
+        [Port("in"), Port("bias", optional=True, doc="Additive attention bias, heads×T×T (e.g. RelativePositionBias)"),
+         Port("mask", optional=True, doc="Padding mask B×T: 1 = token, 0 = padding (keys)")],
         OUT,
         {
             "dim": Param(None, "int", required=True),
@@ -391,6 +396,7 @@ register(
             "o_bias": Param(True, "bool", doc="Bias on the output projection"),
             "rope": Param(False, "bool", doc="Rotary position embedding on q and k"),
             "rope_theta": Param(10000.0, "float"),
+            "rope_scaling": Param(None, "json", doc='e.g. {"type": "llama3", "factor": 32, "low_freq_factor": 1, "high_freq_factor": 4, "original_max_position_embeddings": 8192}'),
             "qk_norm": Param("none", "choice", choices=["none", "rms", "l2"], doc="Normalise q and k per head (rms: learned scale, l2: none)"),
             "chunk": Param(0, "int", doc="Local attention inside chunks of this many tokens (0 = full)"),
             "nope_temp": Param(False, "bool", doc="Llama 4 NoPE layers: scale q by log(position) for long context"),
@@ -701,11 +707,17 @@ def _reduce_infer(p: Params, ins: Ins, env: SymbolEnv) -> Outs:
     if len(s) < 1:
         raise ShapeError("cannot reduce a scalar", "in")
     d = p["dim"] % len(s)
+    m = ins.get("mask")
+    if m is not None:
+        if len(m.shape) > len(s) or len(m.shape) <= d:
+            raise ShapeError(f"mask {fmt_shape(env.resolve_shape(m.shape))} must cover the leading dims up to dim {d}", "mask")
+        env.unify_shapes(m.shape, x.shape[: len(m.shape)], "mask", "mask vs input ")
     out = s[:d] + ([1] if p["keepdim"] else []) + s[d + 1 :]
     return {"out": TensorType(out, x.dtype)}
 
 
-register(NodeType("Reduce", "structure", "mean, sum or max over one dimension (pooling over tokens).", IN, OUT,
+register(NodeType("Reduce", "structure", "mean, sum or max over one dimension (pooling over tokens); padding positions excluded when a mask is connected.",
+                  [Port("in"), Port("mask", optional=True, doc="1 = keep, 0 = padding; covers the leading dims (e.g. B×T)")], OUT,
                   {"op": Param("mean", "choice", choices=["mean", "sum", "max"]), "dim": Param(1, "int"), "keepdim": Param(False, "bool")}, _reduce_infer))
 
 

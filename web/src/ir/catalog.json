@@ -153,6 +153,7 @@
      "required": false,
      "choices": [
       "gelu",
+      "gelu_tanh",
       "relu",
       "silu",
       "tanh"
@@ -291,6 +292,13 @@
      "required": true,
      "choices": null,
      "doc": ""
+    },
+    "offset": {
+     "default": 0,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "First position id (RoBERTa/MPNet start at 2)"
     }
    },
    "loss": false
@@ -665,6 +673,13 @@
      "required": false,
      "choices": null,
      "doc": ""
+    },
+    "ignore_index": {
+     "default": -100,
+     "kind": "int",
+     "required": false,
+     "choices": null,
+     "doc": "Target value that is skipped (padding, prompt tokens)"
     },
     "target_field": {
      "default": "y",
@@ -1967,6 +1982,11 @@
      "name": "bias",
      "optional": true,
      "doc": "Additive attention bias, heads\u00d7T\u00d7T (e.g. RelativePositionBias)"
+    },
+    {
+     "name": "mask",
+     "optional": true,
+     "doc": "Padding mask B\u00d7T: 1 = token, 0 = padding (keys)"
     }
    ],
    "outputs": [
@@ -2037,6 +2057,13 @@
      "required": false,
      "choices": null,
      "doc": ""
+    },
+    "rope_scaling": {
+     "default": null,
+     "kind": "json",
+     "required": false,
+     "choices": null,
+     "doc": "e.g. {\"type\": \"llama3\", \"factor\": 32, \"low_freq_factor\": 1, \"high_freq_factor\": 4, \"original_max_position_embeddings\": 8192}"
     },
     "qk_norm": {
      "default": "none",
@@ -2736,12 +2763,17 @@
   {
    "type": "Reduce",
    "category": "structure",
-   "doc": "mean, sum or max over one dimension (pooling over tokens).",
+   "doc": "mean, sum or max over one dimension (pooling over tokens); padding positions excluded when a mask is connected.",
    "inputs": [
     {
      "name": "in",
      "optional": false,
      "doc": ""
+    },
+    {
+     "name": "mask",
+     "optional": true,
+     "doc": "1 = keep, 0 = padding; covers the leading dims (e.g. B\u00d7T)"
     }
    ],
    "outputs": [

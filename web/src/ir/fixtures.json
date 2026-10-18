@@ -7450,6 +7450,679 @@
   }
  },
  {
+  "name": "node_Attention_mask",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "m",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "mask"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Attention",
+     "params": {
+      "dim": 16,
+      "heads": 4
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "m.out",
+     "n.mask"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "m.out": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.mask": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "m": [
+     0,
+     0
+    ],
+    "n": [
+     1088,
+     1088
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Attention_llama3_scaling",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Attention",
+     "params": {
+      "dim": 16,
+      "heads": 2,
+      "rope": true,
+      "causal": true,
+      "rope_scaling": {
+       "rope_type": "llama3",
+       "factor": 8.0,
+       "low_freq_factor": 1.0,
+       "high_freq_factor": 4.0,
+       "original_max_position_embeddings": 16
+      }
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     1088,
+     1088
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Reduce_mask_mean",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "m",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "mask"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Reduce",
+     "params": {
+      "op": "mean",
+      "dim": 1
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "m.out",
+     "n.mask"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "m.out": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.mask": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "m": [
+     0,
+     0
+    ],
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_Reduce_mask_max",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "m",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "mask"
+     }
+    },
+    {
+     "id": "n",
+     "type": "Reduce",
+     "params": {
+      "op": "max",
+      "dim": 1
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "m.out",
+     "n.mask"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "m.out": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.mask": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "m": [
+     0,
+     0
+    ],
+    "n": [
+     0,
+     0
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_PositionalEmbedding_offset",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "PositionalEmbedding",
+     "params": {
+      "max_len": 32,
+      "dim": 16,
+      "offset": 2
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     512,
+     512
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
+  "name": "node_MLP_gelu_tanh",
+  "graph": {
+   "schema": 1,
+   "nodes": [
+    {
+     "id": "x",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T",
+       16
+      ],
+      "dtype": "f32"
+     }
+    },
+    {
+     "id": "n",
+     "type": "MLP",
+     "params": {
+      "dim": 16,
+      "hidden": 32,
+      "act": "gelu_tanh"
+     }
+    },
+    {
+     "id": "o",
+     "type": "Output"
+    }
+   ],
+   "edges": [
+    [
+     "x.out",
+     "n.in"
+    ],
+    [
+     "n.out",
+     "o.in"
+    ]
+   ]
+  },
+  "expected": {
+   "ok": true,
+   "errors": [],
+   "ports": {
+    "n.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "n.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "o.in": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    },
+    "x.out": {
+     "shape": [
+      "B",
+      "T",
+      16
+     ],
+     "dtype": "f32"
+    }
+   },
+   "params": {
+    "n": [
+     1072,
+     1072
+    ],
+    "o": [
+     0,
+     0
+    ],
+    "x": [
+     0,
+     0
+    ]
+   }
+  }
+ },
+ {
   "name": "node_GELU",
   "graph": {
    "schema": 1,
@@ -12047,6 +12720,20 @@
      "label": "(anchor, positive, negative) token ids"
     },
     {
+     "id": "triplet_mask",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       3,
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "mask"
+     },
+     "label": "1 = token, 0 = padding"
+    },
+    {
      "id": "fold",
      "type": "Flatten",
      "params": {
@@ -12054,6 +12741,14 @@
       "end_dim": 1
      },
      "label": "triplets \u2192 batch"
+    },
+    {
+     "id": "fold_mask",
+     "type": "Flatten",
+     "params": {
+      "start_dim": 0,
+      "end_dim": 1
+     }
     },
     {
      "id": "word",
@@ -12069,9 +12764,10 @@
      "type": "PositionalEmbedding",
      "params": {
       "max_len": 514,
-      "dim": 768
+      "dim": 768,
+      "offset": 2
      },
-     "label": "position_embeddings"
+     "label": "position_embeddings (from 2)"
     },
     {
      "id": "emb_norm",
@@ -12133,13 +12829,17 @@
      "type": "Output"
     },
     {
+     "id": "hidden",
+     "type": "Output"
+    },
+    {
      "id": "mean_pool",
      "type": "Reduce",
      "params": {
       "op": "mean",
       "dim": 1
      },
-     "label": "mean pooling"
+     "label": "mean pooling (tokens only)"
     },
     {
      "id": "normalize",
@@ -12199,6 +12899,10 @@
      "fold.in"
     ],
     [
+     "triplet_mask.out",
+     "fold_mask.in"
+    ],
+    [
      "fold.out",
      "word.in"
     ],
@@ -12227,6 +12931,14 @@
      "encoder.bias"
     ],
     [
+     "fold_mask.out",
+     "encoder.mask"
+    ],
+    [
+     "fold_mask.out",
+     "mean_pool.mask"
+    ],
+    [
      "encoder.out",
      "cls.in"
     ],
@@ -12241,6 +12953,10 @@
     [
      "pooler_act.out",
      "pooled.in"
+    ],
+    [
+     "encoder.out",
+     "hidden.in"
     ],
     [
      "encoder.out",
@@ -12304,6 +13020,18 @@
         ]
        },
        "label": "shared position bias"
+      },
+      {
+       "id": "mask",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T"
+        ],
+        "dtype": "i64"
+       },
+       "label": "padding mask"
       },
       {
        "id": "attn",
@@ -12395,6 +13123,10 @@
        "attn.bias"
       ],
       [
+       "mask.out",
+       "attn.mask"
+      ],
+      [
        "res1.out",
        "ln1.in"
       ],
@@ -12423,7 +13155,7 @@
       "act": "gelu",
       "dropout": 0.1
      },
-     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x)). Takes a relative position bias shared by every layer (MPNet)."
+     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x)). Takes a relative position bias shared by every layer (MPNet). Padding positions are masked out of attention."
     }
    }
   },
@@ -12501,6 +13233,13 @@
      ],
      "dtype": "f32"
     },
+    "encoder.mask": {
+     "shape": [
+      "3*B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
     "encoder.out": {
      "shape": [
       "3*B",
@@ -12531,6 +13270,29 @@
       "T"
      ],
      "dtype": "i64"
+    },
+    "fold_mask.in": {
+     "shape": [
+      "B",
+      3,
+      "T"
+     ],
+     "dtype": "i64"
+    },
+    "fold_mask.out": {
+     "shape": [
+      "3*B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
+    "hidden.in": {
+     "shape": [
+      "3*B",
+      "T",
+      768
+     ],
+     "dtype": "f32"
     },
     "loss.a": {
      "shape": [
@@ -12564,6 +13326,13 @@
       768
      ],
      "dtype": "f32"
+    },
+    "mean_pool.mask": {
+     "shape": [
+      "3*B",
+      "T"
+     ],
+     "dtype": "i64"
     },
     "mean_pool.out": {
      "shape": [
@@ -12683,6 +13452,14 @@
      ],
      "dtype": "f32"
     },
+    "triplet_mask.out": {
+     "shape": [
+      "B",
+      3,
+      "T"
+     ],
+     "dtype": "i64"
+    },
     "triplets.out": {
      "shape": [
       "B",
@@ -12747,6 +13524,14 @@
      0,
      0
     ],
+    "fold_mask": [
+     0,
+     0
+    ],
+    "hidden": [
+     0,
+     0
+    ],
     "loss": [
      0,
      0
@@ -12786,6 +13571,10 @@
     "rel_bias": [
      384,
      384
+    ],
+    "triplet_mask": [
+     0,
+     0
     ],
     "triplets": [
      0,
@@ -13572,7 +14361,8 @@
         "bias": "$qkv_bias",
         "o_bias": false,
         "rope": true,
-        "rope_theta": "$theta"
+        "rope_theta": "$theta",
+        "rope_scaling": "$rope_scaling"
        }
       },
       {
@@ -13652,7 +14442,8 @@
       "F": 8192,
       "theta": 500000.0,
       "eps": 1e-05,
-      "qkv_bias": false
+      "qkv_bias": false,
+      "rope_scaling": null
      },
      "doc": "Llama-style decoder layer: RMSNorm \u2192 GQA with RoPE \u2192 residual \u2192 RMSNorm \u2192 SwiGLU \u2192 residual."
     }
@@ -18054,6 +18845,19 @@
      }
     },
     {
+     "id": "attention_mask",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "mask"
+     },
+     "label": "1 = token, 0 = padding"
+    },
+    {
      "id": "word",
      "type": "Embedding",
      "params": {
@@ -18184,6 +18988,10 @@
      "encoder.x"
     ],
     [
+     "attention_mask.out",
+     "encoder.mask"
+    ],
+    [
      "encoder.out",
      "cls.in"
     ],
@@ -18217,6 +19025,18 @@
          "$D"
         ]
        }
+      },
+      {
+       "id": "mask",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T"
+        ],
+        "dtype": "i64"
+       },
+       "label": "padding mask"
       },
       {
        "id": "attn",
@@ -18304,6 +19124,10 @@
        "drop1.in"
       ],
       [
+       "mask.out",
+       "attn.mask"
+      ],
+      [
        "res1.out",
        "ln1.in"
       ],
@@ -18332,7 +19156,7 @@
       "act": "gelu",
       "dropout": 0.1
      },
-     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x))."
+     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x)). Padding positions are masked out of attention."
     }
    }
   },
@@ -18340,6 +19164,13 @@
    "ok": true,
    "errors": [],
    "ports": {
+    "attention_mask.out": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
     "cls.in": {
      "shape": [
       "B",
@@ -18410,6 +19241,13 @@
       768
      ],
      "dtype": "f32"
+    },
+    "encoder.mask": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
     },
     "encoder.out": {
      "shape": [
@@ -18532,6 +19370,10 @@
     }
    },
    "params": {
+    "attention_mask": [
+     0,
+     0
+    ],
     "cls": [
      0,
      0
@@ -18608,6 +19450,19 @@
       "dtype": "i64",
       "field": "x"
      }
+    },
+    {
+     "id": "attention_mask",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "mask"
+     },
+     "label": "1 = token, 0 = padding"
     },
     {
      "id": "word",
@@ -18712,7 +19567,7 @@
       "op": "mean",
       "dim": 1
      },
-     "label": "mean pooling"
+     "label": "mean pooling (tokens only)"
     },
     {
      "id": "embedding",
@@ -18754,6 +19609,10 @@
      "encoder.x"
     ],
     [
+     "attention_mask.out",
+     "encoder.mask"
+    ],
+    [
      "encoder.out",
      "cls.in"
     ],
@@ -18780,6 +19639,10 @@
     [
      "mean_pool.out",
      "embedding.in"
+    ],
+    [
+     "attention_mask.out",
+     "mean_pool.mask"
     ]
    ],
    "subgraphs": {
@@ -18795,6 +19658,18 @@
          "$D"
         ]
        }
+      },
+      {
+       "id": "mask",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T"
+        ],
+        "dtype": "i64"
+       },
+       "label": "padding mask"
       },
       {
        "id": "attn",
@@ -18882,6 +19757,10 @@
        "drop1.in"
       ],
       [
+       "mask.out",
+       "attn.mask"
+      ],
+      [
        "res1.out",
        "ln1.in"
       ],
@@ -18910,7 +19789,7 @@
       "act": "gelu",
       "dropout": 0.1
      },
-     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x))."
+     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x)). Padding positions are masked out of attention."
     }
    }
   },
@@ -18918,6 +19797,13 @@
    "ok": true,
    "errors": [],
    "ports": {
+    "attention_mask.out": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
     "cls.in": {
      "shape": [
       "B",
@@ -18996,6 +19882,13 @@
      ],
      "dtype": "f32"
     },
+    "encoder.mask": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
     "encoder.out": {
      "shape": [
       "B",
@@ -19034,6 +19927,13 @@
       384
      ],
      "dtype": "f32"
+    },
+    "mean_pool.mask": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
     },
     "mean_pool.out": {
      "shape": [
@@ -19132,6 +20032,10 @@
     }
    },
    "params": {
+    "attention_mask": [
+     0,
+     0
+    ],
     "cls": [
      0,
      0
@@ -19218,6 +20122,19 @@
      }
     },
     {
+     "id": "attention_mask",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "mask"
+     },
+     "label": "1 = token, 0 = padding"
+    },
+    {
      "id": "word",
      "type": "Embedding",
      "params": {
@@ -19231,9 +20148,10 @@
      "type": "PositionalEmbedding",
      "params": {
       "max_len": 514,
-      "dim": 768
+      "dim": 768,
+      "offset": 2
      },
-     "label": "position_embeddings"
+     "label": "position_embeddings (from 2)"
     },
     {
      "id": "emb_norm",
@@ -19295,13 +20213,17 @@
      "type": "Output"
     },
     {
+     "id": "hidden",
+     "type": "Output"
+    },
+    {
      "id": "mean_pool",
      "type": "Reduce",
      "params": {
       "op": "mean",
       "dim": 1
      },
-     "label": "mean pooling"
+     "label": "mean pooling (tokens only)"
     },
     {
      "id": "normalize",
@@ -19343,6 +20265,14 @@
      "encoder.bias"
     ],
     [
+     "attention_mask.out",
+     "encoder.mask"
+    ],
+    [
+     "attention_mask.out",
+     "mean_pool.mask"
+    ],
+    [
      "encoder.out",
      "cls.in"
     ],
@@ -19357,6 +20287,10 @@
     [
      "pooler_act.out",
      "pooled.in"
+    ],
+    [
+     "encoder.out",
+     "hidden.in"
     ],
     [
      "encoder.out",
@@ -19396,6 +20330,18 @@
         ]
        },
        "label": "shared position bias"
+      },
+      {
+       "id": "mask",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T"
+        ],
+        "dtype": "i64"
+       },
+       "label": "padding mask"
       },
       {
        "id": "attn",
@@ -19487,6 +20433,10 @@
        "attn.bias"
       ],
       [
+       "mask.out",
+       "attn.mask"
+      ],
+      [
        "res1.out",
        "ln1.in"
       ],
@@ -19515,7 +20465,7 @@
       "act": "gelu",
       "dropout": 0.1
      },
-     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x)). Takes a relative position bias shared by every layer (MPNet)."
+     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x)). Takes a relative position bias shared by every layer (MPNet). Padding positions are masked out of attention."
     }
    }
   },
@@ -19523,6 +20473,13 @@
    "ok": true,
    "errors": [],
    "ports": {
+    "attention_mask.out": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
     "cls.in": {
      "shape": [
       "B",
@@ -19585,6 +20542,13 @@
      ],
      "dtype": "f32"
     },
+    "encoder.mask": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
+    },
     "encoder.out": {
      "shape": [
       "B",
@@ -19594,6 +20558,14 @@
      "dtype": "f32"
     },
     "encoder.x": {
+     "shape": [
+      "B",
+      "T",
+      768
+     ],
+     "dtype": "f32"
+    },
+    "hidden.in": {
      "shape": [
       "B",
       "T",
@@ -19615,6 +20587,13 @@
       768
      ],
      "dtype": "f32"
+    },
+    "mean_pool.mask": {
+     "shape": [
+      "B",
+      "T"
+     ],
+     "dtype": "i64"
     },
     "mean_pool.out": {
      "shape": [
@@ -19721,6 +20700,10 @@
     }
    },
    "params": {
+    "attention_mask": [
+     0,
+     0
+    ],
     "cls": [
      0,
      0
@@ -19740,6 +20723,10 @@
     "encoder": [
      85054464,
      85054464
+    ],
+    "hidden": [
+     0,
+     0
     ],
     "input_ids": [
      0,
@@ -20012,7 +20999,7 @@
       "F": 3072,
       "eps": 1e-05,
       "causal": true,
-      "act": "gelu",
+      "act": "gelu_tanh",
       "dropout": 0.1
      },
      "doc": "Pre-LN transformer block (GPT-2, ViT): x + attn(LN(x)), then x + MLP(LN(x))."
@@ -20292,7 +21279,8 @@
         "bias": "$qkv_bias",
         "o_bias": false,
         "rope": true,
-        "rope_theta": "$theta"
+        "rope_theta": "$theta",
+        "rope_scaling": "$rope_scaling"
        }
       },
       {
@@ -20372,7 +21360,14 @@
       "F": 8192,
       "theta": 500000.0,
       "eps": 1e-05,
-      "qkv_bias": false
+      "qkv_bias": false,
+      "rope_scaling": {
+       "rope_type": "llama3",
+       "factor": 32.0,
+       "low_freq_factor": 1.0,
+       "high_freq_factor": 4.0,
+       "original_max_position_embeddings": 8192
+      }
      },
      "doc": "Llama-style decoder layer: RMSNorm \u2192 GQA with RoPE \u2192 residual \u2192 RMSNorm \u2192 SwiGLU \u2192 residual."
     }
@@ -20611,7 +21606,8 @@
         "bias": "$qkv_bias",
         "o_bias": false,
         "rope": true,
-        "rope_theta": "$theta"
+        "rope_theta": "$theta",
+        "rope_scaling": "$rope_scaling"
        }
       },
       {
@@ -20691,7 +21687,8 @@
       "F": 8960,
       "theta": 1000000.0,
       "eps": 1e-06,
-      "qkv_bias": true
+      "qkv_bias": true,
+      "rope_scaling": null
      },
      "doc": "Llama-style decoder layer: RMSNorm \u2192 GQA with RoPE \u2192 residual \u2192 RMSNorm \u2192 SwiGLU \u2192 residual."
     }

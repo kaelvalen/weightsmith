@@ -77,7 +77,7 @@ class Analysis:
 
 
 # integer parameters that may be negative (Python-style indexing from the end)
-SIGNED_PARAMS = frozenset({"dim", "start_dim", "end_dim", "dim0", "dim1", "index", "start", "end"})
+SIGNED_PARAMS = frozenset({"dim", "start_dim", "end_dim", "dim0", "dim1", "index", "start", "end", "ignore_index"})
 
 
 class PythonBridge(Protocol):

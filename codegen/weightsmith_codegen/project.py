@@ -56,14 +56,43 @@ def normalize_job(job: dict[str, Any]) -> dict[str, Any]:
         "graph": ir.migrate(job["graph"]),
         "data": _merge(DEFAULT_DATA, job.get("data", {})),
         "train": _merge(DEFAULT_TRAIN, job.get("train", {})),
+        "init": dict(job.get("init") or {}),
     }
+
+
+def file_sha256(path: str | Path) -> str:
+    """Content hash of a (possibly multi-GB) weights file, cached next to it by size and mtime."""
+    import hashlib
+
+    p = Path(path).expanduser()
+    st = p.stat()
+    side = p.with_name(f".{p.name}.sha256.json")
+    try:
+        c = json.loads(side.read_text())
+        if c["size"] == st.st_size and c["mtime"] == st.st_mtime:
+            return c["sha256"]
+    except (OSError, ValueError, KeyError):
+        pass
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 24), b""):
+            h.update(chunk)
+    try:
+        side.write_text(json.dumps({"size": st.st_size, "mtime": st.st_mtime, "sha256": h.hexdigest()}))
+    except OSError:
+        pass
+    return h.hexdigest()
 
 
 def job_hashes(job: dict[str, Any]) -> dict[str, str]:
     job = normalize_job(job)
+    init = dict(job["init"])
+    if init.get("weights"):
+        init["sha256"] = file_sha256(init["weights"])
+        init.pop("weights")  # the content identifies the run, not where the file lives
     return {
         "graph": ir.content_hash(job["graph"]),
-        "config": ir.hash_obj({k: v for k, v in job["train"].items() if k != "seed"}),
+        "config": ir.hash_obj({**{k: v for k, v in job["train"].items() if k != "seed"}, "init": init}),
         "data_spec": ir.hash_obj(job["data"]),
         "seed": str(job["train"]["seed"]),
     }
@@ -96,7 +125,10 @@ def _config(job: dict[str, Any], compiled: Compiled) -> dict[str, Any]:
             if src and target_field:
                 metrics["accuracy"] = {"logits": ir.split_ref(src)[0], "target": target_field}
                 break
-    return {"graph_hash": compiled.graph_hash, "data": data, "train": job["train"], "metrics": metrics}
+    lm = {}
+    if metrics.get("accuracy"):
+        lm = {"logits": metrics["accuracy"]["logits"], "input": next(iter(compiled.inputs), "x")}
+    return {"graph_hash": compiled.graph_hash, "data": data, "train": job["train"], "metrics": metrics, "init": job.get("init") or {}, "lm": lm}
 
 
 def write_run(job: dict[str, Any], out_dir: str | Path, job_hash: str | None = None, python=None) -> Compiled:

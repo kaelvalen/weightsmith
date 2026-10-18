@@ -49,7 +49,7 @@ const ADAPT_DEFAULTS: Record<string, Partial<Adapt>> = {
 export const adaptDefaults = (kind: string): Partial<Adapt> => ({ ...(ADAPT_DEFAULTS[kind] ?? {}) });
 
 // integer parameters that may be negative (Python-style indexing from the end)
-const SIGNED_PARAMS = new Set(["dim", "start_dim", "end_dim", "dim0", "dim1", "index", "start", "end"]);
+const SIGNED_PARAMS = new Set(["dim", "start_dim", "end_dim", "dim0", "dim1", "index", "start", "end", "ignore_index"]);
 
 const KEYWORDS = new Set(
   "False None True and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield".split(

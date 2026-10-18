@@ -38,6 +38,7 @@ export function useCommands(): Command[] {
       { id: "fit", label: "Fit graph to view", hint: "F", run: () => window.dispatchEvent(new CustomEvent("ws:fit")) },
       { id: "minimap", label: "Toggle minimap", hint: "M", run: () => window.dispatchEvent(new CustomEvent("ws:minimap")) },
       { id: "paste", label: "Paste nodes", hint: "⌘V", run: st.paste },
+      { id: "edgeshapes", label: "Toggle shapes on edges", run: () => window.dispatchEvent(new CustomEvent("ws:edgeshapes")) },
       { id: "validate", label: "Validate", run: () => st.validateRemote() },
       { id: "undo", label: "Undo", hint: "⌘Z", run: st.undo },
       { id: "redo", label: "Redo", hint: "⇧⌘Z", run: st.redo },
@@ -128,6 +129,16 @@ export function useCommands(): Command[] {
         });
     }
     if (st.scope) cmds.push({ id: "exit", label: "Leave block", hint: "esc", run: () => st.setScope("") });
+    const goto = (scope: string, id: string) => {
+      if (st.scope !== scope) st.setScope(scope);
+      setTimeout(() => {
+        useStore.getState().select([id]);
+        window.dispatchEvent(new CustomEvent("ws:focus", { detail: id }));
+      }, 0);
+    };
+    for (const n of g.nodes) cmds.push({ id: `goto:/${n.id}`, label: `Go to ${n.label || n.id}`, hint: n.type, run: () => goto("", n.id) });
+    for (const [name, b] of Object.entries(g.subgraphs ?? {}))
+      for (const n of b.nodes) cmds.push({ id: `goto:${name}/${n.id}`, label: `Go to ${name} / ${n.label || n.id}`, hint: n.type, run: () => goto(name, n.id) });
     for (const name of Object.keys(g.subgraphs ?? {})) if (name !== st.scope) cmds.push({ id: `enter:${name}`, label: `Open block ${name}`, run: () => st.setScope(name) });
     for (const pr of st.projects)
       if (pr.slug !== st.project.slug) cmds.push({ id: `project:${pr.slug}`, label: `Open project ${pr.name}`, hint: `${pr.variants.length} variants`, run: () => st.openProject(pr.slug) });

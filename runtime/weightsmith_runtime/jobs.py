@@ -59,6 +59,7 @@ class JobManager:
         self._kick = asyncio.Event()
         self._loop_task: asyncio.Task | None = None
         self._files: dict[str, Any] = {}
+        self.last_state: dict[str, str] = {}  # last status event per run
 
     # ---------------------------------------------------------------- lifecycle
 
@@ -92,7 +93,7 @@ class JobManager:
 
         existing = self.store.get_run(rid)
         if existing and not rerun:
-            if existing["status"] in LIVE or existing["status"] == "completed":
+            if existing["status"] in LIVE or existing["status"] in ("completed", "rejected"):
                 return {**existing, "existing": True}
             if existing["status"] in ("stopped", "interrupted") and self.store.latest_checkpoint(rid):
                 await self.control(rid, "resume")
@@ -212,7 +213,10 @@ class JobManager:
         code = await live.proc.wait()
         await asyncio.gather(*live.tasks, return_exceptions=True)
         rec = self.store.get_run(rid)
-        if rec and rec["status"] in LIVE:
+        if rec and rec["status"] not in LIVE and self.last_state.get(rid) != rec["status"]:
+            # the run ended through an error event: announce the final state like any other
+            self._event(rid, {"type": "status", "state": rec["status"], "exit_code": code})
+        elif rec and rec["status"] in LIVE:
             state = "failed" if code else "completed"
             if code and not rec.get("error"):
                 tail = "\n".join(live.stderr_tail)
@@ -241,7 +245,7 @@ class JobManager:
         for q in list(self.subs.get(rid, ())):
             with contextlib.suppress(asyncio.QueueFull):
                 q.put_nowait(ev)
-        if ev["type"] in ("status", "error", "eval"):
+        if ev["type"] in ("status", "error", "eval", "gate"):
             light = {k: v for k, v in ev.items() if k != "traceback"}
             for q in list(self.status_subs):
                 with contextlib.suppress(asyncio.QueueFull):
@@ -251,13 +255,14 @@ class JobManager:
     def _summarize(self, rid: str, ev: dict[str, Any]) -> None:
         t = ev["type"]
         if t == "status":
+            self.last_state[rid] = ev["state"]
             summary = {}
             for k in ("total_steps", "params", "trainable", "system"):
                 if k in ev:
                     summary[k] = ev[k]
             if ev["state"] == "running" and "started" not in (self.store.get_run(rid) or {}).get("summary", {}):
                 summary["started"] = ev["ts"]
-            if ev["state"] in ("completed", "stopped", "failed"):
+            if ev["state"] in ("completed", "rejected", "stopped", "failed"):
                 summary["finished"] = ev["ts"]
             self.store.update_run(rid, status=ev["state"], summary=summary or None)
         elif t == "metric":
@@ -270,6 +275,8 @@ class JobManager:
             if "val_loss" in ev and (best is None or ev["val_loss"] < best):
                 s["best_val_loss"] = ev["val_loss"]
             self.store.update_run(rid, summary=s)
+        elif t == "gate":
+            self.store.update_run(rid, summary={"gate": {k: ev[k] for k in ("mean", "max", "kappa", "passed", "prompts") if k in ev}})
         elif t == "error":
             self.store.update_run(rid, error={k: v for k, v in ev.items() if k not in ("seq", "ts", "run", "type")})
             if ev.get("class") in ("nan", "oom", "shape", "runtime", "crash"):
@@ -306,7 +313,7 @@ class JobManager:
         rec = self.store.get_run(rid) or {}
         label = ", ".join([*nodes, *(f"{a['node']}.adapt[{a['index']}]" for a in adapt)])
         return await self.submit(
-            {"graph": graph, "data": job["data"], "train": job["train"]},
+            {"graph": graph, "data": job["data"], "train": job["train"], "init": job.get("init") or {}},
             project=rec.get("project"), variant=rec.get("variant"),
             name=f"{rec.get('name') or 'run'} − {label}", parent=rid, ablation={"nodes": nodes, "adapt": adapt},
         )

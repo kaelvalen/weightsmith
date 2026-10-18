@@ -7,6 +7,7 @@
     weightsmith runs                          list runs
     weightsmith diff a.json b.json
     weightsmith export <run id> [--merge]
+    weightsmith import Qwen/Qwen2.5-1.5B-Instruct     Hugging Face model → project + weights
 """
 
 from __future__ import annotations
@@ -104,6 +105,8 @@ def cmd_train(args) -> int:
                     print("eval   " + "  ".join(f"{k} {v:.4g}" for k, v in ev.items() if k.startswith("val_")))
                 elif t == "log":
                     print(ev["message"])
+                elif t == "gate":
+                    print(f"gate   D {ev['mean']:.4g} (max {ev['max']:.4g}) vs κ {ev.get('kappa')} → {'passed' if ev['passed'] else 'REJECTED'}")
                 elif t == "error":
                     print(f"error  [{ev.get('class')}] {ev.get('message')}" + (f" (node {ev['node']})" if ev.get("node") else ""))
                     for s in ev.get("suggestions", []):
@@ -111,7 +114,7 @@ def cmd_train(args) -> int:
                 elif t == "status" and ev["state"] != last_state:
                     last_state = ev["state"]
                     print(f"status {ev['state']}")
-                    if ev["state"] in ("completed", "stopped", "failed"):
+                    if ev["state"] in ("completed", "rejected", "stopped", "failed"):
                         return 0 if ev["state"] == "completed" else 1
         except (KeyboardInterrupt, asyncio.CancelledError):
             await jm.control(rid, "stop")
@@ -156,6 +159,15 @@ def cmd_export(args) -> int:
     return 0
 
 
+def cmd_import(args) -> int:
+    from .importing import import_to_project
+    from .store import Store
+
+    res = import_to_project(Store(Path(args.workspace) if args.workspace else None), args.source, args.dtype, args.name)
+    print(f"project {res['slug']} · {res['model_type']} · {res['nodes']} nodes · weights {res['weights']}")
+    return 0
+
+
 def cmd_serve(args) -> int:
     import uvicorn
 
@@ -193,6 +205,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--rerun", action="store_true", help="discard an existing run with the same id")
     p.add_argument("--set", action="append", metavar="KEY=VALUE", help="override train config, e.g. --set optimizer.lr=3e-4")
     p.set_defaults(fn=cmd_train)
+
+    p = sub.add_parser("import", help="import a Hugging Face model as a project")
+    p.add_argument("source", help="Hub repo id (e.g. Qwen/Qwen2.5-1.5B-Instruct) or a local model directory")
+    p.add_argument("--dtype", default="bf16", choices=["bf16", "f16", "f32"])
+    p.add_argument("--name")
+    p.set_defaults(fn=cmd_import)
 
     p = sub.add_parser("runs")
     p.add_argument("--project")

@@ -228,7 +228,7 @@ register(
             "dim": Param(None, "int", required=True),
             "hidden": Param(None, "int", required=True),
             "out": Param(None, "int", doc="Defaults to dim"),
-            "act": Param("gelu", "choice", choices=["gelu", "relu", "silu", "tanh"]),
+            "act": Param("gelu", "choice", choices=["gelu", "gelu_tanh", "relu", "silu", "tanh"]),
             "dropout": Param(0.0, "float"),
         },
         _mlp_infer,
@@ -298,8 +298,8 @@ def _posemb_infer(params: Params, ins: Ins, env: SymbolEnv) -> Outs:
         raise ShapeError(f"expects B×T×D, got {fmt_shape(env.resolve_shape(x.shape))}", "in")
     _last_dim(x, params["dim"], "in", env, "dim")
     t = env.resolve(x.shape[1])
-    if isinstance(t, int) and t > params["max_len"]:
-        raise ShapeError(f"sequence length {t} > max_len={params['max_len']}", "in")
+    if isinstance(t, int) and t + params.get("offset", 0) > params["max_len"]:
+        raise ShapeError(f"sequence length {t} + offset {params.get('offset', 0)} > max_len={params['max_len']}", "in")
     return {"out": TensorType(list(x.shape), x.dtype)}
 
 
@@ -310,7 +310,8 @@ register(
         "Adds a learned position vector to each step of B×T×D.",
         IN,
         OUT,
-        {"max_len": Param(512, "int"), "dim": Param(None, "int", required=True)},
+        {"max_len": Param(512, "int"), "dim": Param(None, "int", required=True),
+         "offset": Param(0, "int", doc="First position id (RoBERTa/MPNet start at 2)")},
         _posemb_infer,
         lambda p: {"weight": p["max_len"] * p["dim"]},
         out_features=lambda p: p["dim"],
@@ -497,7 +498,8 @@ register(
         "Classification loss. target defaults to the dataset label field.",
         [Port("logits"), Port("target", optional=True, doc="Unconnected: dataset field y")],
         [Port("loss")],
-        {**_LOSS_PARAMS, "label_smoothing": Param(0.0, "float"), "target_field": Param("y", "str")},
+        {**_LOSS_PARAMS, "label_smoothing": Param(0.0, "float"), "ignore_index": Param(-100, "int", doc="Target value that is skipped (padding, prompt tokens)"),
+         "target_field": Param("y", "str")},
         _ce_infer,
         loss=True,
     )

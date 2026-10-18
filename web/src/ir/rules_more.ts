@@ -269,6 +269,9 @@ export const MORE_RULES: Record<string, Rules> = {
       const kv = p.kv_heads || p.heads;
       if (p.heads % kv) throw new ShapeError(`heads=${p.heads} is not divisible by kv_heads=${kv}`, "in");
       if (p.rope && (p.dim / p.heads) % 2) throw new ShapeError("RoPE needs an even head dimension", "in");
+      const m = ins.mask;
+      if (m && (m.shape.length !== 2 || !env.unify(m.shape[0], x.shape[0]) || !env.unify(m.shape[1], x.shape[1])))
+        throw new ShapeError(`mask must be B×T, got ${fmtShape(env.resolveShape(m.shape))}`, "mask");
       const b = ins.bias;
       if (b) {
         const t = env.resolve(x.shape[1]);
@@ -457,6 +460,12 @@ export const MORE_RULES: Record<string, Rules> = {
       const s = env.resolveShape(x.shape);
       if (s.length < 1) throw new ShapeError("cannot reduce a scalar", "in");
       const d = mod(p.dim, s.length);
+      const m = ins.mask;
+      if (m) {
+        if (m.shape.length > s.length || m.shape.length <= d)
+          throw new ShapeError(`mask ${fmtShape(env.resolveShape(m.shape))} must cover the leading dims up to dim ${d}`, "mask");
+        env.unifyShapes(m.shape, x.shape.slice(0, m.shape.length), "mask", "mask vs input ");
+      }
       return { out: { shape: [...s.slice(0, d), ...(p.keepdim ? [1] : []), ...s.slice(d + 1)], dtype: x.dtype } };
     },
   },

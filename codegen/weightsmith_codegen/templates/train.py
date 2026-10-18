@@ -11,6 +11,7 @@ speaks the Weightsmith job protocol: JSON events on stdout (lines starting with
 from __future__ import annotations
 
 import argparse
+import contextlib
 import functools
 import json
 import math
@@ -175,6 +176,87 @@ def adapter_state(model: torch.nn.Module) -> dict:
     return {k: v for k, v in model.state_dict().items() if any(s in k for s in keys)}
 
 
+def load_init(model: torch.nn.Module, path: Path) -> None:
+    """Start from pretrained weights (e.g. imported from Hugging Face).
+
+    Weights saved for the plain model also load into one with LoRA or adapters: a key
+    that is missing as is is looked up without the wrapper's ".base." segment. Only
+    adaptation parameters may stay at their initial values.
+    """
+    if path.suffix == ".safetensors":
+        from safetensors import safe_open
+        from safetensors.torch import load_file
+
+        sd = load_file(str(path))
+        with safe_open(str(path), "pt") as f:
+            for k, v in json.loads((f.metadata() or {}).get("weightsmith_aliases", "{}")).items():
+                sd[k] = sd[v]
+    else:
+        sd = torch.load(path, map_location="cpu", weights_only=True)
+    own = model.state_dict()
+    mapped, used = {}, set()
+    for k in own:
+        src = k if k in sd else k.replace(".base.", ".")
+        if src in sd:
+            mapped[k] = sd[src]
+            used.add(src)
+    adapter = ("lora_A", "lora_B", ".down.", ".up.")
+    missing = [k for k in own if k not in mapped and not any(a in k for a in adapter)]
+    if missing:
+        raise ValueError(f"init weights lack {len(missing)} tensors, e.g. {missing[:3]}")
+    model.load_state_dict(mapped, strict=False)
+    log(f"init: {len(mapped):,} tensors from {path.name}" + (f", {len(set(sd) - used)} unused" if set(sd) - used else ""))
+
+
+@contextlib.contextmanager
+def skip_init():
+    """Build a model without filling its weights (they are about to be loaded)."""
+    names = ["kaiming_uniform_", "kaiming_normal_", "uniform_", "normal_", "trunc_normal_", "xavier_uniform_", "xavier_normal_", "zeros_", "ones_"]
+    saved = {n: getattr(torch.nn.init, n) for n in names}
+    for n in names:
+        setattr(torch.nn.init, n, lambda t, *a, **k: t)
+    try:
+        yield
+    finally:
+        for n, f in saved.items():
+            setattr(torch.nn.init, n, f)
+
+
+def cast_frozen(model: torch.nn.Module, dtype) -> None:
+    """Store frozen matrices in a smaller dtype; trainable parameters and norms stay fp32."""
+    for p in model.parameters():
+        if not p.requires_grad and p.ndim >= 2:
+            p.data = p.data.to(dtype)
+
+
+@contextlib.contextmanager
+def adapters_off(model: torch.nn.Module):
+    """Within the block, every LoRA / adapter wrapper behaves like the layer it wraps."""
+    mods = [m for m in model.modules() if hasattr(m, "enabled")]
+    for m in mods:
+        m.enabled = False
+    try:
+        yield
+    finally:
+        for m in mods:
+            m.enabled = True
+
+
+def last_logits(model, ids_list, cfg: dict) -> list[torch.Tensor]:
+    """Next-token logits at the end of each prompt (fp32)."""
+    lm = cfg["lm"]
+    out = []
+    for ids in ids_list:
+        o = model(**{lm["input"]: ids[None].to(next(model.parameters()).device)})
+        out.append(o[lm["logits"]][0, -1].float())
+    return out
+
+
+def jeffreys(pa: torch.Tensor, pb: torch.Tensor) -> float:
+    a, b = torch.softmax(pa, -1), torch.softmax(pb, -1)
+    return float((b * (b / a).log()).sum() + (a * (a / b).log()).sum())
+
+
 def save_checkpoint(path: Path, model, opt, sched, scaler, step: int, epoch: int, batch_in_epoch: int, cfg: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     state = {
@@ -271,8 +353,10 @@ def evaluate(model, loader, device, amp, metrics: dict) -> dict:
         n += bs
         if acc:
             pred = out[acc["logits"]].argmax(-1)
-            correct += (pred == batch[acc["target"]]).sum().item()
-            count += batch[acc["target"]].numel()
+            target = batch[acc["target"]]
+            keep = target != -100  # prompt and padding positions are not scored
+            correct += ((pred == target) & keep).sum().item()
+            count += keep.sum().item()
     model.train()
     res = {"val_loss": total / max(n, 1)}
     if acc and count:
@@ -310,7 +394,22 @@ def main(argv: list[str] | None = None) -> int:
     workers = tc.get("num_workers", 0)
     val_loader = DataLoader(val_ds, batch_size=bs, shuffle=False, num_workers=workers) if len(val_ds) else None
 
-    model = Model().to(device)
+    init = cfg.get("init") or {}
+    if init.get("weights"):
+        t_init = time.perf_counter()
+        with skip_init():  # every base tensor is overwritten by the checkpoint
+            model = Model()
+        load_init(model, Path(init["weights"]).expanduser())
+        for m in model.modules():  # adapters are not in the checkpoint: initialise them properly
+            if hasattr(m, "reset_adapter"):
+                m.reset_adapter()
+        log(f"init: model built and loaded in {time.perf_counter() - t_init:.1f}s")
+    else:
+        model = Model()
+    small = {"bf16": torch.bfloat16, "f16": torch.float16}.get(tc.get("weights_dtype") or "")
+    if small is not None:
+        cast_frozen(model, small)
+    model = model.to(device)
     if tc.get("grad_checkpointing"):
         enable_grad_checkpointing(model)
     n_params = sum(p.numel() for p in model.parameters())
@@ -336,6 +435,18 @@ def main(argv: list[str] | None = None) -> int:
     clip = tc.get("grad_clip")
     metrics_cfg = cfg.get("metrics", {})
 
+    # KL to the base model on fixed anchor prompts (Cerata): the base is this model with adapters off
+    klc = tc.get("kl_to_base") or {}
+    kl_ids, kl_base = [], []
+    if klc.get("lambda") and klc.get("prompts"):
+        tok = data.tokenizer(cfg)
+        kl_ids = [data.chat_prompt_ids(tok, q, klc.get("system")) for q in klc["prompts"]]
+        with torch.no_grad(), adapters_off(model), amp():
+            model.eval()
+            kl_base = last_logits(model, kl_ids, cfg)
+            model.train()
+        log(f"kl_to_base: λ={klc['lambda']} on {len(kl_ids)} anchor prompts")
+
     emit("status", state="running", step=step, total_steps=total_steps, params=n_params, trainable=n_train)
     model.train()
     t_last, samples = time.perf_counter(), 0
@@ -343,7 +454,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         for epoch in range(start_epoch, epochs if not tc.get("max_steps") else 10**9):
             g = torch.Generator().manual_seed(tc.get("seed", 0) + epoch)  # same order on resume
-            loader = DataLoader(train_ds, batch_size=bs, shuffle=True, generator=g, num_workers=workers, drop_last=bool(tc.get("drop_last")))
+            loader = DataLoader(train_ds, batch_size=bs, shuffle=tc.get("shuffle", True), generator=g, num_workers=workers,
+                                drop_last=bool(tc.get("drop_last")))
             for i, batch in enumerate(loader):
                 if epoch == start_epoch and i < skip:
                     continue
@@ -366,6 +478,16 @@ def main(argv: list[str] | None = None) -> int:
                 with amp():
                     out = model(**batch)
                 loss = out["loss"]
+                if kl_base:
+                    kl = 0.0
+                    with amp():
+                        anchored = last_logits(model, kl_ids, cfg)
+                    for lg, base in zip(anchored, kl_base):
+                        pb = torch.softmax(base, -1)
+                        kl = kl + (pb * (pb.log() - torch.log_softmax(lg, -1))).sum()
+                    kl = kl / len(kl_base)
+                    out["kl_to_base"] = kl.detach()
+                    loss = loss + klc["lambda"] * kl
                 if not torch.isfinite(loss):
                     emit("error", **{"class": "nan", "message": f"loss is {loss.item()} at step {step}", "step": step,
                                      "suggestions": ["lower lr", "enable grad_clip", "use precision f32 or bf16"]})
@@ -427,6 +549,22 @@ def main(argv: list[str] | None = None) -> int:
     if val_loader and state == "completed" and last_eval != step:
         emit("eval", step=step, **evaluate(model, val_loader, device, amp, metrics_cfg))
     raw = getattr(model, "_orig_mod", model)
+    gate = tc.get("gate") or {}
+    if state == "completed" and gate.get("prompts"):
+        # divergence gate: held-out prompts, adapted vs base, Jeffreys divergence of the next-token distribution
+        tok = data.tokenizer(cfg)
+        ids = [data.chat_prompt_ids(tok, q, gate.get("system")) for q in gate["prompts"]]
+        raw.eval()
+        with torch.no_grad(), amp():
+            adapted = last_logits(raw, ids, cfg)
+            with adapters_off(raw):
+                base = last_logits(raw, ids, cfg)
+        ds = [jeffreys(a, b) for a, b in zip(adapted, base)]
+        mean = sum(ds) / len(ds)
+        passed = mean <= gate.get("kappa", float("inf"))
+        emit("gate", mean=mean, max=max(ds), kappa=gate.get("kappa"), passed=passed, prompts=len(ds))
+        if not passed:
+            state = "rejected"
     torch.save(raw.state_dict(), out_dir / "model.pt")
     if adapter_state(raw):
         torch.save(adapter_state(raw), out_dir / "adapters.pt")

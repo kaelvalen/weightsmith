@@ -1324,6 +1324,19 @@
      }
     },
     {
+     "id": "attention_mask",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "mask"
+     },
+     "label": "1 = token, 0 = padding"
+    },
+    {
      "id": "word",
      "type": "Embedding",
      "params": {
@@ -1454,6 +1467,10 @@
      "encoder.x"
     ],
     [
+     "attention_mask.out",
+     "encoder.mask"
+    ],
+    [
      "encoder.out",
      "cls.in"
     ],
@@ -1487,6 +1504,18 @@
          "$D"
         ]
        }
+      },
+      {
+       "id": "mask",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T"
+        ],
+        "dtype": "i64"
+       },
+       "label": "padding mask"
       },
       {
        "id": "attn",
@@ -1574,6 +1603,10 @@
        "drop1.in"
       ],
       [
+       "mask.out",
+       "attn.mask"
+      ],
+      [
        "res1.out",
        "ln1.in"
       ],
@@ -1602,7 +1635,7 @@
       "act": "gelu",
       "dropout": 0.1
      },
-     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x))."
+     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x)). Padding positions are masked out of attention."
     }
    }
   }
@@ -1630,6 +1663,19 @@
       "dtype": "i64",
       "field": "x"
      }
+    },
+    {
+     "id": "attention_mask",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "mask"
+     },
+     "label": "1 = token, 0 = padding"
     },
     {
      "id": "word",
@@ -1734,7 +1780,7 @@
       "op": "mean",
       "dim": 1
      },
-     "label": "mean pooling"
+     "label": "mean pooling (tokens only)"
     },
     {
      "id": "embedding",
@@ -1776,6 +1822,10 @@
      "encoder.x"
     ],
     [
+     "attention_mask.out",
+     "encoder.mask"
+    ],
+    [
      "encoder.out",
      "cls.in"
     ],
@@ -1802,6 +1852,10 @@
     [
      "mean_pool.out",
      "embedding.in"
+    ],
+    [
+     "attention_mask.out",
+     "mean_pool.mask"
     ]
    ],
    "subgraphs": {
@@ -1817,6 +1871,18 @@
          "$D"
         ]
        }
+      },
+      {
+       "id": "mask",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T"
+        ],
+        "dtype": "i64"
+       },
+       "label": "padding mask"
       },
       {
        "id": "attn",
@@ -1904,6 +1970,10 @@
        "drop1.in"
       ],
       [
+       "mask.out",
+       "attn.mask"
+      ],
+      [
        "res1.out",
        "ln1.in"
       ],
@@ -1932,7 +2002,7 @@
       "act": "gelu",
       "dropout": 0.1
      },
-     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x))."
+     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x)). Padding positions are masked out of attention."
     }
    }
   }
@@ -1962,6 +2032,19 @@
      }
     },
     {
+     "id": "attention_mask",
+     "type": "Input",
+     "params": {
+      "shape": [
+       "B",
+       "T"
+      ],
+      "dtype": "i64",
+      "field": "mask"
+     },
+     "label": "1 = token, 0 = padding"
+    },
+    {
      "id": "word",
      "type": "Embedding",
      "params": {
@@ -1975,9 +2058,10 @@
      "type": "PositionalEmbedding",
      "params": {
       "max_len": 514,
-      "dim": 768
+      "dim": 768,
+      "offset": 2
      },
-     "label": "position_embeddings"
+     "label": "position_embeddings (from 2)"
     },
     {
      "id": "emb_norm",
@@ -2039,13 +2123,17 @@
      "type": "Output"
     },
     {
+     "id": "hidden",
+     "type": "Output"
+    },
+    {
      "id": "mean_pool",
      "type": "Reduce",
      "params": {
       "op": "mean",
       "dim": 1
      },
-     "label": "mean pooling"
+     "label": "mean pooling (tokens only)"
     },
     {
      "id": "normalize",
@@ -2087,6 +2175,14 @@
      "encoder.bias"
     ],
     [
+     "attention_mask.out",
+     "encoder.mask"
+    ],
+    [
+     "attention_mask.out",
+     "mean_pool.mask"
+    ],
+    [
      "encoder.out",
      "cls.in"
     ],
@@ -2101,6 +2197,10 @@
     [
      "pooler_act.out",
      "pooled.in"
+    ],
+    [
+     "encoder.out",
+     "hidden.in"
     ],
     [
      "encoder.out",
@@ -2140,6 +2240,18 @@
         ]
        },
        "label": "shared position bias"
+      },
+      {
+       "id": "mask",
+       "type": "Input",
+       "params": {
+        "shape": [
+         "B",
+         "T"
+        ],
+        "dtype": "i64"
+       },
+       "label": "padding mask"
       },
       {
        "id": "attn",
@@ -2231,6 +2343,10 @@
        "attn.bias"
       ],
       [
+       "mask.out",
+       "attn.mask"
+      ],
+      [
        "res1.out",
        "ln1.in"
       ],
@@ -2259,7 +2375,7 @@
       "act": "gelu",
       "dropout": 0.1
      },
-     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x)). Takes a relative position bias shared by every layer (MPNet)."
+     "doc": "Post-LN transformer encoder block (BERT): LN(x + attn(x)), then LN(x + MLP(x)). Takes a relative position bias shared by every layer (MPNet). Padding positions are masked out of attention."
     }
    }
   }
@@ -2502,7 +2618,7 @@
       "F": 3072,
       "eps": 1e-05,
       "causal": true,
-      "act": "gelu",
+      "act": "gelu_tanh",
       "dropout": 0.1
      },
      "doc": "Pre-LN transformer block (GPT-2, ViT): x + attn(LN(x)), then x + MLP(LN(x))."
@@ -2634,7 +2750,8 @@
         "bias": "$qkv_bias",
         "o_bias": false,
         "rope": true,
-        "rope_theta": "$theta"
+        "rope_theta": "$theta",
+        "rope_scaling": "$rope_scaling"
        }
       },
       {
@@ -2714,7 +2831,14 @@
       "F": 8192,
       "theta": 500000.0,
       "eps": 1e-05,
-      "qkv_bias": false
+      "qkv_bias": false,
+      "rope_scaling": {
+       "rope_type": "llama3",
+       "factor": 32.0,
+       "low_freq_factor": 1.0,
+       "high_freq_factor": 4.0,
+       "original_max_position_embeddings": 8192
+      }
      },
      "doc": "Llama-style decoder layer: RMSNorm \u2192 GQA with RoPE \u2192 residual \u2192 RMSNorm \u2192 SwiGLU \u2192 residual."
     }
@@ -2845,7 +2969,8 @@
         "bias": "$qkv_bias",
         "o_bias": false,
         "rope": true,
-        "rope_theta": "$theta"
+        "rope_theta": "$theta",
+        "rope_scaling": "$rope_scaling"
        }
       },
       {
@@ -2925,7 +3050,8 @@
       "F": 8960,
       "theta": 1000000.0,
       "eps": 1e-06,
-      "qkv_bias": true
+      "qkv_bias": true,
+      "rope_scaling": null
      },
      "doc": "Llama-style decoder layer: RMSNorm \u2192 GQA with RoPE \u2192 residual \u2192 RMSNorm \u2192 SwiGLU \u2192 residual."
     }
@@ -4773,7 +4899,8 @@
       "bias": "$qkv_bias",
       "o_bias": false,
       "rope": true,
-      "rope_theta": "$theta"
+      "rope_theta": "$theta",
+      "rope_scaling": "$rope_scaling"
      }
     },
     {
@@ -4853,7 +4980,8 @@
     "F": 8192,
     "theta": 500000.0,
     "eps": 1e-05,
-    "qkv_bias": false
+    "qkv_bias": false,
+    "rope_scaling": null
    },
    "doc": "Llama-style decoder layer: RMSNorm \u2192 GQA with RoPE \u2192 residual \u2192 RMSNorm \u2192 SwiGLU \u2192 residual."
   }

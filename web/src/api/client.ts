@@ -27,12 +27,37 @@ export interface RunEvent {
   seq: number;
   ts: number;
   run: string;
-  type: "status" | "metric" | "eval" | "log" | "error" | "checkpoint";
+  type: "status" | "metric" | "eval" | "log" | "error" | "checkpoint" | "gate";
   [k: string]: any;
 }
 
+/** Daemon address: "" is the daemon that served this page; set another for a remote GPU (F6). */
+export function daemonBase(): string {
+  try {
+    return (localStorage.getItem("weightsmith.daemon") ?? "").replace(/\/$/, "");
+  } catch {
+    return "";
+  }
+}
+
+export function setDaemonBase(url: string) {
+  try {
+    if (url) localStorage.setItem("weightsmith.daemon", url.replace(/\/$/, ""));
+    else localStorage.removeItem("weightsmith.daemon");
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+function wsUrl(path: string): string {
+  const base = daemonBase();
+  if (base) return base.replace(/^http/, "ws") + path;
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  return `${proto}://${location.host}${path}`;
+}
+
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const r = await fetch(path, {
+  const r = await fetch(daemonBase() + path, {
     method,
     headers: body !== undefined ? { "content-type": "application/json" } : undefined,
     body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -76,14 +101,19 @@ export const api = {
   runs: (project?: string) => req<RunRecord[]>("GET", `/api/runs${project ? `?project=${encodeURIComponent(project)}` : ""}`),
   run: (id: string) => req<RunRecord>("GET", `/api/runs/${id}`),
   deleteRun: (id: string) => req<any>("DELETE", `/api/runs/${id}`),
-  createRun: (body: { graph: Graph; data: any; train: any; project?: string; variant?: string; name?: string; rerun?: boolean }) =>
+  createRun: (body: { graph: Graph; data: any; train: any; init?: any; project?: string; variant?: string; name?: string; rerun?: boolean }) =>
     req<RunRecord>("POST", "/api/runs", body),
   events: (id: string, since = 0) => req<RunEvent[]>("GET", `/api/runs/${id}/events?since=${since}`),
   control: (id: string, cmd: string) => req<RunRecord>("POST", `/api/runs/${id}/control`, { cmd }),
   ablate: (id: string, nodes: string[], adapt: { node: string; index: number }[] = []) =>
     req<RunRecord>("POST", `/api/runs/${id}/ablate`, { nodes, adapt }),
   file: (id: string, name: string) => req<string>("GET", `/api/runs/${id}/files/${name}`),
-  exportUrl: (id: string, merge = false) => `/api/runs/${id}/export${merge ? "?merge=true" : ""}`,
+  exportUrl: (id: string, merge = false) => `${daemonBase()}/api/runs/${id}/export${merge ? "?merge=true" : ""}`,
+  patchRun: (id: string, patch: { note?: string; name?: string }) => req<RunRecord>("PATCH", `/api/runs/${id}`, patch),
+  generate: (id: string, body: { prompt: string; system?: string; adapters: boolean; max_new_tokens?: number }) =>
+    req<{ text: string; adapters: boolean }>("POST", `/api/runs/${id}/generate`, body),
+  importHf: (source: string, dtype = "bf16", name?: string) =>
+    req<{ slug: string; weights: string; model_type: string; nodes: number }>("POST", "/api/import/hf", { source, dtype, name }),
 };
 
 /** Sequence-numbered run stream that resumes from the last seen seq after a drop. */
@@ -93,8 +123,7 @@ export function streamRun(id: string, since: number, onEvent: (e: RunEvent) => v
   let closed = false;
   let retry = 250;
   const open = () => {
-    const proto = location.protocol === "https:" ? "wss" : "ws";
-    ws = new WebSocket(`${proto}://${location.host}/ws/runs/${id}?since=${last}`);
+    ws = new WebSocket(wsUrl(`/ws/runs/${id}?since=${last}`));
     ws.onmessage = (m) => {
       const ev = JSON.parse(m.data) as RunEvent;
       if (ev.seq <= last) return;
@@ -117,8 +146,7 @@ export function streamStatus(onEvent: (e: RunEvent) => void): () => void {
   let ws: WebSocket | null = null;
   let closed = false;
   const open = () => {
-    const proto = location.protocol === "https:" ? "wss" : "ws";
-    ws = new WebSocket(`${proto}://${location.host}/ws/status`);
+    ws = new WebSocket(wsUrl("/ws/status"));
     ws.onmessage = (m) => onEvent(JSON.parse(m.data));
     ws.onclose = () => {
       if (!closed) setTimeout(open, 1500);

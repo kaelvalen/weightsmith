@@ -42,6 +42,13 @@ function CanvasInner() {
   const full = useAnalysis();
   const allIssues = useIssues();
   const [drag, setDrag] = useState<Record<string, Position>>({});
+  const [edgeShapes, setEdgeShapes] = useState(() => {
+    try {
+      return localStorage.getItem("weightsmith.edgeshapes") !== "off";
+    } catch {
+      return true;
+    }
+  });
   const [minimap, setMinimap] = useState(() => {
     try {
       return localStorage.getItem("weightsmith.minimap") !== "off";
@@ -67,10 +74,25 @@ function CanvasInner() {
         }
         return !m;
       });
+    const shapes = () =>
+      setEdgeShapes((v) => {
+        try {
+          localStorage.setItem("weightsmith.edgeshapes", v ? "off" : "on");
+        } catch {
+          /* ignore */
+        }
+        return !v;
+      });
+    const focus = (e: Event) =>
+      setTimeout(() => flow?.fitView({ nodes: [{ id: (e as CustomEvent).detail }], maxZoom: 1.1, duration: 160, padding: 0.6 }), 60);
     window.addEventListener("ws:enter", enter);
     window.addEventListener("ws:fit", fit);
     window.addEventListener("ws:minimap", mm);
+    window.addEventListener("ws:edgeshapes", shapes);
+    window.addEventListener("ws:focus", focus);
     return () => {
+      window.removeEventListener("ws:edgeshapes", shapes);
+      window.removeEventListener("ws:focus", focus);
       window.removeEventListener("ws:enter", enter);
       window.removeEventListener("ws:fit", fit);
       window.removeEventListener("ws:minimap", mm);
@@ -97,9 +119,13 @@ function CanvasInner() {
           issues: issues.filter((i) => i.node === n.id),
           count: analysis.params?.[n.id],
           connected,
+          inner:
+            n.type === "Subgraph" && graph.subgraphs?.[(n.params as any)?.graph]
+              ? { body: graph.subgraphs[(n.params as any).graph], analysis: full.subgraphs?.[(n.params as any).graph] }
+              : undefined,
         },
       })),
-    [body, analysis, issues, selection, drag, connected],
+    [body, analysis, issues, selection, drag, connected, graph, full],
   );
 
   const edges: FlowEdge[] = useMemo(() => {
@@ -115,10 +141,18 @@ function CanvasInner() {
         targetHandle: dp,
         type: "step",
         className: errEdges.has(i) ? "error" : "",
+        ...(edgeShapes && analysis.ports?.[s]
+          ? {
+              label: analysis.ports[s].shape.length ? analysis.ports[s].shape.join("×") : "scalar",
+              labelStyle: { fontFamily: "var(--mono)", fontSize: 10, fill: "var(--muted)" },
+              labelBgStyle: { fill: "var(--bg)" },
+              labelBgPadding: [2, 1] as [number, number],
+            }
+          : {}),
         selected: selectedEdges.some((e) => e[0] === s && e[1] === d),
       };
     });
-  }, [body, issues, selectedEdges]);
+  }, [body, issues, selectedEdges, edgeShapes, analysis]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {

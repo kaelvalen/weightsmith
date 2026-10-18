@@ -110,7 +110,7 @@ def _module_ctor(t: str, p: dict[str, Any]) -> tuple[str | None, set[str]]:
         case "Embedding":
             return f"nn.Embedding({p['num']}, {p['dim']})", set()
         case "PositionalEmbedding":
-            return f"PositionalEmbedding({p['max_len']}, {p['dim']})", {"PositionalEmbedding"}
+            return f"PositionalEmbedding({p['max_len']}, {p['dim']}{_kw(p, 'offset', 0)})", {"PositionalEmbedding"}
         case "SinusoidalPositional":
             return f"SinusoidalPositional({p['dim']})", {"SinusoidalPositional"}
         case "ClassToken":
@@ -148,7 +148,7 @@ def _module_ctor(t: str, p: dict[str, Any]) -> tuple[str | None, set[str]]:
                 extra += ", o_bias=False"
             if p.get("rope"):
                 extra += f", rope=True, rope_theta={_r(p['rope_theta'])}"
-            extra += _kw(p, "qk_norm", "none") + _kw(p, "chunk", 0) + _kw(p, "nope_temp", False)
+            extra += _kw(p, "rope_scaling", None) + _kw(p, "qk_norm", "none") + _kw(p, "chunk", 0) + _kw(p, "nope_temp", False)
             return (
                 f"Attention({p['dim']}, heads={p['heads']}{extra}, causal={p['causal']}, dropout={_r(p['dropout'])}, bias={p['bias']})",
                 {"Attention"},
@@ -178,14 +178,15 @@ _MODULE_CALL = {
 }
 
 
-def _expr(t: str, p: dict[str, Any], mod: str, a: dict[str, str], rank: int | None = None) -> str:
+def _expr(t: str, p: dict[str, Any], mod: str, a: dict[str, str], rank: int | None = None, mask_rank: int | None = None) -> str:
     """Forward expression. ``a`` maps input port name → variable."""
     x = a.get("in")
     if t in _MODULE_CALL:
         return f"{mod}({x})"
     match t:
         case "Attention":
-            return f"{mod}({x}, {a['bias']})" if a.get("bias") else f"{mod}({x})"
+            extra = "".join(f", {k}={a[k]}" for k in ("bias", "mask") if a.get(k))
+            return f"{mod}({x}{extra})"
         case "CrossAttention":
             return f"{mod}({x}, {a['context']})"
         case "GELU":
@@ -258,8 +259,19 @@ def _expr(t: str, p: dict[str, Any], mod: str, a: dict[str, str], rank: int | No
         case "Chunk":
             return f"{x}.chunk(2, dim={p['dim']})"
         case "Reduce":
+            kd = ", keepdim=True" if p["keepdim"] else ""
+            if a.get("mask"):
+                m = a["mask"]
+                # mask covers the leading dims; broadcast it over the rest
+                extra = max(0, (rank or 0) - (mask_rank or 0))
+                mm = f"{m}[{', '.join(['...'] + ['None'] * extra)}].to({x}.dtype)" if extra else f"{m}.to({x}.dtype)"
+                if p["op"] == "max":
+                    return f"{x}.masked_fill({mm} == 0, float('-inf')).amax(dim={p['dim']}{kd})"
+                if p["op"] == "sum":
+                    return f"({x} * {mm}).sum(dim={p['dim']}{kd})"
+                return f"({x} * {mm}).sum(dim={p['dim']}{kd}) / {mm}.sum(dim={p['dim']}{kd}).clamp(min=1)"
             op = {"mean": "mean", "sum": "sum", "max": "amax"}[p["op"]]
-            return f"{x}.{op}(dim={p['dim']}{', keepdim=True' if p['keepdim'] else ''})"
+            return f"{x}.{op}(dim={p['dim']}{kd})"
         case "MeanPool":
             return f"{x}.mean(dim={p['dim']})"
         case "Reparameterize":
@@ -271,6 +283,7 @@ def _loss_expr(t: str, p: dict[str, Any], a: dict[str, str]) -> str:
     match t:
         case "CrossEntropy":
             ls = f", label_smoothing={_r(p['label_smoothing'])}" if p["label_smoothing"] else ""
+            ls += f", ignore_index={p['ignore_index']}" if p.get("ignore_index", -100) != -100 else ""
             return f"F.cross_entropy({a['logits']}.flatten(0, -2).float(), {a['target']}.flatten(){ls})"
         case "MSE":
             return f"F.mse_loss({a['pred']}.float(), {a['target']}.float())"
@@ -443,8 +456,10 @@ def _emit_forward(e: Emitter, body: Body, ind: str, var_of_input: dict[str, str]
                     e.emit(f"{ind}{name}_{o} = {name}_out[{o!r}]  # node: {nid}", tag)
         else:
             src = body.analysis.ports.get(f"{nid}.in")
+            msrc = body.analysis.ports.get(f"{nid}.mask")
             rank = len(src.shape) if src is not None else None
-            e.emit(f"{ind}{target} = {_expr(t, p, 'self.' + name, args, rank)}  # node: {nid}{note}", tag)
+            mrank = len(msrc.shape) if msrc is not None else None
+            e.emit(f"{ind}{target} = {_expr(t, p, 'self.' + name, args, rank, mrank)}  # node: {nid}{note}", tag)
         for o in outs:
             var[f"{nid}.{o}"] = name if len(outs) == 1 else f"{name}_{o}"
     return var

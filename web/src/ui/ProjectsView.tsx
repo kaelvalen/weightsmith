@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { api } from "../api/client";
+import { api, daemonBase, setDaemonBase } from "../api/client";
 import templates from "../ir/templates.json";
 import { useStore } from "../state/store";
 import { fmtCount } from "./Inspector";
@@ -110,6 +110,96 @@ const CATS: [string, string][] = [
   ["generative", "Generative"],
 ];
 
+function ImportRow() {
+  const [src, setSrc] = useState("");
+  const [dtype, setDtype] = useState("bf16");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const open = useStore((s) => s.openProject);
+  const refresh = useStore((s) => s.refreshProjects);
+  const go = async () => {
+    if (!src.trim()) return;
+    setBusy(true);
+    setMsg({ text: `Downloading and converting ${src}… large models take minutes.` });
+    try {
+      const r = await api.importHf(src.trim(), dtype);
+      setMsg({ text: `${r.model_type} · ${r.nodes} nodes · weights in ${r.weights}` });
+      await refresh();
+      open(r.slug);
+    } catch (e: any) {
+      setMsg({ text: e.message ?? String(e), error: true });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className="flex flex-col gap-2" aria-labelledby="import-hf">
+      <div>
+        <h2 id="import-hf" className="m-0 text-title font-medium">
+          Import a pretrained model
+        </h2>
+        <p className="m-0 text-small text-muted">
+          A Hugging Face repo id or a local model directory. Llama, Mistral, Qwen2, Mixtral, GPT-2, BERT, MPNet and Mamba open as editable graphs with their weights.
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="w-96 max-w-full">
+          <input
+            id="hf-source"
+            type="text"
+            className="num"
+            placeholder="Qwen/Qwen2.5-1.5B-Instruct"
+            value={src}
+            onChange={(e) => setSrc(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && go()}
+            aria-label="Hugging Face repo id or local path"
+          />
+        </div>
+        <div className="w-24">
+          <select id="hf-dtype" value={dtype} onChange={(e) => setDtype(e.target.value)} aria-label="Weight precision">
+            <option>bf16</option>
+            <option>f16</option>
+            <option>f32</option>
+          </select>
+        </div>
+        <button onClick={go} disabled={busy || !src.trim()}>
+          {busy ? "Importing…" : "Import"}
+        </button>
+      </div>
+      {msg && <p className={`num m-0 text-small ${msg.error ? "text-error" : "text-muted"}`}>{msg.text}</p>}
+    </section>
+  );
+}
+
+function DaemonRow() {
+  const [url, setUrl] = useState(daemonBase());
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-small text-muted">
+      <span>Daemon</span>
+      <div className="w-72">
+        <input
+          id="daemon-url"
+          type="text"
+          className="num"
+          placeholder="this machine (the page's own daemon)"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          aria-label="Daemon address"
+        />
+      </div>
+      <button
+        onClick={() => {
+          setDaemonBase(url.trim());
+          location.reload();
+        }}
+      >
+        Connect
+      </button>
+      <span>For a GPU elsewhere: run weightsmith serve there and tunnel it, e.g. ssh -L 7870:127.0.0.1:7860 host → http://127.0.0.1:7870</span>
+    </div>
+  );
+}
+
 export function ProjectsView() {
   const projects = useStore((s) => s.projects) as Card[];
   const current = useStore((s) => s.project.slug);
@@ -173,6 +263,8 @@ export function ProjectsView() {
           {!shown.length && <p className="m-0 text-small text-muted">{q ? "No project matches." : "No saved projects yet. Start one from a model below."}</p>}
         </section>
 
+        <ImportRow />
+
         <section className="flex flex-col gap-4" aria-labelledby="from-model">
           <div>
             <h2 id="from-model" className="m-0 text-title font-medium">
@@ -206,6 +298,7 @@ export function ProjectsView() {
             ))}
           </div>
         </section>
+        <DaemonRow />
       </div>
     </div>
   );

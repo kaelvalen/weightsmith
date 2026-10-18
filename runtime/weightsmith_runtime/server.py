@@ -44,6 +44,7 @@ class RunBody(BaseModel):
     graph: dict[str, Any]
     data: dict[str, Any] = {}
     train: dict[str, Any] = {}
+    init: dict[str, Any] = {}  # {"weights": path} to start from pretrained weights
     project: str | None = None
     variant: str | None = None
     name: str | None = None
@@ -57,6 +58,24 @@ class ControlBody(BaseModel):
 class AblateBody(BaseModel):
     nodes: list[str] = []
     adapt: list[dict[str, Any]] = []
+
+
+class ImportBody(BaseModel):
+    source: str  # Hub repo id or local directory
+    dtype: str | None = "bf16"
+    name: str | None = None
+
+
+class GenerateBody(BaseModel):
+    prompt: str
+    system: str | None = None
+    adapters: bool = True
+    max_new_tokens: int = 32
+
+
+class RunPatch(BaseModel):
+    note: str | None = None
+    name: str | None = None
 
 
 class PythonBody(BaseModel):
@@ -202,6 +221,19 @@ def create_app(root: Path | None = None, web_dist: Path | None = None) -> FastAP
             v["graph"] = ir.migrate(v["graph"])
         return {"slug": store.save_project(project)}
 
+    @app.post("/api/import/hf")
+    async def import_hf(body: ImportBody):
+        """Download (if needed) and convert a Hugging Face model into a new project."""
+        from .importing import import_to_project
+        from weightsmith_importers.hf import ImportError_
+
+        try:
+            return await asyncio.to_thread(import_to_project, store, body.source, body.dtype, body.name)
+        except ImportError_ as e:
+            raise HTTPException(422, str(e))
+        except Exception as e:  # download or conversion failure, shown to the user as is
+            raise HTTPException(502, f"{type(e).__name__}: {e}")
+
     @app.delete("/api/projects/{slug}")
     def delete_project(slug: str):
         store.delete_project(slug)
@@ -222,7 +254,7 @@ def create_app(root: Path | None = None, web_dist: Path | None = None) -> FastAP
             raise HTTPException(422, {"message": "graph has no active loss node", "analysis": a.to_json()})
         try:
             return await jm().submit(
-                {"graph": body.graph, "data": body.data, "train": body.train},
+                {"graph": body.graph, "data": body.data, "train": body.train, "init": body.init},
                 body.project, body.variant, body.name, rerun=body.rerun,
             )
         except (RuntimeError, ValueError, KeyError, OSError) as e:
@@ -241,6 +273,16 @@ def create_app(root: Path | None = None, web_dist: Path | None = None) -> FastAP
         rec["job"] = json.loads(job_path.read_text()) if job_path.exists() else None
         rec["children"] = [r["id"] for r in store.list_runs(rec.get("project")) if r.get("parent") == rid]
         return rec
+
+    @app.patch("/api/runs/{rid}")
+    def patch_run(rid: str, body: RunPatch):
+        """A run's note and name: what was tried, and why."""
+        _run_or_404(rid)
+        if body.note is not None:
+            store.update_run(rid, summary={"note": body.note})
+        if body.name is not None:
+            store.rename_run(rid, body.name)
+        return store.get_run(rid)
 
     @app.delete("/api/runs/{rid}")
     async def delete_run(rid: str):
@@ -275,6 +317,21 @@ def create_app(root: Path | None = None, web_dist: Path | None = None) -> FastAP
             raise HTTPException(404, f"no such node {e}")
         except CodegenError as e:
             raise HTTPException(422, {"message": str(e), "analysis": e.analysis.to_json()})
+
+    @app.post("/api/runs/{rid}/generate")
+    async def generate(rid: str, body: GenerateBody):
+        """Greedy answer from a trained language model, adapters on or off."""
+        from .playground import generate as gen
+
+        rec = _run_or_404(rid)
+        if rec["status"] not in ("completed", "rejected", "stopped"):
+            raise HTTPException(409, "the run has no final weights yet")
+        if not (store.run_dir(rid) / "model.pt").exists():
+            raise HTTPException(404, "this run saved no weights")
+        try:
+            return await asyncio.to_thread(gen, store.run_dir(rid), body.prompt, body.system, body.adapters, min(body.max_new_tokens, 256))
+        except ValueError as e:
+            raise HTTPException(422, str(e))
 
     @app.get("/api/runs/{rid}/files/{name}")
     def run_file(rid: str, name: str):
