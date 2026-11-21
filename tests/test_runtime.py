@@ -234,3 +234,32 @@ def test_lora_job_records(client):
 
     assert last_grad("fc1.base.weight") == 0.0  # frozen base: recorded, never updated
     assert last_grad("fc1.lora_B") > 0.0
+
+
+# --------------------------------------------------------------- /api/scope
+
+
+def test_scope_api_serves_run(client):
+    rec = submit(client, tiny_classifier())
+    wait(client, rec["id"])
+    layers = client.get(f"/api/scope/runs/{rec['id']}/layers").json()
+    assert "fc1.weight" in layers
+    assert len(client.get(f"/api/scope/runs/{rec['id']}/global").json()) == 30
+
+
+def test_scope_api_404_for_run_without_scope(client):
+    rec = submit(client, tiny_classifier(diagnostics={"trainscope": False}))
+    assert wait(client, rec["id"])["status"] == "completed"
+    assert client.get(f"/api/scope/runs/{rec['id']}/global").status_code == 404
+    assert client.get("/api/scope/runs/nope/global").status_code == 404
+
+
+def test_scope_cluster_over_runs(client):
+    a = submit(client, tiny_classifier())
+    b = submit(client, tiny_classifier(seed=1))
+    wait(client, a["id"])
+    wait(client, b["id"])
+    data = client.get("/api/scope/cluster").json()
+    names = set(data["unclustered"]) | {n for c in data["clusters"] for n in c["runs"]}
+    assert {a["id"], b["id"]} <= names
+    assert {r["name"] for r in client.get("/api/scope/runs").json()} >= {a["id"], b["id"]}

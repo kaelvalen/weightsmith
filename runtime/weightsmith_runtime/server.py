@@ -19,6 +19,7 @@ from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.background import BackgroundTask
+from trainscope.ui.server import make_router as make_scope_router
 
 from weightsmith_codegen import project as codegen
 from weightsmith_codegen.emit import CodegenError, compile_graph
@@ -397,6 +398,21 @@ def create_app(root: Path | None = None, web_dist: Path | None = None) -> FastAP
             pass
         finally:
             jm().status_subs.discard(q)
+
+    # ------------------------------------------------------------ trainscope
+
+    def scope_of(rid: str) -> Path | None:
+        # only ids the store knows: the key comes from the URL
+        if store.get_run(rid) is None:
+            return None
+        d = store.run_dir(rid) / "scope"
+        return d if d.is_dir() else None
+
+    def scope_runs() -> list[tuple[str, Path]]:
+        found = ((r["id"], scope_of(r["id"])) for r in reversed(store.list_runs()))  # oldest first
+        return [(rid, d) for rid, d in found if d is not None]
+
+    app.include_router(make_scope_router(scope_of, scope_runs), prefix="/api/scope")
 
     # ------------------------------------------------------------ the canvas
 
