@@ -263,3 +263,14 @@ def test_scope_cluster_over_runs(client):
     names = set(data["unclustered"]) | {n for c in data["clusters"] for n in c["runs"]}
     assert {a["id"], b["id"]} <= names
     assert {r["name"] for r in client.get("/api/scope/runs").json()} >= {a["id"], b["id"]}
+
+
+def test_module_map_is_served(client):
+    import json as _json
+
+    rec = submit(client, tiny_classifier())
+    wait(client, rec["id"])
+    r = client.get(f"/api/runs/{rec['id']}/files/module_map.json")
+    assert r.status_code == 200
+    # "loss" is reserved, so its module attribute is loss_: the map is what makes names exact
+    assert _json.loads(r.text) == {"x": "x", "fc1": "fc1", "act": "act", "fc2": "fc2", "loss_": "loss"}

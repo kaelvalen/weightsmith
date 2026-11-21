@@ -348,7 +348,7 @@ def create_app(root: Path | None = None, web_dist: Path | None = None) -> FastAP
     @app.get("/api/runs/{rid}/files/{name}")
     def run_file(rid: str, name: str):
         _run_or_404(rid)
-        allowed = {"model.py", "train.py", "data.py", "config.yaml", "graph.json", "job.json", "README.md"}
+        allowed = {"model.py", "train.py", "data.py", "config.yaml", "graph.json", "job.json", "README.md", "module_map.json"}
         if name not in allowed:
             raise HTTPException(404)
         return PlainTextResponse((store.run_dir(rid) / name).read_text())
