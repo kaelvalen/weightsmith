@@ -285,3 +285,17 @@ def test_scope_meta_has_job_config(client):
     assert meta["model_config"]["train"]["optimizer"]["lr"] == 0.05  # merged with the job defaults
     assert "diagnostics" not in meta["model_config"]["train"]
     assert meta["model_config"]["graph"] == client.get(f"/api/runs/{rec['id']}").json()["graph_hash"]
+
+
+def test_training_survives_a_trainscope_failure(tmp_path):
+    import subprocess
+    import sys
+
+    from weightsmith_codegen.project import write_run
+
+    out = tmp_path / "export"
+    write_run(tiny_classifier(), out)
+    (out / "scope").write_text("not a directory")  # recording cannot start
+    r = subprocess.run([sys.executable, "train.py"], cwd=out, capture_output=True, text=True, timeout=120)
+    assert r.returncode == 0, r.stderr[-2000:]
+    assert "trainscope" in r.stdout and "off" in r.stdout

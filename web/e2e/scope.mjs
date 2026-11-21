@@ -62,6 +62,9 @@ for (let i = 0; i < 90; i++) {
 await page.locator("button", { hasText: /^Runs$/ }).click();
 await page.waitForTimeout(1500);
 await page.locator("button", { hasText: plain.id.slice(0, 8) }).first().click();
+await page.waitForTimeout(500);
+check(await page.locator("[data-spike-source]").count() === 0 && await page.locator("[data-paint]").count() === 0,
+  "another run's diagnostics do not stay on the canvas");
 await page.locator("button", { hasText: /^Diagnose$/ }).click();
 await page.waitForTimeout(1000);
 check(await page.getByText("No diagnostics were recorded for this run.").count() > 0, "a run without a recording shows the empty state");

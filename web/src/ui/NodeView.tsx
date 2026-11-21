@@ -58,8 +58,9 @@ function NodeViewImpl({ data, selected }: NodeProps & { data: NodeData }) {
     node.type === "Subgraph" ? `Subgraph · ${p.graph}${p.repeat > 1 ? ` · ${p.repeat}×${p.tie_weights ? " tied" : ""}` : ""}` : node.type === "PythonModule" ? `Python · ${p.class_name ?? ""}` : node.type;
 
   // trainscope on the canvas: tint by how far the node's layers drifted (z, 0..6), outline the spike source
-  const heat = useStore((s) => (s.diag.paint ? s.diag.heat[node.id] : undefined));
-  const source = useStore((s) => s.diag.source === node.id);
+  // only the active run's recording: it was computed for that run's graph
+  const heat = useStore((s) => (s.diag.paint && s.diag.run === s.activeRun ? s.diag.heat[node.id] : undefined));
+  const source = useStore((s) => s.diag.run === s.activeRun && s.diag.source === node.id);
   const tint = heat === undefined ? 0 : Math.round(Math.min(Math.max(heat / 6, 0), 1) * 45);
   const border = selected ? "var(--accent)" : nodeError || source ? "var(--error)" : frozen ? "var(--muted)" : "var(--ink)";
   const slot = (i: number, n: number) => `calc(${(100 * i) / n}% + 12px)`;

@@ -1,10 +1,11 @@
 // What happened in this run: status, loss and grad norm on one step axis, the layer heatmap
 // below them, and the signals that crossed their threshold before the first spike.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { fmt, lossYMax } from "../ui/chartOptions";
 import { LineChart } from "../ui/LineChart";
 import { Select } from "../ui/Select";
 import { scopeApi } from "./api";
+import { refetchDelay } from "./refetch";
 import { LayerHeatmap } from "./LayerHeatmap";
 import { runStatus } from "./runStatus";
 import { spikeBands } from "./spikeCluster";
@@ -20,15 +21,26 @@ const SIGNAL_LABELS: Record<string, string> = {
   loss: "loss",
 };
 
-/** The layer matrix, refetched at most every 5 s while steps arrive. */
+/** The layer matrix, refetched at most every 5 s while steps arrive (a throttle, so a live run keeps refreshing). */
 function useMatrix(base: string, run: string, length: number, metric: string): LayerMatrix | null {
   const [matrix, setMatrix] = useState<LayerMatrix | null>(null);
   const [tick, setTick] = useState(0);
+  const last = useRef<number | null>(null);
+  const timer = useRef<number | null>(null);
   useEffect(() => {
-    const t = window.setTimeout(() => setTick((k) => k + 1), tick === 0 ? 0 : 5000);
-    return () => window.clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (timer.current != null) return; // one refetch is already scheduled
+    timer.current = window.setTimeout(() => {
+      timer.current = null;
+      last.current = Date.now();
+      setTick((k) => k + 1);
+    }, refetchDelay(Date.now(), last.current, 5000));
   }, [length]);
+  useEffect(
+    () => () => {
+      if (timer.current != null) window.clearTimeout(timer.current);
+    },
+    [],
+  );
   useEffect(() => {
     let alive = true;
     scopeApi(base, run)

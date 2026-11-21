@@ -438,12 +438,15 @@ def main(argv: list[str] | None = None) -> int:
     dc = tc.get("diagnostics") or {}
     scope = None
     if TrainScope is not None and dc.get("trainscope"):
-        scope_cfg = load_config({"profile": dc.get("profile"), "run_dir": str(out_dir), "run_name": "scope",
-                                 "resume": bool(args.resume)})
-        # the uncompiled module, so layer names stay the graph's attribute names
-        # what run comparison diffs: this job's training settings and graph, not the scope's own config
-        job = {"train": {k: v for k, v in tc.items() if k != "diagnostics"}, "graph": cfg.get("graph_hash"), "data": cfg["data"].get("source")}
-        scope = TrainScope(getattr(model, "_orig_mod", model), opt, scope_cfg, scaler=scaler, model_config=job).attach()
+        try:  # diagnostics never stop training
+            scope_cfg = load_config({"profile": dc.get("profile"), "run_dir": str(out_dir), "run_name": "scope",
+                                     "resume": bool(args.resume)})
+            # what run comparison diffs: this job's training settings and graph, not the scope's own config
+            job = {"train": {k: v for k, v in tc.items() if k != "diagnostics"}, "graph": cfg.get("graph_hash"), "data": cfg["data"].get("source")}
+            # the uncompiled module, so layer names stay the graph's attribute names
+            scope = TrainScope(getattr(model, "_orig_mod", model), opt, scope_cfg, scaler=scaler, model_config=job).attach()
+        except Exception as exc:
+            log(f"trainscope: recording off ({type(exc).__name__}: {exc})")
 
     log_every = tc.get("log_every", 10)
     eval_every = tc.get("eval_every")
@@ -516,7 +519,13 @@ def main(argv: list[str] | None = None) -> int:
                 else:
                     loss.backward()
                 grad_norm = torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad], clip or float("inf"))
-                spike = scope.step(loss.item(), batch_index=i, grad_norm_after_clip=float(grad_norm)) if scope else None
+                spike = None
+                if scope:
+                    try:
+                        spike = scope.step(loss.item(), batch_index=i, grad_norm_after_clip=float(grad_norm))
+                    except Exception as exc:
+                        log(f"trainscope: recording off at step {step} ({type(exc).__name__}: {exc})")
+                        scope = None
                 if scaler is not None:
                     scaler.step(opt)
                     scaler.update()
@@ -566,7 +575,10 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     finally:
         if scope:
-            scope.detach()
+            try:
+                scope.detach()
+            except Exception as exc:
+                log(f"trainscope: could not close the recording ({type(exc).__name__}: {exc})")
 
     if val_loader and state == "completed" and last_eval != step:
         emit("eval", step=step, **evaluate(model, val_loader, device, amp, metrics_cfg))

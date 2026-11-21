@@ -7,7 +7,7 @@ import { LineChart } from "../ui/LineChart";
 import { scopeApi } from "./api";
 
 export function NodeScope({ nodeId }: { nodeId: string }) {
-  const run = useStore((s) => s.diag.run);
+  const run = useStore((s) => (s.diag.run === s.activeRun ? s.diag.run : null));
   const layers = useStore((s) => s.diag.layers[nodeId]);
   const [rows, setRows] = useState<Record<string, Record<string, any>[]>>({});
   const shown = (layers ?? []).slice(0, 4);
