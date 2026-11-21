@@ -24,7 +24,8 @@ for (let i = 0; i < 60; i++) {
   await page.waitForTimeout(500);
 }
 check(await page.getByText(/^completed$/).count() > 0, "run completes from the canvas");
-check(await page.locator("figure", { hasText: "loss" }).locator("path").count() > 0, "loss curve is drawn");
+const lossFig = page.locator("figure", { hasText: "loss" }).first();
+check((await lossFig.locator("canvas").count()) > 0 && Number(await lossFig.getAttribute("data-points")) > 0, "loss curve is drawn");
 await page.locator("button", { hasText: /^Runs$/ }).click();
 await page.waitForTimeout(500);
 check(await page.locator("tbody tr").count() >= 1, "run is listed in Runs");

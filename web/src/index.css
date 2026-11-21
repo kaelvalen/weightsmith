@@ -16,6 +16,8 @@
   --error: #d92d20;
   --sans: "Inter", "Geist", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, monospace;
+  --band-warn: rgba(17, 17, 17, 0.06);
+  --band-spike: rgba(217, 45, 32, 0.12);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -26,6 +28,8 @@
     --line: #2a2a28;
     --accent: #6f8bff;
     --error: #f04438;
+    --band-warn: rgba(237, 237, 234, 0.07);
+    --band-spike: rgba(240, 68, 56, 0.18);
     color-scheme: dark;
   }
 }
@@ -36,6 +40,8 @@
   --line: #2a2a28;
   --accent: #6f8bff;
   --error: #f04438;
+  --band-warn: rgba(237, 237, 234, 0.07);
+  --band-spike: rgba(240, 68, 56, 0.18);
   color-scheme: dark;
 }
 
