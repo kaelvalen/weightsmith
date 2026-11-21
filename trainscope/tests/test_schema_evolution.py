@@ -25,6 +25,9 @@ from trainscope.io.writer import (
 )
 from trainscope.ui.server import create_app
 
+# single-run fixtures live in a directory called "run"
+RUN = "run"
+
 
 def _write_arrow(path: Path, schema: pa.Schema, rows: list[dict]):
     table = pa.Table.from_pylist(rows, schema=schema)
@@ -109,7 +112,8 @@ class TestReaderToleratesUnknownColumns:
         )
 
         client = TestClient(create_app(str(run)))
-        r = client.get("/api/global")
+        RUN = (run).name
+        r = client.get(f"/api/runs/{RUN}/global")
         assert r.status_code == 200
         assert r.json()[0]["token_entropy"] == 6.3
 
@@ -229,7 +233,8 @@ class TestReaderToleratesOlderSubset:
         )
 
         client = TestClient(create_app(str(run)))
-        r = client.get("/api/global")
+        RUN = (run).name
+        r = client.get(f"/api/runs/{RUN}/global")
         assert r.status_code == 200
         row = r.json()[0]
         assert row["loss"] == 1.0
@@ -335,11 +340,12 @@ class TestReaderToleratesOlderSubset:
         )
 
         client = TestClient(create_app(str(run)))
-        r = client.get("/api/layers/ranked?top_n=2")
+        RUN = (run).name
+        r = client.get(f"/api/runs/{RUN}/layers/ranked?top_n=2")
         assert r.status_code == 200
         assert r.json() == ["layer.a", "layer.b"]
 
-        r = client.get("/api/diff?step_a=0&step_b=1")
+        r = client.get(f"/api/runs/{RUN}/diff?step_a=0&step_b=1")
         assert r.status_code == 200
         assert len(r.json()) == 2
         assert {item["layer"] for item in r.json()} == {"layer.a", "layer.b"}

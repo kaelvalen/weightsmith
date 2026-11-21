@@ -23,6 +23,17 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+let currentRun = null
+
+/** The run every per-run request targets; the server is keyed by run name. */
+export function currentRunName() {
+  return currentRun
+}
+
+function runPath() {
+  return `/runs/${encodeURIComponent(currentRun ?? '')}`
+}
+
 export class ApiError extends Error {
   constructor(message, status = null) {
     super(message)
@@ -143,22 +154,22 @@ export function abortAllRequests() {
 }
 
 export async function fetchMeta() {
-  return request('/meta')
+  return request(`${runPath()}/meta`)
 }
 
 export async function fetchGlobal() {
-  return request('/global')
+  return request(`${runPath()}/global`)
 }
 
 export async function fetchLayers() {
-  return request('/layers')
+  return request(`${runPath()}/layers`)
 }
 
 export async function fetchLayersRanked(topN = 8) {
   if (!Number.isInteger(topN) || topN <= 0) {
     throw new ApiError('topN must be a positive integer')
   }
-  return request(`/layers/ranked?top_n=${topN}`)
+  return request(`${runPath()}/layers/ranked?top_n=${topN}`)
 }
 
 export async function fetchLayerMatrix({
@@ -170,44 +181,44 @@ export async function fetchLayerMatrix({
   const params = new URLSearchParams({ metric, buckets: String(buckets) })
   if (start != null) params.set('start', String(start))
   if (end != null) params.set('end', String(end))
-  return request(`/layers/matrix?${params}`)
+  return request(`${runPath()}/layers/matrix?${params}`)
 }
 
 export async function fetchSignals() {
-  return request('/signals')
+  return request(`${runPath()}/signals`)
 }
 
 export async function fetchLayer(name) {
   if (!name) throw new ApiError('Layer name is required')
-  return request(`/layers/${encodeURIComponent(name)}`)
+  return request(`${runPath()}/layers/${encodeURIComponent(name)}`)
 }
 
 export async function fetchMoe() {
-  return request('/moe')
+  return request(`${runPath()}/moe`)
 }
 
 export async function fetchReplay() {
-  return request('/replay')
+  return request(`${runPath()}/replay`)
 }
 
 export async function fetchSpikes() {
-  return request('/spikes')
+  return request(`${runPath()}/spikes`)
 }
 
 export async function fetchSpike(step) {
   if (!Number.isInteger(step)) throw new ApiError('Step must be an integer')
-  return request(`/spikes/${step}`)
+  return request(`${runPath()}/spikes/${step}`)
 }
 
 export async function fetchSpikeLayerNames(step) {
   if (!Number.isInteger(step)) throw new ApiError('Step must be an integer')
-  return request(`/spikes/${step}/layers`)
+  return request(`${runPath()}/spikes/${step}/layers`)
 }
 
 export async function fetchSpikeLayer(step, name) {
   if (!Number.isInteger(step)) throw new ApiError('Step must be an integer')
   if (!name) throw new ApiError('Layer name is required')
-  return request(`/spikes/${step}/layers/${encodeURIComponent(name)}`)
+  return request(`${runPath()}/spikes/${step}/layers/${encodeURIComponent(name)}`)
 }
 
 export async function fetchDiff(stepA, stepB) {
@@ -216,11 +227,13 @@ export async function fetchDiff(stepA, stepB) {
   if (!Number.isInteger(a) || !Number.isInteger(b)) {
     throw new ApiError('Both step numbers must be integers')
   }
-  return request(`/diff?step_a=${a}&step_b=${b}`)
+  return request(`${runPath()}/diff?step_a=${a}&step_b=${b}`)
 }
 
 export async function fetchRuns() {
-  return request('/runs')
+  const runs = await request('/runs')
+  if (currentRun == null || !runs.some((r) => r.name === currentRun)) currentRun = runs[0]?.name ?? null
+  return runs.map((r) => ({ ...r, is_active: r.name === currentRun }))
 }
 
 export async function fetchCompare(runNames) {
@@ -241,9 +254,9 @@ export async function fetchCounterexample(runName) {
 
 export async function selectRun(name) {
   if (!name) throw new ApiError('Run name is required')
-  return request('/runs/select', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
-  })
+  const runs = await request('/runs')
+  const summary = runs.find((r) => r.name === name)
+  if (!summary) throw new ApiError(`Run '${name}' not found`, 404)
+  currentRun = name
+  return { ...summary, is_active: true }
 }

@@ -32,7 +32,7 @@ const REPLAY_PLAN = {
 
 function mockFetch(payloads = {}) {
   globalThis.fetch = vi.fn(async (url) => {
-    const path = new URL(url, window.location.origin).pathname
+    const path = new URL(url, window.location.origin).pathname.replace(/^\/api\/runs\/[^/]*\//, '/api/')
     const defaults = {
       '/api/meta': { trainscope_config: { run_name: 'run_a' } },
       '/api/global': [

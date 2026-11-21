@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react'
 
-const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
+import { currentRunName } from './api.js'
+
+const wsUrl = () =>
+  `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/runs/${encodeURIComponent(currentRunName() ?? '')}/ws`
 
 export const WS_STATUS = {
   CONNECTING: 'connecting',
@@ -46,7 +49,7 @@ export function useWebSocket({ onMessage, onStatusChange, enabled = true, resetK
       setStatus(WS_STATUS.CONNECTING)
 
       try {
-        ws = new WebSocket(WS_URL)
+        ws = new WebSocket(wsUrl())
       } catch {
         setStatus(WS_STATUS.UNAVAILABLE)
         return

@@ -29,7 +29,7 @@ const MOE_ROWS = [
 
 function mockFetch() {
   globalThis.fetch = vi.fn(async (url) => {
-    const path = new URL(url, window.location.origin).pathname
+    const path = new URL(url, window.location.origin).pathname.replace(/^\/api\/runs\/[^/]*\//, '/api/')
     const payloads = {
       '/api/meta': { trainscope_config: { run_name: 'test' } },
       '/api/global': [],
@@ -56,7 +56,7 @@ describe('ExpertUtilization view', () => {
 
   it('shows empty state when no MoE data exists', async () => {
     globalThis.fetch = vi.fn(async (url) => {
-      const path = new URL(url, window.location.origin).pathname
+      const path = new URL(url, window.location.origin).pathname.replace(/^\/api\/runs\/[^/]*\//, '/api/')
       const payloads = {
         '/api/meta': { trainscope_config: { run_name: 'test' } },
         '/api/global': [],

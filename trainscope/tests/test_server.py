@@ -10,6 +10,9 @@ from fastapi.testclient import TestClient
 from trainscope.io.writer import GLOBAL_SCHEMA, LAYER_SCHEMA, MOE_SCHEMA
 from trainscope.ui.server import create_app
 
+# single-run fixtures live in a directory called "run"
+RUN = "run"
+
 
 def _write_arrow(path, schema, rows):
     table = pa.Table.from_pylist(rows, schema=schema)
@@ -140,13 +143,13 @@ def test_health(client):
 
 
 def test_manifest(client):
-    r = client.get("/api/manifest")
+    r = client.get(f"/api/runs/{RUN}/manifest")
     assert r.status_code == 200
     assert r.json()["last_step"] == 4
 
 
 def test_meta(client, run_dir):
-    r = client.get("/api/meta")
+    r = client.get(f"/api/runs/{RUN}/meta")
     assert r.status_code == 200
     assert r.json()["model_name"] == "TestModel"
 
@@ -155,13 +158,14 @@ def test_meta_missing(tmp_path):
     empty = tmp_path / "empty"
     empty.mkdir()
     c = TestClient(create_app(str(empty)))
-    r = c.get("/api/meta")
+    RUN = (empty).name
+    r = c.get(f"/api/runs/{RUN}/meta")
     assert r.status_code == 200
     assert r.json()["model_name"] == "Training in progress..."
 
 
 def test_global(client):
-    r = client.get("/api/global")
+    r = client.get(f"/api/runs/{RUN}/global")
     assert r.status_code == 200
     assert len(r.json()) == 5
     assert r.json()[3]["is_spike"] is True
@@ -169,7 +173,7 @@ def test_global(client):
 
 def test_replay_no_config(client):
     """Without a replay_config.json the endpoint reports an empty plan."""
-    r = client.get("/api/replay")
+    r = client.get(f"/api/runs/{RUN}/replay")
     assert r.status_code == 200
     data = r.json()
     assert data["config"] is None
@@ -191,7 +195,8 @@ def test_replay_maps_skipped_batches_to_steps(run_dir):
         )
     )
     client = TestClient(create_app(str(run_dir)))
-    r = client.get("/api/replay")
+    RUN = (run_dir).name
+    r = client.get(f"/api/runs/{RUN}/replay")
     assert r.status_code == 200
     data = r.json()
     assert data["config"]["checkpoint"].endswith("checkpoints/4.pt")
@@ -208,7 +213,8 @@ def test_replay_skips_unrecorded_batch_indices(run_dir):
         json.dumps({"skip_batches": [99, 100], "total_skipped": 2})
     )
     client = TestClient(create_app(str(run_dir)))
-    data = client.get("/api/replay").json()
+    RUN = (run_dir).name
+    data = client.get(f"/api/runs/{RUN}/replay").json()
     assert data["skipped_batches"] == [99, 100]
     assert data["skipped_steps"] == []
 
@@ -232,8 +238,9 @@ def test_websocket_streams_global_rows_after_empty_start(tmp_path):
         "spike_score": 0.0,
     }
 
+    RUN = (run).name
     with TestClient(create_app(str(run))) as live_client:
-        with live_client.websocket_connect("/ws") as websocket:
+        with live_client.websocket_connect(f"/api/runs/{RUN}/ws") as websocket:
             assert websocket.receive_json()["type"] == "meta"
             _write_arrow(run / "global.arrow", GLOBAL_SCHEMA, [row])
 
@@ -261,8 +268,9 @@ def test_websocket_streams_only_new_global_rows(tmp_path):
             "cuda_memory_mb": 0.0,
         }
 
+    RUN = (run).name
     with TestClient(create_app(str(run))) as live_client:
-        with live_client.websocket_connect("/ws") as websocket:
+        with live_client.websocket_connect(f"/api/runs/{RUN}/ws") as websocket:
             assert websocket.receive_json()["type"] == "meta"
             _write_arrow(run / "global.arrow", GLOBAL_SCHEMA, [row(0), row(1)])
             initial = websocket.receive_json()
@@ -284,8 +292,9 @@ def test_websocket_streams_moe_rows(tmp_path):
     def moe_row(step, shares):
         return {"step": step, "block": "blocks.0.router", "shares": shares}
 
+    RUN = (run).name
     with TestClient(create_app(str(run))) as live_client:
-        with live_client.websocket_connect("/ws") as websocket:
+        with live_client.websocket_connect(f"/api/runs/{RUN}/ws") as websocket:
             assert websocket.receive_json()["type"] == "meta"
             _write_arrow(
                 run / "moe.arrow",
@@ -321,7 +330,7 @@ def test_websocket_streams_moe_rows(tmp_path):
                 ],
             )
 
-        with live_client.websocket_connect("/ws") as websocket:
+        with live_client.websocket_connect(f"/api/runs/{RUN}/ws") as websocket:
             assert websocket.receive_json()["type"] == "meta"
             # Fresh connection sees the full rows again.
             initial = websocket.receive_json()
@@ -330,54 +339,54 @@ def test_websocket_streams_moe_rows(tmp_path):
 
 
 def test_layers(client):
-    r = client.get("/api/layers")
+    r = client.get(f"/api/runs/{RUN}/layers")
     assert r.status_code == 200
     assert r.json() == ["layer.1", "transformer/h/0"]
 
 
 def test_layer(client):
-    r = client.get("/api/layers/layer.1")
+    r = client.get(f"/api/runs/{RUN}/layers/layer.1")
     assert r.status_code == 200
     assert len(r.json()) == 5
 
 
 def test_layer_with_slash(client):
-    r = client.get("/api/layers/transformer/h/0")
+    r = client.get(f"/api/runs/{RUN}/layers/transformer/h/0")
     assert r.status_code == 200
     assert len(r.json()) == 5
 
 
 def test_layer_not_found(client):
-    r = client.get("/api/layers/missing")
+    r = client.get(f"/api/runs/{RUN}/layers/missing")
     assert r.status_code == 404
 
 
 def test_spikes(client):
-    r = client.get("/api/spikes")
+    r = client.get(f"/api/runs/{RUN}/spikes")
     assert r.status_code == 200
     assert r.json() == [{"step": 3, "file": "spike_step_3.arrow"}]
 
 
 def test_spike(client):
-    r = client.get("/api/spikes/3")
+    r = client.get(f"/api/runs/{RUN}/spikes/3")
     assert r.status_code == 200
     assert len(r.json()) == 3
 
 
 def test_spike_layers(client):
-    r = client.get("/api/spikes/3/layers")
+    r = client.get(f"/api/runs/{RUN}/spikes/3/layers")
     assert r.status_code == 200
     assert r.json() == ["layer.1"]
 
 
 def test_spike_layer(client):
-    r = client.get("/api/spikes/3/layers/layer.1")
+    r = client.get(f"/api/runs/{RUN}/spikes/3/layers/layer.1")
     assert r.status_code == 200
     assert len(r.json()) == 3
 
 
 def test_diff(client):
-    r = client.get("/api/diff?step_a=0&step_b=2")
+    r = client.get(f"/api/runs/{RUN}/diff?step_a=0&step_b=2")
     assert r.status_code == 200
     data = r.json()
     assert len(data) == 2
@@ -426,30 +435,31 @@ def test_diff_grad_norm_change_null_without_norm(tmp_path):
 
     _write_arrow(layers_dir / "layer0.arrow", LAYER_SCHEMA, [row(0), row(2)])
     client = TestClient(create_app(str(run)))
-    data = client.get("/api/diff?step_a=0&step_b=2").json()
+    RUN = (run).name
+    data = client.get(f"/api/runs/{RUN}/diff?step_a=0&step_b=2").json()
     assert data[0]["grad_norm_change"] is None
     assert data[0]["kl_divergence"] == 0.0
 
 
 def test_diff_invalid_step(client):
-    r = client.get("/api/diff?step_a=-1&step_b=2")
+    r = client.get(f"/api/runs/{RUN}/diff?step_a=-1&step_b=2")
     assert r.status_code == 422
 
 
 def test_layers_ranked(client):
-    r = client.get("/api/layers/ranked?top_n=1")
+    r = client.get(f"/api/runs/{RUN}/layers/ranked?top_n=1")
     assert r.status_code == 200
     assert r.json() == ["layer.1"]
 
 
 def test_layers_ranked_default(client):
-    r = client.get("/api/layers/ranked")
+    r = client.get(f"/api/runs/{RUN}/layers/ranked")
     assert r.status_code == 200
     assert len(r.json()) == 2
 
 
 def test_layers_ranked_invalid_top_n(client):
-    r = client.get("/api/layers/ranked?top_n=0")
+    r = client.get(f"/api/runs/{RUN}/layers/ranked?top_n=0")
     assert r.status_code == 422
 
 
@@ -478,16 +488,18 @@ def test_cors_does_not_combine_wildcard_with_credentials(client):
 def test_unauthenticated_request_rejected_when_api_key_set(run_dir, monkeypatch):
     monkeypatch.setenv("TRAINSCOPE_API_KEY", "secret-key")
     client = TestClient(create_app(str(run_dir)))
+    RUN = (run_dir).name
 
-    r = client.get("/api/global")
+    r = client.get(f"/api/runs/{RUN}/global")
     assert r.status_code == 401
 
 
 def test_authenticated_request_allowed_with_api_key(run_dir, monkeypatch):
     monkeypatch.setenv("TRAINSCOPE_API_KEY", "secret-key")
     client = TestClient(create_app(str(run_dir)))
+    RUN = (run_dir).name
 
-    r = client.get("/api/global", headers={"Authorization": "Bearer secret-key"})
+    r = client.get(f"/api/runs/{RUN}/global", headers={"Authorization": "Bearer secret-key"})
     assert r.status_code == 200
 
 
@@ -502,17 +514,21 @@ def test_health_stays_public_when_api_key_set(run_dir, monkeypatch):
 def test_websocket_rejected_without_api_key(run_dir, monkeypatch):
     monkeypatch.setenv("TRAINSCOPE_API_KEY", "secret-key")
     client = TestClient(create_app(str(run_dir)))
+    RUN = (run_dir).name
 
     with pytest.raises(Exception):
-        with client.websocket_connect("/ws"):
+        with client.websocket_connect(f"/api/runs/{RUN}/ws"):
             pass
 
 
 def test_websocket_allowed_with_api_key(run_dir, monkeypatch):
     monkeypatch.setenv("TRAINSCOPE_API_KEY", "secret-key")
     client = TestClient(create_app(str(run_dir)))
+    RUN = (run_dir).name
 
-    with client.websocket_connect("/ws", headers={"Authorization": "Bearer secret-key"}) as ws:
+    with client.websocket_connect(
+        f"/api/runs/{RUN}/ws", headers={"Authorization": "Bearer secret-key"}
+    ) as ws:
         assert ws.receive_json()["type"] == "meta"
 
 
@@ -548,11 +564,12 @@ def test_server_reads_stream_format_run(tmp_path):
     writer.close()
 
     client = TestClient(create_app(str(run)))
-    global_rows = client.get("/api/global").json()
+    RUN = (run).name
+    global_rows = client.get(f"/api/runs/{RUN}/global").json()
     assert len(global_rows) == 10
     assert [r["step"] for r in global_rows] == list(range(10))
-    assert client.get("/api/layers").json() == ["layer0"]
-    layer_rows = client.get("/api/layers/layer0").json()
+    assert client.get(f"/api/runs/{RUN}/layers").json() == ["layer0"]
+    layer_rows = client.get(f"/api/runs/{RUN}/layers/layer0").json()
     assert layer_rows[0]["step"] == 0
     assert layer_rows[0]["grad_l2_norm"] == 0.1
     assert layer_rows[0]["act_kurtosis"] is None
@@ -568,10 +585,10 @@ class TestMultiRun:
         assert runs[0]["n_global_rows"] == 5
         assert runs[0]["spike_count"] == 1
         assert runs[0]["last_loss"] == 4.0
-        assert runs[0]["is_active"] is True
+        assert "is_active" not in runs[0]
 
-    def test_runs_lists_and_selects_across_root(self, run_dir, tmp_path):
-        """--runs mode: /api/runs lists every run, select switches the active one."""
+    def test_two_runs_served_without_select(self, run_dir, tmp_path):
+        """--runs mode: /api/runs lists every run and each one is served by name."""
         root = tmp_path / "root"
         root.mkdir()
 
@@ -617,32 +634,38 @@ class TestMultiRun:
         assert names == {"run_a", "run_b"}
 
         by_name = {r["name"]: r for r in runs}
-        assert by_name["run_a"]["is_active"] is True
         assert by_name["run_a"]["spike_count"] == 1
         assert by_name["run_b"]["spike_count"] == 0
         assert by_name["run_b"]["n_global_rows"] == 10
 
-        # Default active run is the first discovered run (run_a).
-        assert client.get("/api/global").json()[0]["step"] == 0
-        assert client.get("/api/meta").json()["model_name"] == "TestModel"
+        # Every run is addressable by name at the same time: no "active run".
+        assert client.get("/api/runs/run_a/global").json()[0]["step"] == 0
+        assert client.get("/api/runs/run_a/meta").json()["model_name"] == "TestModel"
+        assert client.get("/api/runs/run_b/meta").json()["model_name"] == "TestModelB"
+        assert len(client.get("/api/runs/run_b/global").json()) == 10
 
-        # Switch to run_b: meta/global now point at it.
-        resp = client.post("/api/runs/select", json={"name": "run_b"})
-        assert resp.status_code == 200
-        assert resp.json()["name"] == "run_b"
-        assert resp.json()["is_active"] is True
+    def test_unknown_run_404(self, client):
+        assert client.get("/api/runs/nope/global").status_code == 404
+        assert client.get("/api/runs/nope/layers/matrix").status_code == 404
 
-        meta = client.get("/api/meta").json()
-        assert meta["model_name"] == "TestModelB"
-        global_rows = client.get("/api/global").json()
-        assert len(global_rows) == 10
+    def test_select_endpoint_is_gone(self, client):
+        assert client.post("/api/runs/select", json={"name": "run"}).status_code in (404, 405)
 
-        # Unknown run -> 404.
-        assert client.post("/api/runs/select", json={"name": "nope"}).status_code == 404
-
-    def test_select_mismatch_in_single_run_mode(self, client):
-        resp = client.post("/api/runs/select", json={"name": "other"})
-        assert resp.status_code == 400
+    def test_cache_is_per_run(self, run_dir, tmp_path):
+        root = tmp_path / "cache_root"
+        root.mkdir()
+        for name, layer in (("run_a", "alpha.weight"), ("run_b", "beta.weight")):
+            run = root / name
+            (run / "layers").mkdir(parents=True)
+            (run / "meta.json").write_text(json.dumps({"model_name": name}))
+            _write_arrow(
+                run / "layers" / f"{quote(layer, safe='')}.arrow",
+                LAYER_SCHEMA,
+                [{"step": i, "grad_l2_norm": float(i)} for i in range(3)],
+            )
+        client = TestClient(create_app(str(root / "run_a"), runs_root=str(root)))
+        assert client.get("/api/runs/run_a/layers/ranked").json() == ["alpha.weight"]
+        assert client.get("/api/runs/run_b/layers/ranked").json() == ["beta.weight"]
 
 
 class TestCompare:
@@ -1116,8 +1139,10 @@ class TestCluster:
         # A constant loss normalized by its own baseline mean sits at ~1.0.
         assert all(abs(v - 1.0) < 1e-6 for v in band["median"])
 
-    def test_cluster_requires_multi_run_mode(self, client):
-        assert client.get("/api/cluster").status_code == 404
+    def test_cluster_covers_the_single_run(self, client):
+        data = client.get("/api/cluster").json()
+        names = set(data["unclustered"]) | {n for c in data["clusters"] for n in c["runs"]}
+        assert names == {"run"}
 
     def test_cluster_discriminant_traits(self, tmp_path):
         """A config field shared by every run in a cluster but absent from the
@@ -1330,25 +1355,26 @@ class TestClusterLead:
 
 
 def test_layer_matrix(client):
-    body = client.get("/api/layers/matrix?buckets=5").json()
+    body = client.get(f"/api/runs/{RUN}/layers/matrix?buckets=5").json()
     assert set(body) == {"layers", "bucket_starts", "values", "z", "baseline"}
     assert body["layers"] and len(body["values"]) == len(body["layers"])
 
 
 def test_layer_matrix_rejects_unknown_metric(client):
-    assert client.get("/api/layers/matrix?metric=hist_counts").status_code == 400
+    assert client.get(f"/api/runs/{RUN}/layers/matrix?metric=hist_counts").status_code == 400
 
 
 def test_layer_matrix_without_layers(tmp_path):
     run = tmp_path / "run"
     run.mkdir()
     (run / "meta.json").write_text("{}")
+    RUN = (run).name
     with TestClient(create_app(str(run))) as c:
-        assert c.get("/api/layers/matrix").json()["layers"] == []
+        assert c.get(f"/api/runs/{RUN}/layers/matrix").json()["layers"] == []
 
 
 def test_signals(client):
-    body = client.get("/api/signals").json()
+    body = client.get(f"/api/runs/{RUN}/signals").json()
     assert {"fired", "first", "first_steps", "explosion_step"} <= set(body)
 
 
@@ -1399,12 +1425,14 @@ def test_concurrent_matrix_requests_share_one_build(run_dir, monkeypatch):
 
     monkeypatch.setattr(server_module, "build_layer_matrix", slow_build)
     app = create_app(str(run_dir))
+    RUN = (run_dir).name
 
     async def go():
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://t") as c:
             a, b = await asyncio.gather(
-                c.get("/api/layers/matrix?buckets=7"), c.get("/api/layers/matrix?buckets=7")
+                c.get(f"/api/runs/{RUN}/layers/matrix?buckets=7"),
+                c.get(f"/api/runs/{RUN}/layers/matrix?buckets=7"),
             )
         return a, b
 

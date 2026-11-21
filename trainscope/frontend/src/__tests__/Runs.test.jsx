@@ -54,7 +54,7 @@ const RUNS = [
 
 function mockFetch(payloads = {}) {
   globalThis.fetch = vi.fn(async (url) => {
-    const path = new URL(url, window.location.origin).pathname
+    const path = new URL(url, window.location.origin).pathname.replace(/^\/api\/runs\/[^/]*\//, '/api/')
     const payload =
       payloads[path] !== undefined
         ? payloads[path]
@@ -108,17 +108,12 @@ describe('Runs view', () => {
     expect(screen.getByText('2.1')).toBeInTheDocument()
   })
 
-  it('switches to the selected run via POST /api/runs/select', async () => {
-    let selectBody = null
-    globalThis.fetch = vi.fn(async (url, options) => {
-      const path = new URL(url, window.location.origin).pathname
-      if (path === '/api/runs/select' && options?.method === 'POST') {
-        selectBody = JSON.parse(options.body)
-        return {
-          ok: true,
-          json: async () => ({ ...RUNS[1], is_active: true }),
-        }
-      }
+  it('switches to the selected run by requesting its own URLs', async () => {
+    const requested = []
+    globalThis.fetch = vi.fn(async (url) => {
+      const raw = new URL(url, window.location.origin).pathname
+      requested.push(raw)
+      const path = raw.replace(/^\/api\/runs\/[^/]*\//, '/api/')
       const payload = {
         '/api/meta': { model_name: 'MiniGPT', trainscope_config: { run_name: 'run_a' } },
         '/api/global': [],
@@ -141,12 +136,12 @@ describe('Runs view', () => {
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'run_b' })).toBeInTheDocument())
     fireEvent.click(screen.getByRole('button', { name: 'run_b' }))
-    await waitFor(() => expect(selectBody).toEqual({ name: 'run_b' }))
+    await waitFor(() => expect(requested).toContain('/api/runs/run_b/global'))
   })
 
   it('compares selected runs and shows divergence and common cause', async () => {
     globalThis.fetch = vi.fn(async (url) => {
-      const path = new URL(url, window.location.origin).pathname
+      const path = new URL(url, window.location.origin).pathname.replace(/^\/api\/runs\/[^/]*\//, '/api/')
       if (path === '/api/compare') {
         return {
           ok: true,
@@ -234,7 +229,7 @@ describe('Runs view clusters', () => {
     MockWebSocket.instances = []
     globalThis.WebSocket = MockWebSocket
     globalThis.fetch = vi.fn(async (url) => {
-      const path = new URL(url, window.location.origin).pathname
+      const path = new URL(url, window.location.origin).pathname.replace(/^\/api\/runs\/[^/]*\//, '/api/')
       const payload = {
         '/api/meta': { model_name: 'MiniGPT', trainscope_config: { run_name: 'run_a' } },
         '/api/global': [],

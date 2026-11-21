@@ -59,6 +59,9 @@ LEGACY_LAYER_SCHEMA = pa.schema(
     ]
 )
 
+# single-run fixtures live in a directory called "run"
+RUN = "run"
+
 
 def _write_legacy_ipc_file(path: Path, schema: pa.Schema, rows: list[dict]):
     """Write rows as a legacy IPC *file* (``ipc.new_file``), as pre-0.7.0
@@ -182,11 +185,12 @@ class TestLegacyFileFormatRun:
         run = tmp_path / "legacy_run"
         _make_legacy_run(run)
         client = TestClient(create_app(str(run)))
+        RUN = (run).name
 
-        assert client.get("/api/manifest").status_code == 200
-        assert client.get("/api/meta").status_code == 200
+        assert client.get(f"/api/runs/{RUN}/manifest").status_code == 200
+        assert client.get(f"/api/runs/{RUN}/meta").status_code == 200
 
-        r = client.get("/api/global")
+        r = client.get(f"/api/runs/{RUN}/global")
         assert r.status_code == 200
         rows = r.json()
         assert len(rows) == 6
@@ -195,31 +199,31 @@ class TestLegacyFileFormatRun:
         assert "cpu_memory_mb" not in rows[0]
         assert rows[4]["is_spike"] is True
 
-        r = client.get("/api/layers")
+        r = client.get(f"/api/runs/{RUN}/layers")
         assert r.status_code == 200
         assert sorted(r.json()) == ["layer.1", "layer.2"]
 
-        r = client.get("/api/layers/ranked?top_n=10")
+        r = client.get(f"/api/runs/{RUN}/layers/ranked?top_n=10")
         assert r.status_code == 200
         assert r.json() == ["layer.1", "layer.2"]
 
-        r = client.get("/api/layers/layer.1")
+        r = client.get(f"/api/runs/{RUN}/layers/layer.1")
         assert r.status_code == 200
         assert len(r.json()) == 6
 
-        r = client.get("/api/spikes")
+        r = client.get(f"/api/runs/{RUN}/spikes")
         assert r.status_code == 200
         assert r.json() == [{"step": 4, "file": "spike_step_4.arrow"}]
 
-        r = client.get("/api/spikes/4")
+        r = client.get(f"/api/runs/{RUN}/spikes/4")
         assert r.status_code == 200
         assert len(r.json()) == 3
 
-        r = client.get("/api/spikes/4/layers")
+        r = client.get(f"/api/runs/{RUN}/spikes/4/layers")
         assert r.status_code == 200
         assert r.json() == ["layer.1"]
 
-        r = client.get("/api/spikes/4/layers/layer.1")
+        r = client.get(f"/api/runs/{RUN}/spikes/4/layers/layer.1")
         assert r.status_code == 200
         assert len(r.json()) == 3
 
@@ -227,9 +231,10 @@ class TestLegacyFileFormatRun:
         run = tmp_path / "legacy_run"
         _make_legacy_run(run)
         client = TestClient(create_app(str(run)))
+        RUN = (run).name
 
         # Diff needs hist_counts on both steps — the legacy layer file has them.
-        r = client.get("/api/diff?step_a=2&step_b=4")
+        r = client.get(f"/api/runs/{RUN}/diff?step_a=2&step_b=4")
         assert r.status_code == 200
         data = r.json()
         assert data and data[0]["layer"] == "layer.1"
@@ -237,6 +242,7 @@ class TestLegacyFileFormatRun:
         # Multi-run mode must discover and summarise the legacy run.
         root = tmp_path
         multi = TestClient(create_app(str(run), runs_root=str(root)))
+        RUN = (run).name
         r = multi.get("/api/runs")
         assert r.status_code == 200
         assert len(r.json()) == 1
@@ -253,23 +259,24 @@ class TestCurrentStreamFormatRun:
         run = tmp_path / "current_run"
         _make_current_run(run)
         client = TestClient(create_app(str(run)))
+        RUN = (run).name
 
-        r = client.get("/api/global")
+        r = client.get(f"/api/runs/{RUN}/global")
         assert r.status_code == 200
         rows = r.json()
         assert len(rows) == 6
         assert rows[4]["is_spike"] is True
 
-        r = client.get("/api/spikes")
+        r = client.get(f"/api/runs/{RUN}/spikes")
         assert r.status_code == 200
         assert r.json() == [{"step": 4, "file": "spike_step_4.arrow"}]
 
-        assert client.get("/api/manifest").status_code == 200
-        assert client.get("/api/meta").status_code == 200
+        assert client.get(f"/api/runs/{RUN}/manifest").status_code == 200
+        assert client.get(f"/api/runs/{RUN}/meta").status_code == 200
 
     def test_mixed_run_same_root_multi_run(self, tmp_path):
         """A root containing a legacy file-format run AND a current
-        stream-format run must list both and switch between them."""
+        stream-format run must list both and serve each by name."""
         legacy = tmp_path / "legacy_run"
         _make_legacy_run(legacy)
         current = tmp_path / "current_run"
@@ -280,12 +287,5 @@ class TestCurrentStreamFormatRun:
         assert r.status_code == 200
         assert {row["name"] for row in r.json()} == {"legacy_run", "current_run"}
 
-        r = client.post("/api/runs/select", json={"name": "current_run"})
-        assert r.status_code == 200
-        assert r.json()["name"] == "current_run"
-        assert client.get("/api/global").json()[-1]["step"] == 5
-
-        r = client.post("/api/runs/select", json={"name": "legacy_run"})
-        assert r.status_code == 200
-        assert r.json()["name"] == "legacy_run"
-        assert client.get("/api/global").json()[-1]["step"] == 5
+        assert client.get("/api/runs/current_run/global").json()[-1]["step"] == 5
+        assert client.get("/api/runs/legacy_run/global").json()[-1]["step"] == 5

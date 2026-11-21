@@ -6,11 +6,11 @@ import time
 from collections import OrderedDict
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated, Any, cast
+from typing import Annotated, Any, Callable, cast
 from urllib.parse import quote, unquote
 
 import anyio
-from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, Response
 from pydantic import BaseModel, Field
@@ -151,8 +151,8 @@ class RankedParams(BaseModel):
     )
 
 
-class SelectRunParams(BaseModel):
-    name: str = Field(..., min_length=1, description="Run directory name to activate")
+class ClusterParams(BaseModel):
+    runs: str | None = Field(None, description="Comma-separated run names; all runs when omitted")
 
 
 class CompareParams(BaseModel):
@@ -177,62 +177,35 @@ def _discover_run_dirs(root: Path) -> list[Path]:
     )
 
 
-def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
-    rp = Path(run_path).resolve()
-    rr = Path(runs_root).resolve() if runs_root else None
-    multi_run = rr is not None
-    if multi_run:
-        assert rr is not None
-        discovered = _discover_run_dirs(rr)
-        if discovered:
-            rp = discovered[0]
-    static_dir = Path(__file__).parent / "static"
+RunResolver = Callable[[str], Path | None]
+"""Run key -> run directory, or None when the key is unknown."""
+RunLister = Callable[[], list[tuple[str, Path]]]
+"""Every run this router serves, as (key, directory) pairs."""
+
+
+def make_router(resolve: RunResolver, list_runs: RunLister) -> APIRouter:
+    """The trainscope HTTP/WebSocket API, with every run addressed by key.
+
+    The bundled UI mounts it under ``/api``; Weightsmith mounts it under
+    ``/api/scope`` with its own run ids as keys.
+    """
+    router = APIRouter()
     _cache = _TTLCache(maxsize=128, ttl=60.0)
 
-    @asynccontextmanager
-    async def _lifespan(_app: FastAPI):
-        mode = "multi-run" if multi_run else "single-run"
-        logger.info("Starting TrainScope UI (%s) for run: %s", mode, rp)
-        if multi_run:
-            assert rr is not None
-            logger.info("Runs root: %s (%d run dirs)", rr, len(_discover_run_dirs(rr)))
-        if not rp.exists():
-            logger.warning("Run path does not exist: %s", rp)
-        elif not rp.is_dir():
-            logger.warning("Run path is not a directory: %s", rp)
-        yield
+    def _rp(run: str) -> Path:
+        path = resolve(run)
+        if path is None:
+            raise HTTPException(status_code=404, detail=f"Run '{run}' not found")
+        return path
 
-    app = FastAPI(title="TrainScope UI", lifespan=_lifespan)
-    # Auth (TRAINSCOPE_API_KEY / TRAINSCOPE_BASIC_AUTH) uses header-based
-    # credentials, not cookies, so allow_credentials must stay False: the
-    # CORS spec forbids combining a wildcard origin with allow_credentials,
-    # and enabling it would let any origin make credentialed requests.
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=False,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-    app.add_middleware(auth_middleware_factory())
+    def _selected(runs: str | None) -> list[tuple[str, Path]]:
+        everything = list_runs()
+        if not runs:
+            return everything
+        wanted = {n.strip() for n in runs.split(",") if n.strip()}
+        return [(name, d) for name, d in everything if name in wanted]
 
-    @app.middleware("http")
-    async def disable_api_cache(request, call_next):
-        response = await call_next(request)
-        if request.url.path.startswith("/api/"):
-            response.headers["Cache-Control"] = "no-store, max-age=0"
-        return response
-
-    @app.get("/api/health")
-    async def health() -> dict[str, Any]:
-        return {
-            "status": "ok",
-            "run_path": str(rp),
-            "exists": rp.exists(),
-            "static_served": (static_dir / "index.html").exists(),
-        }
-
-    async def _read_run_summary(run_dir: Path) -> dict[str, Any]:
+    async def _read_run_summary(name: str, run_dir: Path) -> dict[str, Any]:
         """Build a lightweight summary of a single run from its metadata files."""
         meta = await _read_json_optional(run_dir / "meta.json") or {}
         manifest = await _read_json_optional(run_dir / "manifest.json") or {}
@@ -246,7 +219,7 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
             last_row = global_rows[-1]
 
         return {
-            "name": run_dir.name,
+            "name": name,
             "path": str(run_dir),
             "model_name": meta.get("model_name"),
             "model_config": meta.get("model_config"),
@@ -262,45 +235,14 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
             ),
             "last_grad_norm": last_row.get("grad_norm_before_clip"),
             "updated_at": manifest.get("updated_at"),
-            "is_active": run_dir == rp,
         }
 
-    @app.get("/api/runs")
+    @router.get("/runs")
     async def get_runs() -> list[dict[str, Any]]:
-        """List every run under the root (or the single run) with meta summary."""
-        if multi_run:
-            assert rr is not None
-            dirs = _discover_run_dirs(rr)
-        else:
-            dirs = [rp] if rp.is_dir() else []
-        summaries = []
-        for run_dir in dirs:
-            summaries.append(await _read_run_summary(run_dir))
+        """List every run with its meta summary."""
+        summaries = [await _read_run_summary(name, run_dir) for name, run_dir in list_runs()]
         summaries.sort(key=lambda s: (s["start_time"] or "", s["name"]))
         return summaries
-
-    @app.post("/api/runs/select")
-    async def select_run(params: SelectRunParams) -> dict[str, Any]:
-        """Switch the active run in multi-run mode (no-op in single-run mode)."""
-        nonlocal rp
-        if not multi_run:
-            if params.name != rp.name:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Single-run mode only exposes the current run",
-                )
-            return await _read_run_summary(rp)
-
-        assert rr is not None
-        candidates = [d for d in _discover_run_dirs(rr) if d.name == params.name]
-        if not candidates:
-            raise HTTPException(status_code=404, detail=f"Run '{params.name}' not found")
-        rp = candidates[0]
-        # Per-run caches (ranked layers, diff index) are keyed without a run
-        # suffix; drop them so the next request rebuilds against the new run.
-        _cache.clear()
-        logger.info("Switched active run to: %s", rp)
-        return await _read_run_summary(rp)
 
     def _flatten_config(meta: dict[str, Any]) -> dict[str, Any]:
         """Flatten trainscope_config + model_config into dot-path scalar fields."""
@@ -376,7 +318,7 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
                 }
         return None
 
-    @app.get("/api/compare")
+    @router.get("/compare")
     async def get_compare(
         params: Annotated[CompareParams, Depends()],
     ) -> dict[str, Any]:
@@ -387,12 +329,6 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
         which the curves durably diverge, config fields that differ between
         runs, and a text summary of shared traits among runs with spikes.
         """
-        if not multi_run:
-            raise HTTPException(
-                status_code=404,
-                detail="Comparison requires multi-run mode (--runs)",
-            )
-        assert rr is not None
         names = [n.strip() for n in params.runs.split(",") if n.strip()]
         if len(names) < 2:
             raise HTTPException(
@@ -400,12 +336,12 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
                 detail="Select at least two runs to compare",
             )
 
-        by_name = {d.name: d for d in _discover_run_dirs(rr)}
+        by_name = dict(list_runs())
         missing = [n for n in names if n not in by_name]
         if missing:
             raise HTTPException(status_code=404, detail=f"Run(s) not found: {', '.join(missing)}")
 
-        summaries = await asyncio.gather(*(_read_run_summary(by_name[n]) for n in names))
+        summaries = await asyncio.gather(*(_read_run_summary(n, by_name[n]) for n in names))
         meta_by_name = {
             n: (await _read_json_optional(by_name[n] / "meta.json")) or {} for n in names
         }
@@ -528,8 +464,10 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
         }
 
     # ------------------------------------------------------------------ #
-    @app.get("/api/cluster")
-    async def get_clusters() -> dict[str, Any]:
+    @router.get("/cluster")
+    async def get_clusters(
+        params: Annotated[ClusterParams, Depends()],
+    ) -> dict[str, Any]:
         """Group runs by their early-warning signal signature.
 
         Runs with the same set of fired signals (and the same first signal)
@@ -537,9 +475,6 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
         signal: activation-led (kurtosis), gradient-led, routing-led
         (concentration), loss-led (CUSUM/spike), or no-signal (stable).
         """
-        if not multi_run:
-            raise HTTPException(status_code=404, detail="Clustering requires multi-run mode")
-        assert rr is not None
 
         groups: dict[tuple[tuple[str, ...], str | None], dict[str, Any]] = {}
         unclustered: list[str] = []
@@ -547,13 +482,13 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
         # the stable runs" with shared numeric/bool traits (A1).
         flat_by_name: dict[str, dict[str, Any]] = {}
         dir_by_name: dict[str, Path] = {}
-        for run_dir in _discover_run_dirs(rr):
-            dir_by_name[run_dir.name] = run_dir
+        for run_name, run_dir in _selected(params.runs):
+            dir_by_name[run_name] = run_dir
             meta = await _read_json_optional(run_dir / "meta.json") or {}
-            flat_by_name[run_dir.name] = _flatten_config(meta)
+            flat_by_name[run_name] = _flatten_config(meta)
             sig = await run_signal_signature(run_dir)
             if not sig["fired"]:
-                unclustered.append(run_dir.name)
+                unclustered.append(run_name)
                 continue
             key = (tuple(sig["fired"]), sig["first"])
             group = groups.setdefault(
@@ -566,7 +501,7 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
                     "crossing_steps": [],
                 },
             )
-            group["runs"].append(run_dir.name)
+            group["runs"].append(run_name)
             # Early-warning lead = first crossing -> objective explosion.
             if sig["explosion_step"] is not None and sig["first_steps"]:
                 first_step = sig["first_steps"][sig["first"]]
@@ -701,7 +636,7 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
         clusters.sort(key=lambda c: (-int(c["n_runs"]), str(c["label"])))
         return {"clusters": clusters, "unclustered": sorted(unclustered)}
 
-    @app.get("/api/counterexample")
+    @router.get("/counterexample")
     async def get_counterexample(
         params: Annotated[CounterexampleParams, Depends()],
     ) -> dict[str, Any]:
@@ -719,13 +654,7 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
         equality). Returns both loss series, the query run's first fired
         signal and its crossing step, and the differing config fields.
         """
-        if not multi_run:
-            raise HTTPException(
-                status_code=404,
-                detail="Counterexample requires multi-run mode (--runs)",
-            )
-        assert rr is not None
-        by_name = {d.name: d for d in _discover_run_dirs(rr)}
+        by_name = dict(list_runs())
         if params.run not in by_name:
             raise HTTPException(status_code=404, detail=f"Run '{params.run}' not found")
 
@@ -812,8 +741,9 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
             "config_diff": differing,
         }
 
-    @app.get("/api/manifest")
-    async def manifest() -> Any:
+    @router.get("/runs/{run}/manifest")
+    async def manifest(run: str) -> Any:
+        rp = _rp(run)
         path = rp / "manifest.json"
         if not await anyio.to_thread.run_sync(path.exists):
             return {}
@@ -822,8 +752,9 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
         except Exception:
             return {}
 
-    @app.get("/api/meta")
-    async def get_meta() -> Any:
+    @router.get("/runs/{run}/meta")
+    async def get_meta(run: str) -> Any:
+        rp = _rp(run)
         meta_file = rp / "meta.json"
         if not await anyio.to_thread.run_sync(meta_file.exists):
             return {
@@ -838,21 +769,24 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
                 "trainscope_config": {"run_name": rp.name},
             }
 
-    @app.get("/api/global")
-    async def get_global() -> list[dict]:
+    @router.get("/runs/{run}/global")
+    async def get_global(run: str) -> list[dict]:
+        rp = _rp(run)
         return await read_arrow(rp / "global.arrow")
 
-    @app.get("/api/layers")
-    async def get_layers() -> list[str]:
+    @router.get("/runs/{run}/layers")
+    async def get_layers(run: str) -> list[str]:
+        rp = _rp(run)
         return await _get_layers(rp)
 
-    @app.get("/api/moe")
-    async def get_moe() -> list[dict]:
+    @router.get("/runs/{run}/moe")
+    async def get_moe(run: str) -> list[dict]:
         """Per-block expert routing shares for the active run (MoE models)."""
+        rp = _rp(run)
         return await read_arrow(rp / "moe.arrow")
 
-    @app.get("/api/replay")
-    async def get_replay() -> dict[str, Any]:
+    @router.get("/runs/{run}/replay")
+    async def get_replay(run: str) -> dict[str, Any]:
         """Replay plan for the active run, if one was generated.
 
         ``trainscope replay`` writes ``replay_config.json`` next to the run
@@ -862,6 +796,7 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
         *which steps the replay will skip* — not just which batch indices.
         Returns empty lists when no replay config exists.
         """
+        rp = _rp(run)
         replay_path = rp / "replay_config.json"
         config: dict[str, Any] | None = None
         if await anyio.to_thread.run_sync(replay_path.exists):
@@ -886,11 +821,13 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
             "n_global_steps": len(global_rows),
         }
 
-    @app.get("/api/layers/ranked")
+    @router.get("/runs/{run}/layers/ranked")
     async def get_layers_ranked(
+        run: str,
         params: Annotated[RankedParams, Depends()],
     ) -> list[str]:
-        cached = _cache.get("ranked_layers")
+        rp = _rp(run)
+        cached = _cache.get(f"ranked_layers:{rp}")
         if cached is not None:
             return cast(list[str], cached[: params.top_n])
 
@@ -905,15 +842,18 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
                 scored.append((layer_name, _variance(grad_norms)))
         scored.sort(key=lambda x: x[1], reverse=True)
         ranked = [name for name, _ in scored]
-        _cache.set("ranked_layers", ranked)
+        _cache.set(f"ranked_layers:{rp}", ranked)
         return ranked[: params.top_n]
 
     # One build per key at a time: concurrent requests (several tabs, a live
     # refetch) await the same task instead of each reading every layer file.
     matrix_inflight: dict[str, asyncio.Task[dict[str, Any]]] = {}
 
-    @app.get("/api/layers/matrix")
-    async def get_layer_matrix(params: Annotated[MatrixParams, Depends()]) -> dict[str, Any]:
+    @router.get("/runs/{run}/layers/matrix")
+    async def get_layer_matrix(
+        run: str, params: Annotated[MatrixParams, Depends()]
+    ) -> dict[str, Any]:
+        rp = _rp(run)
         if params.metric not in _MATRIX_METRICS:
             raise HTTPException(
                 status_code=400, detail=f"metric must be one of {', '.join(_MATRIX_METRICS)}"
@@ -967,40 +907,46 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
         _cache.set(key, matrix)
         return matrix
 
-    @app.get("/api/signals")
-    async def get_signals() -> dict[str, Any]:
+    @router.get("/runs/{run}/signals")
+    async def get_signals(run: str) -> dict[str, Any]:
+        rp = _rp(run)
         return await run_signal_signature(rp)
 
-    @app.get("/api/layers/{layer_name:path}")
-    async def get_layer(layer_name: str) -> list[dict]:
+    @router.get("/runs/{run}/layers/{layer_name:path}")
+    async def get_layer(run: str, layer_name: str) -> list[dict]:
+        rp = _rp(run)
         encoded = _encode_layer_name(layer_name)
         path = rp / "layers" / f"{encoded}.arrow"
         if not await anyio.to_thread.run_sync(path.exists):
             raise HTTPException(status_code=404, detail=f"Layer '{layer_name}' not found")
         return await read_arrow(path)
 
-    @app.get("/api/spikes")
-    async def get_spikes() -> list[dict[str, Any]]:
+    @router.get("/runs/{run}/spikes")
+    async def get_spikes(run: str) -> list[dict[str, Any]]:
+        rp = _rp(run)
         steps = await get_spike_steps(rp)
         return [{"step": step, "file": f"spike_step_{step}.arrow"} for step in sorted(steps)]
 
-    @app.get("/api/spikes/{step}")
-    async def get_spike(step: int) -> list[dict]:
+    @router.get("/runs/{run}/spikes/{step}")
+    async def get_spike(run: str, step: int) -> list[dict]:
+        rp = _rp(run)
         path = rp / "spikes" / f"spike_step_{step}.arrow"
         if not await anyio.to_thread.run_sync(path.exists):
             raise HTTPException(status_code=404, detail=f"Spike at step {step} not found")
         return await read_arrow(path)
 
-    @app.get("/api/spikes/{step}/layers")
-    async def get_spike_layers(step: int) -> list[str]:
+    @router.get("/runs/{run}/spikes/{step}/layers")
+    async def get_spike_layers(run: str, step: int) -> list[str]:
+        rp = _rp(run)
         layers_dir = rp / "spikes" / f"spike_step_{step}_layers"
         if not await anyio.to_thread.run_sync(layers_dir.exists):
             return []
         files = await anyio.to_thread.run_sync(lambda: sorted(layers_dir.glob("*.arrow")))
         return [_decode_layer_name(f.name) for f in files]
 
-    @app.get("/api/spikes/{step}/layers/{layer_name:path}")
-    async def get_spike_layer(step: int, layer_name: str) -> list[dict]:
+    @router.get("/runs/{run}/spikes/{step}/layers/{layer_name:path}")
+    async def get_spike_layer(run: str, step: int, layer_name: str) -> list[dict]:
+        rp = _rp(run)
         encoded = _encode_layer_name(layer_name)
         path = rp / "spikes" / f"spike_step_{step}_layers" / f"{encoded}.arrow"
         if not await anyio.to_thread.run_sync(path.exists):
@@ -1010,8 +956,8 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
             )
         return await read_arrow(path)
 
-    async def _get_diff_index() -> dict[str, dict[int, dict[str, Any]]]:
-        cached = _cache.get("diff_index")
+    async def _get_diff_index(rp: Path) -> dict[str, dict[int, dict[str, Any]]]:
+        cached = _cache.get(f"diff_index:{rp}")
         if cached is not None:
             return cast(dict[str, dict[int, dict[str, Any]]], cached)
 
@@ -1029,14 +975,16 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
                     }
                     for r in rows
                 }
-        _cache.set("diff_index", index)
+        _cache.set(f"diff_index:{rp}", index)
         return index
 
-    @app.get("/api/diff")
+    @router.get("/runs/{run}/diff")
     async def get_diff(
+        run: str,
         params: Annotated[DiffParams, Depends()],
     ) -> list[dict[str, Any]]:
-        index = await _get_diff_index()
+        rp = _rp(run)
+        index = await _get_diff_index(rp)
         result: list[dict[str, Any]] = []
         for layer_name, step_map in index.items():
             entry_a = step_map.get(params.step_a)
@@ -1070,12 +1018,16 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
     # ------------------------------------------------------------------ #
     # WebSocket streaming
     # ------------------------------------------------------------------ #
-    @app.websocket("/ws")
-    async def websocket_endpoint(websocket: WebSocket):
+    @router.websocket("/runs/{run}/ws")
+    async def websocket_endpoint(websocket: WebSocket, run: str):
         # AuthMiddleware is a BaseHTTPMiddleware and never runs for WebSocket
         # connections (Starlette limitation), so auth must be re-checked here.
         if auth_enabled() and not verify_request(websocket):
             await websocket.close(code=1008)
+            return
+        rp = resolve(run)
+        if rp is None:
+            await websocket.close(code=4404)
             return
         await websocket.accept()
         try:
@@ -1138,6 +1090,82 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
         except Exception:
             logger.exception("WebSocket error for run %s", rp)
             await websocket.close(code=1011)
+
+    return router
+
+
+def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
+    rp = Path(run_path).resolve()
+    rr = Path(runs_root).resolve() if runs_root else None
+    multi_run = rr is not None
+    if multi_run:
+        assert rr is not None
+        discovered = _discover_run_dirs(rr)
+        if discovered:
+            rp = discovered[0]
+    static_dir = Path(__file__).parent / "static"
+
+    @asynccontextmanager
+    async def _lifespan(_app: FastAPI):
+        mode = "multi-run" if multi_run else "single-run"
+        logger.info("Starting TrainScope UI (%s) for run: %s", mode, rp)
+        if multi_run:
+            assert rr is not None
+            logger.info("Runs root: %s (%d run dirs)", rr, len(_discover_run_dirs(rr)))
+        if not rp.exists():
+            logger.warning("Run path does not exist: %s", rp)
+        elif not rp.is_dir():
+            logger.warning("Run path is not a directory: %s", rp)
+        yield
+
+    app = FastAPI(title="TrainScope UI", lifespan=_lifespan)
+    # Auth (TRAINSCOPE_API_KEY / TRAINSCOPE_BASIC_AUTH) uses header-based
+    # credentials, not cookies, so allow_credentials must stay False: the
+    # CORS spec forbids combining a wildcard origin with allow_credentials,
+    # and enabling it would let any origin make credentialed requests.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    app.add_middleware(auth_middleware_factory())
+
+    @app.middleware("http")
+    async def disable_api_cache(request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response
+
+    @app.get("/api/health")
+    async def health() -> dict[str, Any]:
+        return {
+            "status": "ok",
+            "run_path": str(rp),
+            "exists": rp.exists(),
+            "static_served": (static_dir / "index.html").exists(),
+        }
+
+    if multi_run:
+        assert rr is not None
+        root = rr
+
+        def list_runs() -> list[tuple[str, Path]]:
+            return [(d.name, d) for d in _discover_run_dirs(root)]
+
+    else:
+
+        def list_runs() -> list[tuple[str, Path]]:
+            return [(rp.name, rp)] if rp.is_dir() else []
+
+    def resolve(run: str) -> Path | None:
+        if not multi_run:
+            return rp if run == rp.name else None
+        return dict(list_runs()).get(run)
+
+    app.include_router(make_router(resolve, list_runs), prefix="/api")
 
     @app.get("/{full_path:path}")
     async def serve_static(full_path: str) -> Response:

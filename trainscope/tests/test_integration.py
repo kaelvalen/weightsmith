@@ -152,44 +152,44 @@ def test_integration_server_reads_run_directory(tmp_path: Path) -> None:
     assert health_response.status_code == 200
     assert health_response.json()["status"] == "ok"
 
-    manifest_response = client.get("/api/manifest")
+    manifest_response = client.get(f"/api/runs/{run_dir.name}/manifest")
     assert manifest_response.status_code == 200
     manifest = manifest_response.json()
     assert manifest["last_step"] == N_STEPS - 1
     assert manifest["n_global_rows"] == N_STEPS
 
-    meta_response = client.get("/api/meta")
+    meta_response = client.get(f"/api/runs/{run_dir.name}/meta")
     assert meta_response.status_code == 200
     meta = meta_response.json()
     assert meta["model_name"] == "Sequential"
     assert meta["trainscope_config"]["run_name"] == "integration_run"
 
-    global_response = client.get("/api/global")
+    global_response = client.get(f"/api/runs/{run_dir.name}/global")
     assert global_response.status_code == 200
     global_rows = global_response.json()
     assert len(global_rows) == N_STEPS
     assert any(row["is_spike"] for row in global_rows)
 
-    layers_response = client.get("/api/layers")
+    layers_response = client.get(f"/api/runs/{run_dir.name}/layers")
     assert layers_response.status_code == 200
     layer_names = layers_response.json()
     assert len(layer_names) > 0
     assert all(isinstance(name, str) for name in layer_names)
 
-    ranked_response = client.get("/api/layers/ranked")
+    ranked_response = client.get(f"/api/runs/{run_dir.name}/layers/ranked")
     assert ranked_response.status_code == 200
     ranked = ranked_response.json()
     assert isinstance(ranked, list)
     assert len(ranked) <= len(layer_names)
 
-    spikes_response = client.get("/api/spikes")
+    spikes_response = client.get(f"/api/runs/{run_dir.name}/spikes")
     assert spikes_response.status_code == 200
     spikes = spikes_response.json()
     assert any(record["step"] == SPIKE_STEP for record in spikes)
 
     # Verify the server can read an individual layer.
     first_layer = layer_names[0]
-    layer_response = client.get(f"/api/layers/{first_layer}")
+    layer_response = client.get(f"/api/runs/{run_dir.name}/layers/{first_layer}")
     assert layer_response.status_code == 200
     layer_rows = layer_response.json()
     assert len(layer_rows) == N_STEPS
@@ -197,18 +197,20 @@ def test_integration_server_reads_run_directory(tmp_path: Path) -> None:
     # Diff endpoint should produce KL divergences for histogram pairs.
     # Histograms are written every 50 steps and on spike steps, so steps 0 and
     # the spike step both have weight histograms for every layer.
-    diff_response = client.get(f"/api/diff?step_a=0&step_b={SPIKE_STEP}")
+    diff_response = client.get(f"/api/runs/{run_dir.name}/diff?step_a=0&step_b={SPIKE_STEP}")
     assert diff_response.status_code == 200
     diffs = diff_response.json()
     assert isinstance(diffs, list)
     assert any(item["layer"] == first_layer for item in diffs)
 
     # Spike window endpoints.
-    spike_layers_response = client.get(f"/api/spikes/{SPIKE_STEP}/layers")
+    spike_layers_response = client.get(f"/api/runs/{run_dir.name}/spikes/{SPIKE_STEP}/layers")
     assert spike_layers_response.status_code == 200
     assert first_layer in spike_layers_response.json()
 
-    spike_layer_response = client.get(f"/api/spikes/{SPIKE_STEP}/layers/{first_layer}")
+    spike_layer_response = client.get(
+        f"/api/runs/{run_dir.name}/spikes/{SPIKE_STEP}/layers/{first_layer}"
+    )
     assert spike_layer_response.status_code == 200
     assert isinstance(spike_layer_response.json(), list)
 
