@@ -1,0 +1,604 @@
+import logging
+import math
+import time
+import warnings
+from pathlib import Path
+from typing import Any, cast
+
+import torch
+import torch.distributed as dist
+import torch.nn as nn
+from torch.optim import Optimizer
+
+from trainscope.core.buffer import RollingBuffer
+from trainscope.core.config import TrainScopeConfig
+from trainscope.core.detectors import make_detector
+from trainscope.core.detectors.addressor_concentration import (
+    AddressorConcentrationDriftDetector,
+)
+from trainscope.core.detectors.expert_utilization import ExpertUtilizationDriftDetector
+from trainscope.core.metrics import (
+    _activation_metrics_from_stats,
+    _activation_stats,
+    _is_sharded,
+    _unshard,
+    compute_activation_metrics,
+    compute_param_metrics,
+    compute_weight_histogram,
+)
+from trainscope.integrations import build_alerters, build_callbacks
+from trainscope.io import RemoteWriter
+from trainscope.io.writer import DiskWriter
+from trainscope.plugins import instantiate_metric_plugins, load_detector_plugins
+
+logger = logging.getLogger("trainscope")
+
+
+class StopTraining(Exception):
+    def __init__(self, step: int, spike_score: float):
+        super().__init__(f"Spike detected at step {step} (score={spike_score:.2f})")
+        self.step = step
+        self.spike_score = spike_score
+
+    @property
+    def z_score(self) -> float:
+        warnings.warn(
+            "StopTraining.z_score is deprecated; use .spike_score (the active "
+            "detector's score, not necessarily a z-score).",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.spike_score
+
+
+class TrainScope:
+    """Context-aware training debugger that records per-step metrics and spikes.
+
+    Recommended usage::
+
+        scope = TrainScope(model, optimizer, config).attach()
+        for batch in loader:
+            optimizer.zero_grad()
+            loss = model(batch)
+            loss.backward()
+            scope.step(loss.item())   # before optimizer.step()
+            optimizer.step()
+
+    ``step()`` may also be called after ``optimizer.step()`` for backward
+    compatibility, but recording gradient norms before the step is preferred.
+    """
+
+    def __init__(
+        self,
+        model: nn.Module,
+        optimizer: Optimizer,
+        config: TrainScopeConfig | None = None,
+        *,
+        scaler: Any = None,
+    ):
+        """``scaler``: the ``torch.amp.GradScaler`` used for mixed precision, if
+        any. Gradient metrics are then reported unscaled whether ``step()`` is
+        called before or after ``scaler.unscale_(optimizer)``."""
+        self._model = model
+        self._optimizer = optimizer
+        self._scaler = scaler
+        self._config = config or TrainScopeConfig()
+
+        run_name = self._config.run_name
+        assert run_name is not None
+
+        if self._config.storage_uri:
+            suffix = f"_rank{self._config.rank}" if self._config.rank is not None else ""
+            remote_path = f"{self._config.storage_uri.rstrip('/')}/{run_name}{suffix}"
+            self._writer: DiskWriter | RemoteWriter = RemoteWriter(remote_path, self._config)
+        else:
+            disk_path = Path(self._config.run_dir) / run_name
+            if self._config.rank is not None:
+                disk_path = disk_path.parent / f"{disk_path.name}_rank{self._config.rank}"
+            self._writer = DiskWriter(disk_path, self._config)
+
+        self._buffer = RollingBuffer(
+            full_resolution_window=self._config.full_resolution_window,
+            decimation_factor=self._config.decimation_factor,
+        )
+
+        # Load detector plugins (entry points + explicit config paths) before
+        # selecting the detector so plugin detector names are available.
+        load_detector_plugins(self._config.detector_plugins)
+        self._detector = make_detector(self._config)
+        self._metric_plugins = instantiate_metric_plugins(self._config.metric_plugins)
+
+        # Activation stats stay on device (no sync in the forward pass) until step().
+        self._act_cache: dict[str, dict | torch.Tensor] = {}
+        self._hooks: list[Any] = []
+        self._moe_cache: dict[str, list[float]] = {}
+        self._step_idx = 0
+        self._last_step_time: float | None = None
+
+        self._callbacks = build_callbacks(self._config.integrations)
+        self._alerters = build_alerters(self._config.alerts)
+
+        # FSDP2-sharded parameters make per-layer metrics collectives: every rank
+        # must then take the same histogram decision (see step()).
+        self._sharded_device = next(
+            (p.to_local().device for p in model.parameters() if _is_sharded(p)), None
+        )
+
+    @property
+    def writer(self) -> DiskWriter | RemoteWriter:
+        return self._writer
+
+    def _metric_device(self, tensor: torch.Tensor) -> str | torch.device:
+        """Return the device on which ``tensor`` should be inspected.
+
+        By default metrics are computed where the tensor lives: moving every
+        parameter, gradient and activation to the host each step costs far more
+        than the reductions themselves. Set ``config.device`` to offload instead.
+        """
+        if self._config.device is not None:
+            return self._config.device
+        return tensor.device
+
+    def attach(self) -> "TrainScope":
+        detector_cfg = self._config.detector
+        detector_name = (
+            detector_cfg["name"] if isinstance(detector_cfg, dict) else str(detector_cfg)
+        )
+        self._writer.write_meta(
+            model_name=self._model.__class__.__name__,
+            model_config=self._config.to_dict(),
+            detector_info={
+                "name": detector_name,
+                "min_observations": getattr(self._detector, "min_observations", None),
+            },
+        )
+
+        for name, module in self._model.named_modules():
+            children = list(module.children())
+            if children:
+                continue
+
+            filt = self._config.activation_layer_filter
+            if filt is not None and not any(s in name for s in filt):
+                continue
+
+            def make_forward_hook(layer_name: str):
+                def hook(module, input, output):
+                    n = self._step_idx
+                    if n % self._config.trace_every_n_steps != 0:
+                        return
+
+                    tensor = None
+                    if isinstance(output, torch.Tensor):
+                        tensor = output
+                    elif isinstance(output, (tuple, list)):
+                        for item in output:
+                            if isinstance(item, torch.Tensor):
+                                tensor = item
+                                break
+
+                    if tensor is None:
+                        return
+
+                    if n % self._config.activation_metrics_every_n_steps == 0:
+                        dev = self._metric_device(tensor)
+                        self._act_cache[layer_name] = (
+                            _activation_stats(tensor, dev)
+                            if tensor.numel()
+                            else compute_activation_metrics(tensor, dev)
+                        )
+
+                return hook
+
+            h_fwd = module.register_forward_hook(make_forward_hook(name))
+            self._hooks.append(h_fwd)
+
+        self._attach_moe_hooks()
+
+        logger.info("TrainScope attached to %s", self._model.__class__.__name__)
+        return self
+
+    def _attach_moe_hooks(self) -> None:
+        """Record per-expert/per-slot share for MoE and memory-augmented models.
+
+        Two module kinds are recognized by name:
+
+        - ``router`` (Mixtral-style MoE): forward output is a logits tensor
+          of shape ``(..., n_experts)``; the share of tokens routed to each
+          expert (by argmax) is stored in ``self._moe_cache``.
+        - ``addressor`` (memory-augmented): forward output is the softmax
+          addressing weights over memory slots; the mean weight per slot
+          (over tokens) is stored, matching the v1.4.1 experiment's signal.
+
+        If the configured detector is ``expert_utilization_drift`` or
+        ``addressor_concentration_drift`` the cache feeds it; otherwise the
+        cache is still persisted to ``moe.arrow`` so the UI can render
+        utilization over time.
+        """
+        targets = [n for n, _ in self._model.named_modules() if "router" in n or "addressor" in n]
+        if not targets:
+            return
+
+        for name in targets:
+            module = self._model.get_submodule(name)
+            is_addressor = "addressor" in name
+
+            def make_moe_hook(block_name: str, addressor: bool):
+                def hook(_module, _input, output):
+                    tensor = None
+                    if isinstance(output, torch.Tensor):
+                        tensor = output
+                    elif isinstance(output, (tuple, list)):
+                        for item in output:
+                            if isinstance(item, torch.Tensor):
+                                tensor = item
+                                break
+                    if tensor is None or tensor.numel() == 0:
+                        return
+                    flat = tensor.detach().float().reshape(-1, tensor.shape[-1])
+                    if addressor:
+                        # Softmax addressing weights: mean over tokens, per slot.
+                        weights = torch.softmax(flat, dim=-1).mean(dim=0)
+                        shares = weights.tolist()
+                    else:
+                        argmax = flat.argmax(dim=-1)
+                        counts = torch.bincount(argmax, minlength=flat.shape[-1])
+                        shares = (counts / counts.sum()).tolist()
+                    self._moe_cache[block_name] = shares
+
+                return hook
+
+            self._hooks.append(module.register_forward_hook(make_moe_hook(name, is_addressor)))
+
+        logger.info(
+            "Attached MoE/memory hooks for %d module(s) (%d router, %d addressor)",
+            len(targets),
+            sum(1 for n in targets if "router" in n),
+            sum(1 for n in targets if "addressor" in n),
+        )
+
+    @staticmethod
+    def _global_l2_norm(tensors: list[torch.Tensor]) -> float:
+        """L2 norm over all ``tensors``, including FSDP2-sharded ones.
+
+        ``DTensor.norm().item()`` would read only the local shard's partial
+        norm, so sharded tensors contribute local sums of squares that are
+        all-reduced once.
+        """
+        total_sq = 0.0
+        sharded_sq: torch.Tensor | None = None
+        group = None
+        # Norms stay on their device and are read once per device: a per-tensor
+        # .item() is a device sync.
+        norms_by_device: dict[torch.device, list[torch.Tensor]] = {}
+        for t in tensors:
+            if _is_sharded(t):
+                local_sq = t.to_local().detach().float().norm(2) ** 2
+                sharded_sq = local_sq if sharded_sq is None else sharded_sq + local_sq
+                group = t.device_mesh.get_group()
+            else:
+                full = _unshard(t).detach()
+                norms_by_device.setdefault(full.device, []).append(full.float().norm(2))
+        for norms in norms_by_device.values():
+            total_sq += float(torch.stack(norms).double().pow(2).sum())
+        if sharded_sq is not None:
+            dist.all_reduce(sharded_sq, group=group)
+            total_sq += float(sharded_sq)
+        return math.sqrt(total_sq)
+
+    def _resolve_act_cache(self) -> None:
+        """Read every cached activation stats tensor back in one transfer per device."""
+        keys_by_device: dict[torch.device, list[str]] = {}
+        for key, value in self._act_cache.items():
+            if isinstance(value, torch.Tensor):
+                keys_by_device.setdefault(value.device, []).append(key)
+        for keys in keys_by_device.values():
+            rows = torch.stack([self._act_cache[k] for k in keys]).tolist()  # type: ignore[misc]
+            for key, vals in zip(keys, rows):
+                self._act_cache[key] = _activation_metrics_from_stats(vals)
+
+    def _grad_inv_scale(self) -> float:
+        """1/scale while the GradScaler still holds scaled grads, else 1."""
+        scaler = self._scaler
+        if scaler is None or not scaler.is_enabled():
+            return 1.0
+        # GradScaler exposes no public "already unscaled?" query; its per-optimizer
+        # stage has been stable since torch 1.6.
+        state = getattr(scaler, "_per_optimizer_states", {}).get(id(self._optimizer), {})
+        if getattr(state.get("stage"), "name", None) == "UNSCALED":
+            return 1.0
+        return 1.0 / float(scaler.get_scale())
+
+    def _compute_optimizer_v_norm(self) -> float:
+        # Duck-typing on the Adam-family state contract rather than an exact
+        # class-name match: fused/8-bit/wrapped optimizers (bitsandbytes,
+        # apex, deepspeed) and user subclasses of Adam/AdamW all expose
+        # "exp_avg_sq" in their state but carry different class names.
+        state = self._optimizer.state
+        return self._global_l2_norm(
+            [
+                state[p]["exp_avg_sq"]
+                for p in self._model.parameters()
+                if p in state and "exp_avg_sq" in state[p]
+            ]
+        )
+
+    def _get_lr(self) -> float:
+        return float(self._optimizer.param_groups[0]["lr"])
+
+    @staticmethod
+    def _memory_mb() -> tuple[float, float]:
+        """Return (cpu_memory_mb, cuda_memory_mb)."""
+        import resource
+
+        rss_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        cpu_mb = rss_kb / 1024.0
+        cuda_mb = 0.0
+        if torch.cuda.is_available():
+            try:
+                cuda_mb = torch.cuda.memory_allocated() / (1024.0 * 1024.0)
+            except Exception:
+                pass
+        return cpu_mb, cuda_mb
+
+    def _run_metric_plugins(self, step: int):
+        for plugin in self._metric_plugins:
+            try:
+                metrics = plugin.compute(self._model, self._optimizer, step)
+                if metrics:
+                    self._writer.append_plugin_metrics(step, plugin.name, metrics)
+            except Exception:
+                logger.exception("Metric plugin %s failed at step %d", plugin.name, step)
+
+    def step(
+        self,
+        loss: float,
+        *,
+        batch_index: int | None = None,
+        clip_grad_norm: float | None = None,
+        grad_norm_after_clip: float | None = None,
+    ) -> dict | None:
+        step_idx = self._step_idx
+        self._step_idx += 1
+
+        now = time.monotonic()
+        if self._last_step_time is not None:
+            step_time_ms = (now - self._last_step_time) * 1000.0
+        else:
+            step_time_ms = 0.0
+        self._last_step_time = now
+
+        if step_idx % self._config.trace_every_n_steps != 0:
+            return None
+
+        if clip_grad_norm is not None:
+            warnings.warn(
+                "clip_grad_norm is deprecated in TrainScope.step(); call "
+                "torch.nn.utils.clip_grad_norm_() yourself before step() instead. "
+                "This parameter is ignored and will be removed in a future release.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        loss_f = float(loss)
+        if not math.isfinite(loss_f):
+            logger.warning("Non-finite loss recorded at step %d: %s", step_idx, loss_f)
+
+        # clip_grad_norm is deprecated (see the warning above) and TrainScope
+        # no longer clips gradients itself. Callers that clip externally and
+        # want an honest before/after pair can pass the real post-clip norm
+        # via grad_norm_after_clip; it is then recorded instead of mirroring
+        # the pre-clip reading.
+        inv_scale = self._grad_inv_scale()
+        named_params = list(self._model.named_parameters())
+        devices = [self._metric_device(p.data) for _, p in named_params]
+        param_metrics = compute_param_metrics(
+            [p.data for _, p in named_params], [p.grad for _, p in named_params], devices
+        )
+        # Per-parameter L2s are already global (sharded ones are all-reduced), so
+        # the global norm is their root sum of squares, not another pass.
+        grad_norm_before = (
+            math.sqrt(sum(gm["grad_l2_norm"] ** 2 for _, gm in param_metrics)) * inv_scale
+        )
+        grad_norm_after = grad_norm_before if grad_norm_after_clip is None else grad_norm_after_clip
+
+        optimizer_v_norm = self._compute_optimizer_v_norm()
+        lr = self._get_lr()
+
+        if not math.isfinite(loss_f):
+            # Do not poison the detector's baseline with NaN/Inf.
+            score = None
+        elif isinstance(
+            self._detector, (ExpertUtilizationDriftDetector, AddressorConcentrationDriftDetector)
+        ):
+            # Architecture-aware detectors: consume the routing/addressing
+            # concentration signal instead of the loss (see the v1.3.0 and
+            # v1.4.1 experiments).
+            max_share = max((max(v) for v in self._moe_cache.values()), default=0.0)
+            score = self._detector.update(max_share)
+        else:
+            score = self._detector.update(loss_f)
+        is_spike = score is not None
+
+        # Persist per-block expert utilization (routing shares) for the UI.
+        for block_name, shares in self._moe_cache.items():
+            try:
+                self._writer.append_moe(step_idx, block_name, shares)
+            except Exception:
+                logger.exception("Failed to append MoE routing data for %s", block_name)
+
+        histogram_on_spike = is_spike
+        if self._sharded_device is not None:
+            # Spikes are detected per rank (each sees its own loss); histograms of
+            # sharded weights are collectives, so any rank's spike triggers them all.
+            flag = torch.tensor([float(is_spike)], device=self._sharded_device)
+            dist.all_reduce(flag, op=dist.ReduceOp.MAX)
+            histogram_on_spike = bool(flag.item())
+        should_histogram = (
+            step_idx % self._config.histogram_every_n_steps == 0 or histogram_on_spike
+        )
+
+        global_snap = {
+            "step": step_idx,
+            "loss": loss_f,
+            "grad_norm_before_clip": grad_norm_before,
+            "grad_norm_after_clip": grad_norm_after,
+            "lr": lr,
+            "optimizer_v_norm": optimizer_v_norm,
+            "step_time_ms": step_time_ms,
+            "batch_index": batch_index if batch_index is not None else -1,
+            "is_spike": is_spike,
+            "spike_score": float(score) if score is not None else 0.0,
+        }
+        if self._config.track_memory:
+            cpu_mb, cuda_mb = self._memory_mb()
+            global_snap["cpu_memory_mb"] = cpu_mb
+            global_snap["cuda_memory_mb"] = cuda_mb
+
+        self._run_metric_plugins(step_idx)
+
+        layer_snaps: dict[str, dict] = {}
+        self._resolve_act_cache()
+        for (name, param), compute_dev, (weight_metrics, grad_metrics) in zip(
+            named_params, devices, param_metrics
+        ):
+            module_name = name.rsplit(".", 1)[0] if "." in name else name
+            if should_histogram:
+                hist_counts, hist_edges = compute_weight_histogram(
+                    param.data, n_bins=self._config.n_histogram_bins, device=compute_dev
+                )
+            else:
+                hist_counts, hist_edges = [], []
+
+            # Activation metrics are only computed every
+            # activation_metrics_every_n_steps steps (see the forward hook in
+            # attach()). On the other steps the cache is empty; write None
+            # instead of a zero placeholder so "not measured" stays distinct
+            # from "measured and zero" in the UI.
+            act_metrics = cast(dict, self._act_cache.get(module_name) or {})  # resolved above
+
+            layer_name = name
+            layer_snap = {
+                "step": step_idx,
+                "grad_l2_norm": grad_metrics.get("grad_l2_norm", 0.0) * inv_scale,
+                "weight_l2_norm": weight_metrics.get("weight_l2_norm", 0.0),
+                "act_mean": act_metrics.get("act_mean"),
+                "act_std": act_metrics.get("act_std"),
+                "act_max_abs": act_metrics.get("act_max_abs"),
+                "act_kurtosis": act_metrics.get("act_kurtosis"),
+                "grad_nan_inf_ratio": grad_metrics.get("grad_nan_inf_ratio", 0.0),
+                "hist_counts": hist_counts,
+                "hist_edges": hist_edges,
+                "grad_max_abs": grad_metrics.get("grad_max_abs", 0.0) * inv_scale,
+                "grad_mean": grad_metrics.get("grad_mean", 0.0) * inv_scale,
+                "weight_mean": weight_metrics.get("weight_mean", 0.0),
+                "weight_std": weight_metrics.get("weight_std", 0.0),
+                "weight_max_abs": weight_metrics.get("weight_max_abs", 0.0),
+                "weight_min": weight_metrics.get("weight_min", 0.0),
+                "act_min": act_metrics.get("act_min"),
+                "act_max": act_metrics.get("act_max"),
+                "act_median": act_metrics.get("act_median"),
+            }
+            layer_snaps[layer_name] = layer_snap
+
+        self._buffer.add(global_snap, layer_snaps)
+        self._writer.append_global(global_snap)
+        for layer_name, layer_snap in layer_snaps.items():
+            self._writer.append_layer(layer_name, layer_snap)
+
+        self._act_cache.clear()
+
+        for cb in self._callbacks:
+            try:
+                cb.on_step(global_snap, layer_snaps)
+            except Exception:
+                logger.exception("Callback %s failed on step %d", type(cb).__name__, step_idx)
+
+        if is_spike:
+            window = self._buffer.get_window(
+                step_idx,
+                before=self._config.spike_window_before,
+                after=self._config.spike_window_after,
+            )
+            layer_windows: dict[str, list[dict]] = {}
+            for entry in window:
+                for lname, lsnap in entry["layers"].items():
+                    layer_windows.setdefault(lname, []).append(lsnap)
+
+            self._writer.write_spike_window(step_idx, window, layer_windows)
+            self._writer.save_rng_state(step_idx)
+
+            if self._config.checkpoint_on_spike:
+                try:
+                    optimizer_state = (
+                        self._optimizer.state_dict()
+                        if hasattr(self._optimizer, "state_dict")
+                        else None
+                    )
+                    self._writer.save_checkpoint(
+                        step_idx,
+                        self._model.state_dict(),
+                        optimizer_state=optimizer_state,
+                    )
+                except Exception:
+                    logger.exception("Failed to save checkpoint on spike at step %d", step_idx)
+
+            if (
+                self._config.rng_every_n_steps > 0
+                and step_idx % self._config.rng_every_n_steps != 0
+            ):
+                # Spike already saved above; only save here if not already saved.
+                pass
+
+            self._writer.flush()
+
+            assert score is not None
+            spike_info = {
+                "step": step_idx,
+                "loss": loss_f,
+                "spike_score": float(score),
+                # Legacy alias: integrations written against pre-1.0 trainscope
+                # read this key. The canonical name is spike_score.
+                "z_score": float(score),
+            }
+
+            logger.info("Spike detected at step %d (score=%.2f)", step_idx, float(score))
+
+            for cb in self._callbacks:
+                try:
+                    cb.on_spike(spike_info, global_snap, layer_snaps)
+                except Exception:
+                    logger.exception(
+                        "Callback %s failed on spike at step %d", type(cb).__name__, step_idx
+                    )
+
+            for alerter in self._alerters:
+                try:
+                    alerter.alert(spike_info, global_snap, layer_snaps)
+                except Exception:
+                    logger.exception(
+                        "Alerter %s failed on spike at step %d", type(alerter).__name__, step_idx
+                    )
+
+            if self._config.stop_on_spike:
+                raise StopTraining(step_idx, score)
+
+            return spike_info
+
+        if self._config.rng_every_n_steps > 0 and step_idx % self._config.rng_every_n_steps == 0:
+            self._writer.save_rng_state(step_idx)
+
+        return None
+
+    def detach(self):
+        for hook in self._hooks:
+            hook.remove()
+        self._hooks.clear()
+        self._writer.close()
+        logger.info("TrainScope detached")
+
+    def __enter__(self):
+        return self.attach()
+
+    def __exit__(self, *args):
+        self.detach()

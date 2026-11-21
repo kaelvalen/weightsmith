@@ -1,0 +1,83 @@
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { cn } from '../utils.js'
+
+const ToastContext = createContext(null)
+const MAX_VISIBLE_TOASTS = 3
+
+const variantStyles = {
+  info: 'border-border',
+  success: 'border-border',
+  warning: 'border-amber',
+  danger: 'border-red',
+}
+
+export function ToastProvider({ children }) {
+  const [toasts, setToasts] = useState([])
+
+  const addToast = useCallback((toast) => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    setToasts((prev) => [...prev, { ...toast, id }].slice(-MAX_VISIBLE_TOASTS))
+  }, [])
+
+  const dismissToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id))
+  }, [])
+
+  return (
+    <ToastContext.Provider value={{ addToast, dismissToast }}>
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      {children}
+    </ToastContext.Provider>
+  )
+}
+
+export function useToast() {
+  const ctx = useContext(ToastContext)
+  if (!ctx) {
+    throw new Error('useToast must be used within a ToastProvider')
+  }
+  return ctx
+}
+
+function ToastContainer({ toasts, onDismiss }) {
+  return (
+    <div
+      className="pointer-events-none fixed right-4 top-20 z-[100] flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      {toasts.map((toast) => (
+        <ToastItem key={toast.id} toast={toast} onDismiss={onDismiss} />
+      ))}
+    </div>
+  )
+}
+
+function ToastItem({ toast, onDismiss }) {
+  useEffect(() => {
+    const timer = setTimeout(() => onDismiss(toast.id), toast.duration || 5000)
+    return () => clearTimeout(timer)
+  }, [toast.id, toast.duration, onDismiss])
+
+  return (
+    <div
+      className={cn(
+        'pointer-events-auto flex flex-col gap-1 rounded-panel border bg-surface p-3',
+        'shadow-[0_8px_24px_rgba(0,0,0,0.08)]',
+        variantStyles[toast.variant || 'info']
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-sm font-medium text-ink">{toast.title}</span>
+        <button
+          onClick={() => onDismiss(toast.id)}
+          className="-m-2 p-2 text-muted transition-colors hover:text-ink"
+          aria-label="Dismiss notification"
+        >
+          ×
+        </button>
+      </div>
+      {toast.message && <p className="text-xs text-muted">{toast.message}</p>}
+    </div>
+  )
+}

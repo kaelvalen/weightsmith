@@ -1,0 +1,291 @@
+import json
+import re
+from datetime import datetime, timezone
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _get_version
+from pathlib import Path
+from typing import Any
+
+import click
+import torch
+
+try:
+    __version__ = _get_version("trainscope")
+except PackageNotFoundError:  # pragma: no cover
+    # Fallback when running from source without package metadata.
+    __version__ = "1.10.0"
+
+
+def _parse_skip_batches(value: str) -> list[int]:
+    """Parse a comma-separated list of batch indices.
+
+    If ``value`` starts with ``@`` the remainder is treated as a path to a text
+    file that contains one or more indices separated by commas and/or
+    whitespace.  Duplicate/blank entries are ignored.
+    """
+    text: str
+    if value.startswith("@"):
+        path = Path(value[1:])
+        if not path.exists():
+            raise click.ClickException(f"Skip batch file not found: {path}")
+        text = path.read_text(encoding="utf-8")
+        parts = re.split(r"[,\s]+", text.strip())
+    else:
+        parts = value.split(",")
+
+    indices: list[int] = []
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            indices.append(int(part))
+        except ValueError as exc:
+            raise click.ClickException(f"Invalid batch index: {part!r}") from exc
+    return indices
+
+
+@click.group()
+@click.version_option(version=__version__, prog_name="trainscope")
+def cli() -> None:
+    """TrainScope command-line interface."""
+
+
+@cli.command()
+@click.option(
+    "--run",
+    default=None,
+    help="Path (or s3:///gs:// URI) to a single trainscope run directory",
+)
+@click.option(
+    "--runs",
+    default=None,
+    help="Path (or s3:///gs:// URI) to a root directory of run directories",
+)
+@click.option("--host", default="127.0.0.1", show_default=True)
+@click.option("--port", default=7007, show_default=True, type=int)
+@click.option(
+    "--log-level",
+    default="info",
+    show_default=True,
+    type=click.Choice(
+        ["debug", "info", "warning", "error", "critical"],
+        case_sensitive=False,
+    ),
+)
+def ui(run: str | None, runs: str | None, host: str, port: int, log_level: str) -> None:
+    """Start the TrainScope web UI for a run (or a directory of runs).
+
+    ``--run`` and ``--runs`` accept either a local path or an fsspec URI such
+    as ``s3://bucket/trainscope_runs``. Remote trees are materialized into a
+    local cache (a snapshot) before the UI starts.
+    """
+    from trainscope.io.remotes import materialize_run_path
+    from trainscope.ui.server import start_server
+
+    if (run is None) == (runs is None):
+        raise click.ClickException("Specify exactly one of --run or --runs")
+
+    if run is not None:
+        local = materialize_run_path(run)
+        if not local.exists() or not local.is_dir():
+            raise click.ClickException(f"Run directory not found: {run}")
+        click.echo(f"Starting TrainScope UI for run: {local}")
+        start_server(str(local.resolve()), host=host, port=port, log_level=log_level)
+    else:
+        assert runs is not None
+        local = materialize_run_path(runs)
+        if not local.exists() or not local.is_dir():
+            raise click.ClickException(f"Runs root directory not found: {runs}")
+        click.echo(f"Starting TrainScope UI for runs under: {local}")
+        start_server(
+            str(local.resolve()),
+            host=host,
+            port=port,
+            log_level=log_level,
+            runs_root=str(local.resolve()),
+        )
+    click.echo(f"Open http://{host}:{port} in your browser")
+
+
+@cli.command()
+@click.option(
+    "--checkpoint",
+    required=True,
+    type=click.Path(
+        exists=True,
+        dir_okay=False,
+        readable=True,
+        path_type=Path,
+    ),
+    help="Path to the checkpoint file",
+)
+@click.option(
+    "--skip-batches",
+    required=True,
+    help="Comma-separated list of batch indices to skip, or @path/to/file",
+)
+@click.option(
+    "--resume",
+    is_flag=True,
+    default=False,
+    help="Print instructions for resuming training with SkippingDataLoader",
+)
+@click.option(
+    "--output",
+    default="replay_config.json",
+    show_default=True,
+    type=click.Path(dir_okay=False, writable=True, path_type=Path),
+    help="Path to write the replay config",
+)
+def replay(checkpoint: Path, skip_batches: str, resume: bool, output: Path) -> None:
+    """Generate a replay_config.json for use with SkippingDataLoader.
+
+    This command does NOT automatically resume training. It writes a
+    replay_config.json that you pass to trainscope.replay.SkippingDataLoader in
+    your training script to skip the batches that caused the loss spike.
+    """
+    try:
+        torch.load(str(checkpoint), map_location="cpu", weights_only=True)
+    except Exception as exc:
+        raise click.ClickException(f"Checkpoint unreadable with weights_only=True: {exc}") from exc
+
+    skip_list = _parse_skip_batches(skip_batches)
+    if any(s < 0 for s in skip_list):
+        raise click.ClickException("Batch indices must be non-negative")
+
+    click.echo(f"Checkpoint: {checkpoint}")
+    click.echo(f"Batches to skip ({len(skip_list)} total): {skip_list}")
+
+    replay_config: dict[str, Any] = {
+        "checkpoint": str(checkpoint.resolve()),
+        "skip_batches": skip_list,
+        "total_skipped": len(skip_list),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "notes": (
+            "Replay config generated by trainscope. "
+            f"Skips {len(skip_list)} batch(es) when loaded into SkippingDataLoader."
+        ),
+    }
+    with open(output, "w", encoding="utf-8") as f:
+        json.dump(replay_config, f, indent=2)
+    click.echo(f"Saved replay config → {output.resolve()}")
+
+    if resume:
+        click.echo(
+            "\nTo resume training, use SkippingDataLoader in your script:\n\n"
+            "  from trainscope.replay import SkippingDataLoader\n"
+            "  import json\n\n"
+            "  with open('replay_config.json') as f:\n"
+            "      cfg = json.load(f)\n\n"
+            "  loader = SkippingDataLoader(original_loader, cfg['skip_batches'])\n"
+            "  for batch in loader:\n"
+            "      loss = model(batch)\n"
+            "      ..."
+        )
+
+
+@cli.command()
+@click.option(
+    "--run",
+    default=None,
+    help="Path (or s3:///gs:// URI) to a single trainscope run directory",
+)
+@click.option(
+    "--runs",
+    default=None,
+    help="Path (or s3:///gs:// URI) to a root directory of run directories",
+)
+@click.option(
+    "--format",
+    "fmt",
+    default="markdown",
+    show_default=True,
+    type=click.Choice(["markdown", "json"]),
+)
+@click.option(
+    "--output",
+    default=None,
+    type=click.Path(dir_okay=False, writable=True, path_type=Path),
+    help="Write the report to a file instead of stdout",
+)
+def report(run: str | None, runs: str | None, fmt: str, output: Path | None) -> None:
+    """Generate a post-mortem report for a run (or a root of runs).
+
+    A single-run report is the researcher's case file: the spike story, the
+    early-warning signals that fired with their lead, and the config. A
+    multi-run report groups runs by signal signature (the same clustering the
+    Runs view shows) so shared failure modes are visible from the shell.
+
+    ``--run`` and ``--runs`` accept local paths or fsspec URIs; remote trees
+    are materialized to a local cache before analysis.
+    """
+    import asyncio
+
+    from trainscope.io.remotes import materialize_run_path
+    from trainscope.report import build_report, render
+
+    if (run is None) == (runs is None):
+        raise click.ClickException("Specify exactly one of --run or --runs")
+
+    target = runs if runs is not None else run
+    assert target is not None
+    multi_run = runs is not None
+
+    local = materialize_run_path(target)
+    if not local.exists() or not local.is_dir():
+        raise click.ClickException(f"Run target not found: {target}")
+
+    report_data = asyncio.run(build_report(local, multi_run))
+    text = render(report_data, multi_run, fmt)
+
+    if output is not None:
+        output.write_text(text, encoding="utf-8")
+        click.echo(f"Report saved to {output.resolve()}")
+    else:
+        click.echo(text)
+
+
+@cli.command()
+@click.option(
+    "--dir",
+    "out_dir",
+    default="./trainscope_demo",
+    show_default=True,
+    type=click.Path(file_okay=False, path_type=Path),
+    help="Where to write the demo runs",
+)
+@click.option("--no-ui", is_flag=True, help="Only generate the runs; do not start the UI")
+@click.option("--host", default="127.0.0.1", show_default=True)
+@click.option("--port", default=7007, show_default=True, type=int)
+def demo(out_dir: Path, no_ui: bool, host: str, port: int) -> None:
+    """Train a few tiny models (stable and diverging) and open the UI on them.
+
+    Takes about ten seconds on a CPU. Two runs train normally; two get a
+    learning-rate ramp that makes them diverge, so the spike story, run
+    clustering and stable counterexample all have real data to show.
+    """
+    from trainscope.demo import generate_demo_runs
+
+    click.echo(f"Training demo runs into {out_dir} ...")
+    for summary in generate_demo_runs(out_dir):
+        status = (
+            f"first spike at step {summary['first_spike']}"
+            if summary["first_spike"] is not None
+            else "stable"
+        )
+        click.echo(f"  {summary['name']:<14} {summary['steps']:>3} steps  {status}")
+
+    if no_ui:
+        click.echo(f"Open them with: trainscope ui --runs {out_dir}")
+        return
+
+    from trainscope.ui.server import start_server
+
+    root = str(out_dir.resolve())
+    click.echo(f"Open http://{host}:{port} in your browser (Ctrl+C to stop)")
+    start_server(root, host=host, port=port, runs_root=root)
+
+
+if __name__ == "__main__":
+    cli()

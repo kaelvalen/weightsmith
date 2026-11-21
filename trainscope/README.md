@@ -1,0 +1,377 @@
+# trainscope
+
+[![PyPI](https://img.shields.io/pypi/v/trainscope)](https://pypi.org/project/trainscope)
+[![Python](https://img.shields.io/pypi/pyversions/trainscope)](https://pypi.org/project/trainscope)
+[![CI](https://github.com/kaelvalen/trainscope/actions/workflows/ci.yml/badge.svg)](https://github.com/kaelvalen/trainscope/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+**Post-mortem debugger for LLM training loss spikes.**
+
+When a loss spike hits, you know *that* it happened — trainscope tells you *why*. It records per-layer gradients, weight distributions, activation statistics, and optimizer state at every training step, then serves a browser UI to scrub back through the event.
+
+```bash
+pip install trainscope
+trainscope demo   # trains 4 tiny runs (~10 s on CPU), 2 of which diverge, and opens the UI
+```
+
+![Overview of a diverging run: loss and grad norm on a shared step axis, the layer heatmap below, and the signals that crossed before the spike](https://raw.githubusercontent.com/kaelvalen/trainscope/main/docs/images/overview.png)
+
+## Table of contents
+
+- [Why trainscope?](#why-trainscope)
+- [Quick start](#quick-start)
+- [What gets recorded](#what-gets-recorded)
+- [Browser UI](#browser-ui)
+- [Command-line interface](#command-line-interface)
+- [Configuration](#configuration)
+- [Storage layout](#storage-layout)
+- [Stability scope](#stability-scope)
+- [Overhead](#overhead)
+- [Development](#development)
+- [Publishing](#publishing)
+- [License](#license)
+
+## Why trainscope?
+
+Loss spikes in large language model training are expensive. Existing tools log aggregates; trainscope logs the *mechanism*:
+
+- **CUSUM Change-Point Detection**: Catches subtle, persistent loss drifts ($0.10\sigma - 0.25\sigma$ per step). Verified on real training: in an organic mini-GPT-2/wikitext-2 loss explosion, CUSUM fired 9–11 steps (mean 9.7) before the loss diverged (see `scripts/verify_cusum_early_warning.py`).
+- **Expert-utilization drift detection (MoE)**: For Mixtral-style models (any module named `router`), trainscope records per-expert routing shares and can detect routing *concentration* — one expert dominating token routing — 4–12 steps before loss divergence (see `scripts/verify_expert_collapse_signal.py` and the `expert_utilization_drift` detector). The Routing & addressing view plots per-expert shares over time.
+- **Addressor-concentration drift (memory-augmented)**: For models with an `addressor` module (softmax addressing over a memory bank), the `addressor_concentration_drift` detector flags slot-share concentration — the addressor locking onto one slot — 7–11 steps before loss divergence (see `scripts/verify_addressor_collapse_signal.py`). Same view renders per-slot shares.
+- **Activation kurtosis**: Excess kurtosis of per-block activations rises before divergence. Verified on the same organic mini-GPT-2/wikitext-2 scenario as the CUSUM claim: kurtosis crossed its robust 3σ baseline margin (σ = 1.4826·MAD) 15–17 steps (mean 16.0, 3/3 seeds) before loss divergence — *earlier* than CUSUM's 9–11 step detection (see `scripts/verify_kurtosis_early_warning.py`). Note this supersedes the earlier "1–5 steps" estimate, which was not reproduced; kurtosis leads by more than CUSUM, not less.
+- **Chronological Spike Story Cascade**: Traces failure cascades chronologically (`Loss Shift` → `Gradient Explosion` → `NaN Collapse`) to isolate root causes instead of terminal symptoms.
+- **Gradient L2 norms**: Per-layer breakdowns show exactly which transformer block initiated the update instability.
+- **Run behavior clustering**: Runs are grouped by their early-warning signal signature; each cluster reports its typical early-warning lead, the config traits its members share that stable runs do not, the common-fate loss band, and a nearest-stable-run counterexample — "why did THESE runs blow up and not the others".
+- **Post-mortem reports**: `trainscope report` turns a run (or a whole runs root) into a markdown/JSON case file with the spike story, fired signals, and cluster summary.
+- **Replay planning**: `trainscope replay` writes a `replay_config.json`; the Replay view shows exactly which training steps its skip list maps to.
+- **Remote storage**: Run trees on `s3://`/`gs://` are readable by the UI and CLI via fsspec materialization.
+- **WandB Zero-Config Integration**: Auto-detects active `wandb.run` sessions for passive logging, with opt-in alerting (`integrations={"wandb": {"alerts": True}}`).
+- **Weight histograms + KL divergence**: Compare parameter distributions before and after the spike.
+- **RNG state + optional checkpoint**: At the spike step for exact replay.
+
+All data is written to Arrow files (locally or to a remote store via fsspec); the UI is a lightweight standalone FastAPI server with lazy-loaded views and Plotly (initial shell ~60KB gzipped; the 4.9MB Plotly bundle is fetched only when the first chart renders) and incremental WebSocket live streaming for loss, spikes, layers, and MoE routing shares.
+
+## Quick start
+
+**Hugging Face `Trainer`** (`pip install trainscope[huggingface]`):
+
+```python
+from trainscope.integrations.huggingface import TrainScopeCallback
+
+trainer = Trainer(model=model, args=args, train_dataset=ds, callbacks=[TrainScopeCallback()])
+```
+
+**PyTorch Lightning** (`pip install trainscope[lightning]`):
+
+```python
+from trainscope.integrations.lightning import TrainScopeCallback
+
+trainer = L.Trainer(callbacks=[TrainScopeCallback()])
+```
+
+Both record one step per optimizer step (after gradient accumulation, with AMP
+gradients and loss unscaled), give each rank its own run under multi-GPU
+training, and accept a `TrainScopeConfig`. With `stop_on_spike=True` they stop
+training gracefully.
+
+**Plain PyTorch loop:**
+
+```python
+from trainscope import TrainScope
+from trainscope.core.config import TrainScopeConfig
+
+scope = TrainScope(model, optimizer, config=TrainScopeConfig()).attach()
+
+for step, batch in enumerate(dataloader):
+    optimizer.zero_grad()
+    loss = forward_and_backward(batch)
+
+    # Record metrics between backward and optimizer step so gradient norms are
+    # measured before the optimizer mutates parameters.
+    spike = scope.step(loss.item(), batch_index=step)
+    optimizer.step()
+
+    if spike:
+        print(f"Spike at step {spike['step']}, score={spike['spike_score']:.2f}")
+
+scope.detach()
+```
+
+**Mixed precision:** pass your `GradScaler` so gradient metrics are recorded
+unscaled (otherwise they are inflated by the loss scale, e.g. 65536×):
+
+```python
+scope = TrainScope(model, optimizer, config, scaler=scaler).attach()
+```
+
+**Distributed training:** create one `TrainScope` per rank with
+`TrainScopeConfig(rank=rank)` (the HF/Lightning callbacks do this for you);
+each rank writes its own `<run>_rank{N}` directory. Under DDP every rank holds
+full replicas. Under FSDP2 (`fully_shard`) per-layer and global gradient/weight
+metrics are the true **global** values, combined from the shards with
+all-reduces (no parameter is gathered); losses and activations stay per rank.
+Every rank must call `step()` on the same steps.
+
+Open the run in the browser UI:
+
+```bash
+trainscope ui --run ./trainscope_runs/<run-name>
+```
+
+To see the UI on real data without your own run, `trainscope demo` trains two
+stable runs and two runs that diverge under a learning-rate ramp, then opens
+the Runs view (`--no-ui` only writes them; `--dir` picks the location).
+`examples/gpt2_spike_demo.py` is a minimal end-to-end script with an injected
+spike.
+
+## What gets recorded
+
+### Per step (global)
+
+- Train loss, global grad norm, learning rate
+  (TrainScope does not clip gradients itself; `grad_norm_after_clip` mirrors
+  `grad_norm_before_clip` unless you clip externally and pass the real post-clip
+  norm via `step(..., grad_norm_after_clip=...)`)
+- Anomaly score (`spike_score`) from the configured detector — CUSUM
+  change-point by default, or Z-score/percentile if configured via
+  `detector=`. Only the active detector's score is recorded per step.
+- Adam second-moment (`v`) norm — stale momentum indicator
+- Step time, batch index
+- CPU/CUDA memory usage when `track_memory=True`
+
+### Per step, per layer
+
+- Gradient L2 norm, max absolute gradient, gradient mean
+- Weight L2 norm, mean, std, min, max absolute value
+- Activation mean / std / min / max / median / max-abs / kurtosis (median estimated from 131,072 elements on larger activations)
+- NaN/Inf ratio in gradients
+- 16-bin weight histogram
+
+### On spike
+
+- Full snapshot of the surrounding window (`spike_window_before` + `spike_window_after`)
+- Per-layer data for the same window
+- Chronological Failure Cascade diagnosis (`Loss Shift` → `Grad Explosion` → `NaN`)
+- RNG state at the spike step for exact replay
+- Optional model checkpoint when `checkpoint_on_spike` is enabled
+
+## Browser UI
+
+Six tabs and a runs index, one command:
+
+| View | What it shows |
+|------|---------------|
+| **Overview** | Run status, final loss and grad norm, the first warning step and spike window; loss and grad norm on one shared step axis with the warmup band and spike windows; a layer × step heatmap of how far each layer's gradient norm sits above its own baseline; and the signals that crossed their threshold before the spike, with their lead |
+| **Layers** | Grad norm / weight norm / activation kurtosis per parameter tensor with a weight-histogram scrubber |
+| **Spikes** | The chronological root-cause cascade for a spike, with the loss, grad norm and per-layer signals around it |
+| **Routing** | Per-expert and per-slot share series over time (shown when the run has MoE or addressor data) |
+| **Compare** | KL divergence of weight distributions between any two steps, with per-layer gradient-norm change |
+| **Replay** | The run's generated `replay_config.json` with the training steps its skip list maps to |
+| **Runs index** | Every run under a root in one table, behavior clusters with their shared config trait and lead, and nearest-stable-run counterexamples (open it from the breadcrumb) |
+
+Each view has its own URL (`http://127.0.0.1:7007/#spikes`), so a link to a view can be shared and survives a reload; the 1.9.0 links (`#timeline`, `#diff`, …) still work. The UI follows your system's light or dark setting and loads no fonts or scripts from the network.
+
+### Screenshots
+
+All taken from `trainscope demo` (two runs diverge under a learning-rate ramp, two stay stable).
+
+**Overview.** Loss and grad norm on one step axis, the layer heatmap aligned underneath, and the signals that crossed before the spike with their lead. The loss line leaves the plot at the explosion with an off-scale marker instead of flattening the history.
+
+![Overview: loss and grad norm on a shared step axis, the layer heatmap below them, and the signals that crossed before the spike](https://raw.githubusercontent.com/kaelvalen/trainscope/main/docs/images/overview.png)
+
+**Dark mode** follows the system setting, from its own palette rather than an inverted one.
+
+![Overview in dark mode](https://raw.githubusercontent.com/kaelvalen/trainscope/main/docs/images/overview-dark.png)
+
+**Runs index.** Every run with its status and cluster, and the diverging runs grouped by the signal that fired first.
+
+![Runs index: every run with its status and cluster, and the diverging runs grouped by their first early-warning signal](https://raw.githubusercontent.com/kaelvalen/trainscope/main/docs/images/runs-view.png)
+
+**Layers.** One parameter tensor's gradient, weight and activation signals, with the weight histogram at any step.
+
+![Layers: gradient L2 over the run for one tensor, a step scrubber, and the weight histogram with outlier bins in red](https://raw.githubusercontent.com/kaelvalen/trainscope/main/docs/images/layers-view.png)
+
+**Spikes.** The root-cause cascade for a spike, with loss, grad norm and per-layer signals around it on a shared cursor.
+
+![Spikes: the cascade summary for the spike at step 113 and the loss, grad norm and layer charts around it](https://raw.githubusercontent.com/kaelvalen/trainscope/main/docs/images/spikes-view.png)
+
+The React UI is served by default after `pip install trainscope` (pre-compiled assets included). If developing from source:
+
+```bash
+cd frontend && npm install && npm run build
+```
+
+## Command-line interface
+
+```bash
+# Train demo runs (2 stable, 2 diverging) and open the UI on them
+trainscope demo [--dir ./trainscope_demo] [--no-ui] [--host 127.0.0.1] [--port 7007]
+
+# Open UI for a completed or in-progress run
+trainscope ui --run ./trainscope_runs/run_20250516_143022 \
+    [--host 127.0.0.1] [--port 7007] [--log-level INFO]
+
+# Open UI for every run under a root directory (multi-run mode):
+# the Runs view lists all runs side by side with last loss and spike
+# count; selecting one switches every other view to it. Check two or
+# more runs to compare loss curves (with an automatic divergence
+# point), config differences, and shared causes among spiked runs.
+trainscope ui --runs ./trainscope_runs
+
+# Local paths and fsspec URIs both work; remote trees (s3://, gs://) are
+# materialized to a local cache before the UI starts.
+trainscope ui --runs s3://bucket/trainscope_runs
+
+# Print version
+trainscope --version
+
+# Generate replay_config.json for exact batch skipping
+trainscope replay --checkpoint ./checkpoints/step_4400.pt \
+    --skip-batches 4521,4522,4523 [--resume]
+
+# Read skip batches from a file (one index or comma-separated list per line)
+trainscope replay --checkpoint ./checkpoints/step_4400.pt \
+    --skip-batches @batches.txt
+
+# Generate a post-mortem report for one run (spike story, fired signals, lead)
+trainscope report --run ./trainscope_runs/run_20250516_143022 [--format markdown|json]
+
+# Report for every run under a root: cluster by signal signature
+trainscope report --runs ./trainscope_runs
+```
+
+Use the generated config with `SkippingDataLoader` in your training script:
+
+```python
+from trainscope.replay import SkippingDataLoader
+import json
+
+with open("replay_config.json") as f:
+    cfg = json.load(f)
+
+loader = SkippingDataLoader(original_loader, skip_batches=cfg["skip_batches"])
+for batch in loader:
+    ...
+```
+
+## Configuration
+
+```python
+TrainScopeConfig(
+    run_dir="./trainscope_runs",            # output root
+    run_name=None,                          # defaults to run_YYYYMMDD_HHMMSS
+    full_resolution_window=500,             # last N steps at full resolution
+    decimation_factor=10,                   # older steps: keep every Nth
+    spike_window_before=50,                 # steps before spike to save
+    spike_window_after=10,                  # steps after spike to save
+    histogram_every_n_steps=50,             # weight histograms are expensive
+    activation_metrics_every_n_steps=5,     # kurtosis sampling
+    activation_layer_filter=["attn", "mlp"],# None = all leaf modules
+    stop_on_spike=False,                    # raise StopTraining on detection
+    trace_every_n_steps=1,                  # subsample for very large models
+    rank=None,                              # DDP rank → _rank{N} suffix
+    device=None,                            # metric compute device; None = where the tensor lives
+    track_memory=True,                      # CPU/CUDA memory in global snapshot
+    checkpoint_on_spike=None,               # True, path template, or None/False
+    rng_every_n_steps=0,                    # save RNG every N steps (0 = only spikes)
+    resume=False,                           # append to existing Arrow files
+    storage_uri=None,                       # s3:///gs:// URI for remote storage
+)
+```
+
+### Notable options
+
+- **`device`** — `None` (default) computes metrics on the device each tensor lives on; set `"cpu"` to offload. Before this release `None` meant CPU, which on a GPU copied every parameter, gradient and activation to the host each step.
+- **`detector`** — Selects the anomaly detector: `detector="changepoint"` (default, CUSUM) or `detector={"name": "z_score", "threshold": 3.5}` for the rolling z-score. Detector thresholds live inside this dict — there is no top-level `spike_threshold` since 1.0, because each detector's threshold is on a different scale (CUSUM's cumulative-sum decision threshold vs. a raw z-score cutoff). Architecture-aware detectors: `expert_utilization_drift` (default threshold 0.85, routing concentration in MoE models) and `addressor_concentration_drift` (default threshold 0.6, slot concentration in memory-augmented models).
+- **`checkpoint_on_spike`** — Save `model.state_dict()` (and optimizer state if available) on spike. `True` writes `checkpoints/{step}.pt`; a string is a `{step}` path template.
+- **`rng_every_n_steps`** — Save RNG state periodically in addition to spike steps.
+- **`resume`** — Append to existing Arrow files instead of overwriting.
+- **`storage_uri`** — Write to a remote store (`s3://`, `gs://`, `az://`, `file://`) via fsspec instead of the local `DiskWriter`. Remote objects are rewritten on the compaction cadence (no native append), so remote artifacts lag by up to `compaction_every_n_steps` steps.
+
+## Storage layout
+
+```
+trainscope_runs/<run-name>/
+    meta.json                          model config + trainscope config
+    manifest.json                      summary of files and latest step
+    global.arrow                       step-level scalars (Arrow IPC)
+    layers/<param-name>.arrow          per-layer metrics (percent-encoded filenames)
+    moe.arrow                          per-block routing/addressing shares (MoE & addressor)
+    plugin_metrics.arrow               plugin metric rows (step, plugin, metric, value)
+    spikes/spike_step_<N>.arrow        global window around spike N
+    spikes/spike_step_<N>_layers/      per-layer data for that window
+    rng_states/step_<N>.pkl            RNG state for replay
+    checkpoints/<N>.pt                 model checkpoint on spike (optional)
+```
+
+Estimated storage: ~10 MB/step at full resolution for a 1B-parameter model. The default 500-step rolling window caps typical retention at ~5 GB. Spike windows are small.
+
+## Stability scope
+
+Starting with 1.0.0, trainscope follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) with a *defined surface*:
+
+- **Python API (stable contract)** — `TrainScope`, `TrainScopeConfig`, `load_config`, `StopTraining`, and the `trainscope.*` import paths. Breaking changes to these (renames, removed parameters, changed semantics) only land in major releases. `StopTraining.spike_score` is the canonical attribute; `z_score` remains as a deprecated alias.
+- **Config surface (stable contract)** — All `TrainScopeConfig` fields, their defaults, and the `TRAINSCOPE_*` / YAML / JSON loading conventions. Detector thresholds are configured per-detector (e.g. `detector={"name": "z_score", "threshold": 3.5}`); there is no top-level `spike_threshold` since 1.0.
+- **Arrow file format (additive only within a major version)** — `global.arrow`, layer and spike-window files, and `meta.json`/`manifest.json`. Adding a new nullable field is a minor release; removing a field or changing an existing field's type or semantics requires a major release. Writers may add columns; readers must tolerate columns they do not know about. Plugins already get their own table (`PLUGIN_METRICS_SCHEMA`), so new metric surfaces should extend that rather than reshuffle the core schema.
+- **HTTP/WebSocket API (not a public contract)** — The `/api/*` endpoints and `/ws` WebSocket are implementation details of the bundled UI. They are versioned implicitly by the trainscope release and may change shape in minor releases; do not build external clients against them. The [browser UI](#browser-ui) is the only supported consumer.
+- **Plugins** — Detector plugins must subclass `AnomalyDetector` and implement `update(loss) -> float | None` plus `warmup`; metric plugins subclass `MetricPlugin` with a `name` ClassVar and `compute(model, optimizer, step) -> dict[str, float]`, writing rows to the plugin-metrics table (`PLUGIN_METRICS_SCHEMA`: `step`, `plugin`, `metric`, `value`). This surface is frozen (contract-tested in `tests/test_plugin_contract.py`); adding a plugin hook is a minor release, changing the existing methods or table columns requires a major release.
+
+Anything not listed here (integration helper details, CLI output formatting) is considered internal.
+
+## Overhead
+
+Per-step time with the default config (every step traced, histograms every 50
+steps, activation metrics every 5), over 35 steps:
+
+| Setup | Without TrainScope | With TrainScope | Overhead |
+|-------|-------------------|-----------------|----------|
+| GPU: 12-layer transformer, 97M params, bf16 autocast, batch 8×128, RTX 5060 Laptop | 61–63 ms | 76–78 ms median, 79–82 ms mean | ~25% |
+| CPU: 8-layer transformer, 15M params, batch 8×64, Ryzen 7 (4 threads) | 132 ms | 185 ms | ~40% |
+
+On GPU that is ~15 ms per step for 97M parameters, most of it two
+bandwidth-bound reads of every weight and gradient. Earlier releases took
+236 ms/step on the same setup (metrics on the CPU, one device sync per
+statistic). The CPU row was measured before the GPU fusion work, which had no
+measurable effect there. TrainScope's cost is per parameter and per traced
+step, not per token, so it shrinks relative to training as batch size and
+sequence length grow. To cut it, trace fewer steps (`trace_every_n_steps`),
+raise `activation_metrics_every_n_steps`, or restrict activations with
+`activation_layer_filter`.
+
+
+## Development
+
+The project uses a Nix flake for the development shell:
+
+```bash
+nix develop
+```
+
+Or with a local virtual environment:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
+
+Quick commands:
+
+```bash
+make test      # pytest tests/ -q
+make lint      # ruff + mypy
+make format    # ruff format
+make frontend-build
+```
+
+Install pre-commit hooks:
+
+```bash
+pre-commit install
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for coding style and pull request guidelines.
+
+## License
+
+[MIT](LICENSE)
