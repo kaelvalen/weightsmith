@@ -146,3 +146,35 @@ def test_gqa_rope_forward_is_causal(tmp_path):
     assert not torch.allclose(a[0, 5:], b[0, 5:])
     assert m.lm_head.weight is m.embed.weight
     assert sum(p.numel() for p in m.parameters() if p.requires_grad) == c.analysis.totals.trainable
+
+
+# config hashes before trainscope recording existed: diagnostics must not change run identity
+TINY_CONFIG_HASH = "5bb762ae0017740cd54ad9e20d04091adf98337726480c0fa2690279c823c57e"
+MNIST_CONFIG_HASH = "1c60f20bccaf93d9be499fd8cda88b12d651e546dca363d7f14cedf1450bb7e6"
+
+
+def test_diagnostics_not_in_run_identity():
+    from conftest import tiny_classifier
+    from weightsmith_codegen.project import job_hashes
+
+    job = tiny_classifier()
+    off = tiny_classifier(diagnostics={"trainscope": False})
+    assert job_hashes(job)["config"] == job_hashes(off)["config"] == TINY_CONFIG_HASH
+    mnist_job = json.loads((EXAMPLES / "mnist_mlp.job.json").read_text())
+    assert job_hashes(mnist_job)["config"] == MNIST_CONFIG_HASH
+
+
+def test_module_map_covers_parameters(tmp_path):
+    from weightsmith_codegen.project import _load_module
+
+    job = json.loads((EXAMPLES / "transformer_reverse.job.json").read_text())
+    job["graph"] = load_example("transformer_reverse")  # the job file references it via $ref
+    out = tmp_path / "run"
+    write_run(job, out)
+    module_map = json.loads((out / "module_map.json").read_text())
+    mod = _load_module(out / "model.py", "ws_module_map_probe")
+    with torch.device("meta"):
+        model = mod.Model()
+    heads = {name.split(".")[0] for name, _ in model.named_parameters()}
+    assert heads and heads <= set(module_map)
+    assert set(module_map.values()) <= {n["id"] for n in job["graph"]["nodes"]}

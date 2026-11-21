@@ -45,8 +45,20 @@ def production() -> dict:
     }
 
 
+def weightsmith() -> dict:
+    """Weightsmith's default: low overhead on every run, all layers kept.
+
+    Like ``minimal`` but without the attn/mlp activation filter, because
+    Weightsmith's module names come from graph node ids.
+    """
+    preset = minimal()
+    preset.pop("activation_layer_filter")
+    return preset
+
+
 PRESETS: dict[str, Callable[[], dict]] = {
     "minimal": minimal,
+    "weightsmith": weightsmith,
     "default": default,
     "debug": debug,
     "production": production,

@@ -409,6 +409,11 @@ class DiskWriter:
     # --------------------------------------------------------------------- #
     # Resume support
     # --------------------------------------------------------------------- #
+    @property
+    def last_step(self) -> int | None:
+        """Highest step written so far, including rows loaded on resume."""
+        return self._last_step
+
     def _load_resume_state(self):
         global_path = self._global_path()
         if global_path.exists():

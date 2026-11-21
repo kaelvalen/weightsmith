@@ -27,7 +27,7 @@ export interface RunEvent {
   seq: number;
   ts: number;
   run: string;
-  type: "status" | "metric" | "eval" | "log" | "error" | "checkpoint" | "gate";
+  type: "status" | "metric" | "eval" | "log" | "error" | "checkpoint" | "gate" | "spike";
   [k: string]: any;
 }
 

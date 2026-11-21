@@ -112,7 +112,9 @@ class TrainScope:
         self._act_cache: dict[str, dict | torch.Tensor] = {}
         self._hooks: list[Any] = []
         self._moe_cache: dict[str, list[float]] = {}
-        self._step_idx = 0
+        # A resumed run continues after its last recorded step instead of restarting at 0.
+        last = self._writer.last_step if isinstance(self._writer, DiskWriter) else None
+        self._step_idx = last + 1 if self._config.resume and last is not None else 0
         self._last_step_time: float | None = None
 
         self._callbacks = build_callbacks(self._config.integrations)

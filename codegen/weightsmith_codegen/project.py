@@ -17,7 +17,7 @@ from weightsmith_core import ir
 from weightsmith_core.registry import expand_defaults
 from weightsmith_core.shapes import is_symbol
 
-from .emit import Compiled, compile_graph
+from .emit import Compiled, compile_graph, py_name
 
 DEFAULT_TRAIN: dict[str, Any] = {
     "seed": 0,
@@ -35,6 +35,8 @@ DEFAULT_TRAIN: dict[str, Any] = {
     "log_every": 10,
     "eval_every": None,
     "checkpoint": {"every_steps": None, "keep": 2},
+    # trainscope recording under <run>/scope/; not part of the run's identity
+    "diagnostics": {"trainscope": True, "profile": "weightsmith"},
 }
 
 DEFAULT_DATA: dict[str, Any] = {"source": "synthetic", "split": {"val": 0.1, "seed": 0}, "preprocess": []}
@@ -92,7 +94,7 @@ def job_hashes(job: dict[str, Any]) -> dict[str, str]:
         init.pop("weights")  # the content identifies the run, not where the file lives
     return {
         "graph": ir.content_hash(job["graph"]),
-        "config": ir.hash_obj({**{k: v for k, v in job["train"].items() if k != "seed"}, "init": init}),
+        "config": ir.hash_obj({**{k: v for k, v in job["train"].items() if k not in ("seed", "diagnostics")}, "init": init}),
         "data_spec": ir.hash_obj(job["data"]),
         "seed": str(job["train"]["seed"]),
     }
@@ -142,6 +144,8 @@ def write_run(job: dict[str, Any], out_dir: str | Path, job_hash: str | None = N
         cfg["job_hash"] = job_hash
     (out / "model.py").write_text(compiled.model_py)
     (out / "model.map.json").write_text(json.dumps({str(k): v for k, v in compiled.line_map.items()}))
+    # module attribute -> node id: trainscope layer names start with the attribute
+    (out / "module_map.json").write_text(json.dumps({py_name(n["id"]): n["id"] for n in job["graph"]["nodes"]}))
     (out / "train.py").write_text(_template("train.py"))
     (out / "data.py").write_text(_template("data.py"))
     header = f"# Weightsmith job config. graph {compiled.graph_hash[:12]}" + (f" · job {job_hash[:12]}" if job_hash else "") + "\n"
@@ -152,6 +156,7 @@ def write_run(job: dict[str, Any], out_dir: str | Path, job_hash: str | None = N
         "Exported by Weightsmith. Re-run without the canvas:\n\n"
         "    pip install torch numpy pyyaml\n    python train.py\n\n"
         "- `model.py`: the model, one `# node:` comment per graph node\n"
+        "- `scope/`: trainscope recording of the run (`pip install trainscope`, then `trainscope ui --run scope`)\n"
         "- `config.yaml`: data, optimiser, schedule, precision, seed\n"
         "- `graph.json`: the graph IR this code was generated from\n"
     )

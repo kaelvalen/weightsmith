@@ -36,6 +36,12 @@ sys.path.insert(0, str(HERE))
 import data  # noqa: E402
 from model import Model  # noqa: E402
 
+try:  # optional: records per-layer diagnostics under scope/ (pip install trainscope)
+    from trainscope import TrainScope
+    from trainscope.core.config import load_config
+except ImportError:
+    TrainScope = None
+
 EVENTS = False
 
 
@@ -429,6 +435,14 @@ def main(argv: list[str] | None = None) -> int:
         step, start_epoch, skip = load_checkpoint(Path(args.resume), model, opt, sched, scaler)
         log(f"resumed from {args.resume} at step {step}")
 
+    dc = tc.get("diagnostics") or {}
+    scope = None
+    if TrainScope is not None and dc.get("trainscope"):
+        scope_cfg = load_config({"profile": dc.get("profile"), "run_dir": str(out_dir), "run_name": "scope",
+                                 "resume": bool(args.resume)})
+        # the uncompiled module, so layer names stay the graph's attribute names
+        scope = TrainScope(getattr(model, "_orig_mod", model), opt, scope_cfg, scaler=scaler).attach()
+
     log_every = tc.get("log_every", 10)
     eval_every = tc.get("eval_every")
     ckpt_every = tc.get("checkpoint", {}).get("every_steps")
@@ -500,6 +514,7 @@ def main(argv: list[str] | None = None) -> int:
                 else:
                     loss.backward()
                 grad_norm = torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad], clip or float("inf"))
+                spike = scope.step(loss.item(), batch_index=i, grad_norm_after_clip=float(grad_norm)) if scope else None
                 if scaler is not None:
                     scaler.step(opt)
                     scaler.update()
@@ -507,6 +522,8 @@ def main(argv: list[str] | None = None) -> int:
                     opt.step()
                 sched.step()
                 step += 1
+                if spike:
+                    emit("spike", step=step, score=float(spike["spike_score"]))
                 samples += next(iter(batch.values())).shape[0]
 
                 if step % log_every == 0 or step == 1 or step >= total_steps:
@@ -545,6 +562,9 @@ def main(argv: list[str] | None = None) -> int:
         if not EVENTS:
             raise
         return 1
+    finally:
+        if scope:
+            scope.detach()
 
     if val_loader and state == "completed" and last_eval != step:
         emit("eval", step=step, **evaluate(model, val_loader, device, amp, metrics_cfg))

@@ -275,6 +275,12 @@ class JobManager:
             if "val_loss" in ev and (best is None or ev["val_loss"] < best):
                 s["best_val_loss"] = ev["val_loss"]
             self.store.update_run(rid, summary=s)
+        elif t == "spike":
+            summary = (self.store.get_run(rid) or {}).get("summary", {})
+            s = {"spikes": summary.get("spikes", 0) + 1}
+            if summary.get("first_spike_step") is None:
+                s["first_spike_step"] = ev["step"]
+            self.store.update_run(rid, summary=s)
         elif t == "gate":
             self.store.update_run(rid, summary={"gate": {k: ev[k] for k in ("mean", "max", "kappa", "passed", "prompts") if k in ev}})
         elif t == "error":

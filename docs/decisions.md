@@ -154,6 +154,30 @@ GraphConv ve GraphPool · AuxLoss, Focal, Dice, GaussianNLL, CosineEmbedding.
 denoiser · MNIST; iki MobileNetV2 inverted residual bloğu. İkisi de MNIST'te 400 adımda öğreniyor
 (DDPM gürültü MSE'si 0.56, sıfır tahmini 1.0; VQ-VAE yeniden kurma + commitment 1.14 → 0.28).
 
+## Beşinci tur: trainscope kaydı
+
+Her run trainscope ile kaydedilir (`train.diagnostics`, varsayılan açık, profil `weightsmith`:
+`minimal` + tüm katmanlar). Alan run kimliğine girmez. Kayıt `runs/<id>/scope/` altında;
+`module_map.json` katman adının ilk segmentini node id'sine çevirir. Tasarım ve plan:
+[`docs/design/2026-11-21-trainscope-merge.md`](design/2026-11-21-trainscope-merge.md).
+
+**Maliyet (RTX 5060 Laptop, ölçülen, 3 tekrar medyanı, iç içe A/B).** trainscope'un adım başına
+sabit bir maliyeti var (~0.5–4 ms: katman metrikleri, Arrow yazımı, spike olunca PELT), bu yüzden
+çok küçük modellerde oran yüksek:
+
+| Job | Kapalı | Açık | Fark |
+| --- | --- | --- | --- |
+| transformer_reverse (GPU, 300 adım) | 4.32 ms/adım | 8.08 ms/adım | +87% |
+| mlp_lora (GPU, 300 adım) | 1.55 ms/adım | 2.53 ms/adım | +63% |
+| tiny classifier (CPU) | 0.62 ms/adım | 1.16 ms/adım | +87% |
+
+Hedef ≤%10'du; tutmadı. `trace_every_n_steps` 5 ve 10'da da %16–33 kaldı (ölçüm gürültüsü
+±0.4 ms) ve izlenmeyen adımlarda loss dedektörü de çalışmadığı için CUSUM'un adım çözünürlüğündeki
+erken uyarısı kayboluyor. Karar: her adım izlenir; maliyet saniyeler mertebesinde (300 adımda ~1 s).
+Büyük modelde oran parametre sayısıyla ölçeklenir (trainscope README: 97M'de varsayılan profille
+~%25). Kapatmak: job'da `"diagnostics": {"trainscope": false}`. Sonraki iş: trainscope'un adım
+yolunu küçük modeller için ucuzlatmak (katman metriklerini tek tensörde toplamak, yazımı toplu yapmak).
+
 ## Testler
 
 `scripts/check.sh`: Python (çekirdek, codegen snapshot'ları, 132 node'un CPU'da gerçek forward'ı, şablon sayıları, importer eşdeğerliği, Cerata döngüsü, daemon uçtan uca), TS aynası çapraz testi, typecheck, build ve Chrome varsa tarayıcı senaryoları (`scripts/e2e.sh`, `web/e2e/`).

@@ -562,3 +562,25 @@ def test_grad_metrics_are_unscaled_under_grad_scaler(tmp_path, unscale_first):
     assert rows[0]["grad_norm_before_clip"] == pytest.approx(true_norm, rel=1e-5)
     layer = read_arrow_rows_sync(tmp_path / name / "layers" / "weight.arrow")
     assert layer[0]["grad_l2_norm"] == pytest.approx(true_w_norm, rel=1e-5)
+
+
+def test_resume_continues_step_numbering(tmp_path):
+    """A resumed run appends after its last recorded step instead of restarting at 0."""
+
+    def run(n: int, resume: bool) -> None:
+        model = nn.Linear(4, 1)
+        opt = torch.optim.SGD(model.parameters(), lr=0.01)
+        cfg = TrainScopeConfig(run_dir=str(tmp_path), run_name="resumed", resume=resume)
+        scope = TrainScope(model, opt, cfg).attach()
+        for _ in range(n):
+            opt.zero_grad()
+            loss = model(torch.randn(8, 4)).pow(2).mean()
+            loss.backward()
+            scope.step(loss.item())
+            opt.step()
+        scope.detach()
+
+    run(5, resume=False)
+    run(3, resume=True)
+    steps = [r["step"] for r in read_arrow_rows_sync(tmp_path / "resumed" / "global.arrow")]
+    assert steps == list(range(8))

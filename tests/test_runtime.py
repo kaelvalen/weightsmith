@@ -146,3 +146,91 @@ def test_run_note_and_final_status_after_error(client):
     r = client.patch(f"/api/runs/{rec['id']}", json={"note": "lr far too high on purpose", "name": "nan probe"}).json()
     assert r["summary"]["note"] == "lr far too high on purpose" and r["name"] == "nan probe"
     assert done["status"] == "failed"
+
+
+# --------------------------------------------------------------- trainscope recording
+
+
+def scope_rows(client, rid, name="global.arrow"):
+    from trainscope.io.writer import read_arrow_rows_sync
+
+    run_dir = client.app.state.jobs.store.run_dir(rid)
+    return read_arrow_rows_sync(run_dir / "scope" / name)
+
+
+def scope_dir(client, rid):
+    return client.app.state.jobs.store.run_dir(rid) / "scope"
+
+
+def test_run_records_trainscope(client):
+    rec = submit(client, tiny_classifier())
+    assert wait(client, rec["id"])["status"] == "completed"
+    assert [r["step"] for r in scope_rows(client, rec["id"])] == list(range(30))
+
+
+def test_runs_without_trainscope(tmp_path):
+    import subprocess
+    import sys
+
+    from weightsmith_codegen.project import write_run
+
+    out = tmp_path / "export"
+    write_run(tiny_classifier(), out)
+    blocked = "import runpy, sys; sys.modules['trainscope'] = None; sys.argv = ['train.py']; runpy.run_path('train.py', run_name='__main__')"
+    r = subprocess.run([sys.executable, "-c", blocked], cwd=out, capture_output=True, text=True, timeout=120)
+    assert r.returncode == 0, r.stderr[-2000:]
+    assert not (out / "scope").exists()
+
+
+def test_spike_event_on_lr_ramp(client):
+    rec = submit(client, tiny_classifier(epochs=8, optimizer={"name": "sgd", "lr": 1.0}, scheduler={"name": "constant"},
+                                         grad_clip=None))
+    done = wait(client, rec["id"])
+    spikes = client.get(f"/api/runs/{rec['id']}/events", params={"types": "spike"}).json()
+    assert spikes, done
+    assert done["summary"]["first_spike_step"] == spikes[0]["step"]
+    assert done["summary"]["spikes"] == len(spikes)
+
+
+def test_resume_appends_scope(client):
+    rec = submit(client, tiny_classifier(max_steps=10**7, log_every=1))
+    rid = rec["id"]
+    for _ in range(2):  # run, stop, resume, stop
+        wait(client, rid, ("running",))
+        time.sleep(0.5)
+        client.post(f"/api/runs/{rid}/control", json={"cmd": "stop"})
+        final = wait(client, rid, ("stopped",))
+        if _ == 0:
+            assert client.post(f"/api/runs/{rid}/control", json={"cmd": "resume"}).status_code == 200
+    steps = [r["step"] for r in scope_rows(client, rid)]
+    assert steps == list(range(final["summary"]["last"]["step"]))
+
+
+def test_compile_keeps_layer_names(client):
+    rec = submit(client, tiny_classifier(compile=True))
+    done = wait(client, rec["id"], timeout=300)
+    if done["status"] != "completed":
+        pytest.skip(f"torch.compile unavailable here: {(done.get('error') or {}).get('message', '')[:200]}")
+    names = [p.name for p in (scope_dir(client, rec["id"]) / "layers").iterdir()]
+    assert names and not any("_orig_mod" in n for n in names)
+
+
+def test_nan_flushes_scope(client):
+    rec = submit(client, tiny_classifier(optimizer={"name": "sgd", "lr": 1e30}, grad_clip=None))
+    done = wait(client, rec["id"])
+    assert done["error"]["class"] == "nan"
+    assert len(scope_rows(client, rec["id"])) >= 1
+
+
+def test_lora_job_records(client):
+    job = tiny_classifier()
+    job["graph"]["nodes"][1]["adapt"] = [{"kind": "lora", "r": 2, "alpha": 4}]
+    rec = submit(client, job)
+    assert wait(client, rec["id"])["status"] == "completed"
+    from urllib.parse import quote
+
+    def last_grad(layer):
+        return scope_rows(client, rec["id"], f"layers/{quote(layer, safe='')}.arrow")[-1]["grad_l2_norm"]
+
+    assert last_grad("fc1.base.weight") == 0.0  # frozen base: recorded, never updated
+    assert last_grad("fc1.lora_B") > 0.0
