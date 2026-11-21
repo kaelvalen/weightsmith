@@ -25,6 +25,8 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          # the post-job prune exits 2 on this cache (the checks themselves pass); keep the cache as is
+          prune-cache: false
       - uses: pnpm/action-setup@v4
         with:
           version: 12
