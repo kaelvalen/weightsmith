@@ -178,6 +178,23 @@ Büyük modelde oran parametre sayısıyla ölçeklenir (trainscope README: 97M'
 ~%25). Kapatmak: job'da `"diagnostics": {"trainscope": false}`. Sonraki iş: trainscope'un adım
 yolunu küçük modeller için ucuzlatmak (katman metriklerini tek tensörde toplamak, yazımı toplu yapmak).
 
+**Birleşme.** trainscope geçmişiyle `trainscope/` altına taşındı (uv workspace üyesi; PyPI'a
+`trainscope-v*` etiketiyle bu repodan yayınlanır, ilk sürüm 1.11.0). API'si run bazlı bir router
+oldu (`make_router`), daemon onu `/api/scope` altında servis eder. Arayüzü `web/src/scope/`'ta
+TS'e yeniden yazıldı; aynı kod Diagnose sekmesi ve `pnpm run build:scope` ile wheel'e giren bağımsız
+`trainscope ui`. Grafikler uPlot (tek kütüphane), renkler `index.css` token'ları. Uygulama planı:
+[`docs/design/2026-11-21-trainscope-merge-plan.md`](design/2026-11-21-trainscope-merge-plan.md).
+
+trainscope'a eklenenler (geriye uyumlu): `TrainScope(model_config=...)` (karşılaştırmanın diff
+ettiği run config'i; Weightsmith job'ın train ayarlarını, graph hash'ini ve veri kaynağını yazar),
+`weightsmith` preset'i, resume'da adım numarasının kaldığı yerden devam etmesi (önceden 0'dan
+başlayıp adımları tekrarlıyordu).
+
+Bilinçli olarak yapılmayanlar: Overview'da sürükle-yakınlaştır, Layers'ta histogram kaydırıcısı,
+Compare grafiğinde kümelerin ortak kader bandı (metin olarak listeleniyor), Runs'ta tam
+`runStatus` (sağlık kayıt özetinden okunur: sonlu ama 10× yukarıda biten run "diverged" değil
+"stable/spiked" görünür), Weightsmith dışı run'ları Runs'a ekleme (proje 3).
+
 ## Testler
 
 `scripts/check.sh`: Python (çekirdek, codegen snapshot'ları, 132 node'un CPU'da gerçek forward'ı, şablon sayıları, importer eşdeğerliği, Cerata döngüsü, daemon uçtan uca), TS aynası çapraz testi, typecheck, build ve Chrome varsa tarayıcı senaryoları (`scripts/e2e.sh`, `web/e2e/`).

@@ -30,4 +30,5 @@ def test_standalone_wheel_ships_the_shared_ui(tmp_path):
     assert 'name="generator" content="weightsmith-web"' in wheel.read("trainscope/ui/static/index.html").decode()
     assert any(n.startswith("trainscope/ui/static/assets/") and n.endswith(".js") for n in names)
     meta = wheel.read(next(n for n in names if n.endswith("METADATA"))).decode()
-    assert "weightsmith" not in meta.lower()
+    requires = [line for line in meta.splitlines() if line.startswith("Requires-Dist:")]
+    assert requires and not any("weightsmith" in r.lower() for r in requires)

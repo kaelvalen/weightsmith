@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "trainscope"
-version = "1.10.0"
+version = "1.11.0"
 description = "Post-mortem debugger for LLM training loss spikes"
 readme = "README.md"
 license = { text = "MIT" }
@@ -36,9 +36,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/kaelvalen/trainscope"
-Repository = "https://github.com/kaelvalen/trainscope"
-"Bug Tracker" = "https://github.com/kaelvalen/trainscope/issues"
+Homepage = "https://github.com/kaelvalen/weightsmith/tree/main/trainscope"
+Repository = "https://github.com/kaelvalen/weightsmith"
+"Bug Tracker" = "https://github.com/kaelvalen/weightsmith/issues"
 
 [project.optional-dependencies]
 integrations = [

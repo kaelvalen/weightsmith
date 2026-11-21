@@ -2,10 +2,12 @@
 
 [![PyPI](https://img.shields.io/pypi/v/trainscope)](https://pypi.org/project/trainscope)
 [![Python](https://img.shields.io/pypi/pyversions/trainscope)](https://pypi.org/project/trainscope)
-[![CI](https://github.com/kaelvalen/trainscope/actions/workflows/ci.yml/badge.svg)](https://github.com/kaelvalen/trainscope/actions/workflows/ci.yml)
+[![CI](https://github.com/kaelvalen/weightsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/kaelvalen/weightsmith/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **Post-mortem debugger for LLM training loss spikes.**
+
+trainscope lives in the [Weightsmith](https://github.com/kaelvalen/weightsmith) repository (`trainscope/`) and records every Weightsmith run; it is still a standalone package for any PyTorch, Hugging Face or Lightning training loop.
 
 When a loss spike hits, you know *that* it happened — trainscope tells you *why*. It records per-layer gradients, weight distributions, activation statistics, and optimizer state at every training step, then serves a browser UI to scrub back through the event.
 
@@ -14,7 +16,7 @@ pip install trainscope
 trainscope demo   # trains 4 tiny runs (~10 s on CPU), 2 of which diverge, and opens the UI
 ```
 
-![Overview of a diverging run: loss and grad norm on a shared step axis, the layer heatmap below, and the signals that crossed before the spike](https://raw.githubusercontent.com/kaelvalen/trainscope/main/docs/images/overview.png)
+![Overview of a diverging run: loss and grad norm on a shared step axis, the layer heatmap below, and the signals that crossed before the spike](https://raw.githubusercontent.com/kaelvalen/weightsmith/main/trainscope/docs/images/overview.png)
 
 ## Table of contents
 
@@ -49,7 +51,7 @@ Loss spikes in large language model training are expensive. Existing tools log a
 - **Weight histograms + KL divergence**: Compare parameter distributions before and after the spike.
 - **RNG state + optional checkpoint**: At the spike step for exact replay.
 
-All data is written to Arrow files (locally or to a remote store via fsspec); the UI is a lightweight standalone FastAPI server with lazy-loaded views and Plotly (initial shell ~60KB gzipped; the 4.9MB Plotly bundle is fetched only when the first chart renders) and incremental WebSocket live streaming for loss, spikes, layers, and MoE routing shares.
+All data is written to Arrow files (locally or to a remote store via fsspec); the UI is a lightweight standalone FastAPI server with uPlot charts (the whole UI is ~100 KB of gzipped JS) and incremental WebSocket live streaming for loss, spikes, layers, and MoE routing shares.
 
 ## Quick start
 
@@ -157,19 +159,20 @@ spike.
 
 ## Browser UI
 
-Six tabs and a runs index, one command:
+`trainscope ui --run <dir>` or `trainscope ui --runs <root>` opens one run at a time (pick it at the top; the choice is kept in the URL as `#run=<name>`), with these views:
 
 | View | What it shows |
 |------|---------------|
-| **Overview** | Run status, final loss and grad norm, the first warning step and spike window; loss and grad norm on one shared step axis with the warmup band and spike windows; a layer × step heatmap of how far each layer's gradient norm sits above its own baseline; and the signals that crossed their threshold before the spike, with their lead |
-| **Layers** | Grad norm / weight norm / activation kurtosis per parameter tensor with a weight-histogram scrubber |
-| **Spikes** | The chronological root-cause cascade for a spike, with the loss, grad norm and per-layer signals around it |
+| **Overview** | Run status, final loss and grad norm, the first warning step and spike window; loss and grad norm on one shared step axis with the warmup band and spike windows; a layer × step heatmap of how far each layer's metric (gradient norm, weight norm, activation kurtosis or max gradient) sits above its own baseline; and the signals that crossed their threshold before the spike, with their lead |
+| **Layers** | Gradient norm, weight norm, activation kurtosis and max gradient for one parameter tensor over the run |
+| **Spikes** | Each spike event with the chronological root-cause cascade, the loss around it and the layers recorded in its window |
 | **Routing** | Per-expert and per-slot share series over time (shown when the run has MoE or addressor data) |
-| **Compare** | KL divergence of weight distributions between any two steps, with per-layer gradient-norm change |
+| **Weights** | KL divergence of weight distributions between any two steps, with per-layer gradient-norm change |
 | **Replay** | The run's generated `replay_config.json` with the training steps its skip list maps to |
-| **Runs index** | Every run under a root in one table, behavior clusters with their shared config trait and lead, and nearest-stable-run counterexamples (open it from the breadcrumb) |
 
-Each view has its own URL (`http://127.0.0.1:7007/#spikes`), so a link to a view can be shared and survives a reload; the 1.9.0 links (`#timeline`, `#diff`, …) still work. The UI follows your system's light or dark setting and loads no fonts or scripts from the network.
+With more than one run, a side panel answers "why did it blow up": where the loss curves separate, the config fields every spiked run shares against the stable ones, behavior clusters with their lead, and the nearest stable run with the fields it differs in. The UI follows your system's light or dark setting and loads no fonts or scripts from the network.
+
+The same views are the **Diagnose** tab in Weightsmith, where a heatmap row also selects the graph node that holds the layer.
 
 ### Screenshots
 
@@ -177,28 +180,24 @@ All taken from `trainscope demo` (two runs diverge under a learning-rate ramp, t
 
 **Overview.** Loss and grad norm on one step axis, the layer heatmap aligned underneath, and the signals that crossed before the spike with their lead. The loss line leaves the plot at the explosion with an off-scale marker instead of flattening the history.
 
-![Overview: loss and grad norm on a shared step axis, the layer heatmap below them, and the signals that crossed before the spike](https://raw.githubusercontent.com/kaelvalen/trainscope/main/docs/images/overview.png)
+![Overview: loss and grad norm on a shared step axis, the layer heatmap below them, and the signals that crossed before the spike](https://raw.githubusercontent.com/kaelvalen/weightsmith/main/trainscope/docs/images/overview.png)
 
 **Dark mode** follows the system setting, from its own palette rather than an inverted one.
 
-![Overview in dark mode](https://raw.githubusercontent.com/kaelvalen/trainscope/main/docs/images/overview-dark.png)
+![Overview in dark mode](https://raw.githubusercontent.com/kaelvalen/weightsmith/main/trainscope/docs/images/overview-dark.png)
 
-**Runs index.** Every run with its status and cluster, and the diverging runs grouped by the signal that fired first.
+**Layers.** One parameter tensor's gradient, weight and activation signals over the run.
 
-![Runs index: every run with its status and cluster, and the diverging runs grouped by their first early-warning signal](https://raw.githubusercontent.com/kaelvalen/trainscope/main/docs/images/runs-view.png)
-
-**Layers.** One parameter tensor's gradient, weight and activation signals, with the weight histogram at any step.
-
-![Layers: gradient L2 over the run for one tensor, a step scrubber, and the weight histogram with outlier bins in red](https://raw.githubusercontent.com/kaelvalen/trainscope/main/docs/images/layers-view.png)
+![Layers: gradient norm, weight norm, activation kurtosis and max gradient over the run for one tensor](https://raw.githubusercontent.com/kaelvalen/weightsmith/main/trainscope/docs/images/layers-view.png)
 
 **Spikes.** The root-cause cascade for a spike, with loss, grad norm and per-layer signals around it on a shared cursor.
 
-![Spikes: the cascade summary for the spike at step 113 and the loss, grad norm and layer charts around it](https://raw.githubusercontent.com/kaelvalen/trainscope/main/docs/images/spikes-view.png)
+![Spikes: the cascade summary for the spike at step 113 and the loss, grad norm and layer charts around it](https://raw.githubusercontent.com/kaelvalen/weightsmith/main/trainscope/docs/images/spikes-view.png)
 
-The React UI is served by default after `pip install trainscope` (pre-compiled assets included). If developing from source:
+The UI is served by default after `pip install trainscope` (pre-built assets included). From a source checkout it is built from Weightsmith's web package:
 
 ```bash
-cd frontend && npm install && npm run build
+cd web && pnpm install && pnpm run build:scope   # writes trainscope/trainscope/ui/static
 ```
 
 ## Command-line interface
@@ -341,36 +340,23 @@ raise `activation_metrics_every_n_steps`, or restrict activations with
 
 ## Development
 
-The project uses a Nix flake for the development shell:
+trainscope is a member of the Weightsmith uv workspace:
 
 ```bash
-nix develop
+git clone https://github.com/kaelvalen/weightsmith.git
+cd weightsmith
+uv sync                                      # both packages, editable
+cd trainscope && uv run pytest -q            # trainscope's own suite and config
+uv run ruff check trainscope/ tests/ scripts/ examples/ && uv run mypy trainscope/ tests/
 ```
 
-Or with a local virtual environment:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-```
-
-Quick commands:
-
-```bash
-make test      # pytest tests/ -q
-make lint      # ruff + mypy
-make format    # ruff format
-make frontend-build
-```
-
-Install pre-commit hooks:
-
-```bash
-pre-commit install
-```
+`scripts/check.sh` at the repository root runs everything, Weightsmith's suites included. The package must not import Weightsmith (a test enforces it).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for coding style and pull request guidelines.
+
+## Publishing
+
+Releases are cut from the Weightsmith repository with a `trainscope-v<version>` tag (the version in `trainscope/pyproject.toml`). The publish workflow runs the checks, builds the UI into the package, builds the wheel and sdist and uploads them to PyPI with trusted publishing.
 
 ## License
 

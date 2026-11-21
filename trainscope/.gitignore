@@ -36,7 +36,6 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Frontend (Vite build lands in trainscope/ui/static)
-frontend/node_modules/
 trainscope/ui/static/
 
 # Runtime / local data

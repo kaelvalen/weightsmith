@@ -50,6 +50,7 @@ canvas ◀──────────── metrik / log / durum ────
 | `examples/` | Referans graph'lar + job'lar (MNIST MLP, plan örneği MLP+LoRA, Transformer, Python node) |
 | `importers/` | Hugging Face importer: 8 aile, transformers'la eşdeğerlik testli |
 | `tests/` | core, codegen snapshot'ları, sandbox, daemon uçtan uca, TS çapraz test fixture'ları |
+| `trainscope/` | [trainscope](trainscope/README.md): eğitim kaydı ve spike teşhisi; uv workspace üyesi, PyPI'da ayrı paket (`pip install trainscope`) |
 
 **Tek doğrulayıcı kuralı.** Shape inference ve validator Python'da (`core/`). Canvas anlık geri
 bildirim için TS aynasını (`web/src/ir/analyze.ts`) kullanır; ayna her değişiklikte
@@ -67,6 +68,23 @@ canvas onu tercih eder.
 - `Cmd/Ctrl+Z` / `Shift+Cmd/Ctrl+Z`: IR işlem günlüğünden undo/redo
 - Subgraph node'una çift tık içine girer.
 - Alt şerit: Metrics (canlı eğriler, pause/resume/stop/checkpoint, ablasyon, export), Runs, Compare (eğriler + graph diff), Log, Code (üretilen `model.py`; satıra tıklamak node'u seçer).
+
+## Eğitim teşhisi (trainscope)
+
+Her run [trainscope](trainscope/README.md) ile kaydedilir: katman bazında gradyan, ağırlık ve
+aktivasyon istatistikleri, loss spike'ları ve onlardan önce eşiği geçen sinyaller
+(`runs/<id>/scope/`). Alt şeritteki **Diagnose** sekmesi aktif run'ı gösterir: loss ve grad norm,
+katman × adım heatmap'i, spike'lar, katman grafikleri, MoE yönlendirmesi, ağırlık farkı.
+
+- Heatmap satırına tıklamak o katmanı tutan node'u canvas'ta seçer; Inspector'da node'un katman
+  grafikleri çıkar. **paint canvas** node'ları katmanlarının ne kadar saptığına göre boyar; ilk
+  spike'tan önce 3σ'yı ilk geçen eğitilen katmanın node'u kırmızı çerçeveyle işaretlenir.
+- **Runs** her run'ın sağlığını (stable / spiked / diverged) ve ilk spike adımını gösterir.
+  **Compare** işaretli run'lar için "neden patladı" sorusunu cevaplar: eğrilerin ayrıldığı adım,
+  patlayan run'ların ortak ayarı, en yakın stabil run ve onu ayıran alanlar.
+- Kayıt job'da kapatılır: `"train": {"diagnostics": {"trainscope": false}}`. Run kimliğine girmez.
+  Maliyeti ve nedeni: `docs/decisions.md` → "Beşinci tur".
+- Weightsmith dışındaki eğitimler için `trainscope ui --runs <dizin>` aynı görünümleri açar.
 
 ## Önceden eğitilmiş modeller
 

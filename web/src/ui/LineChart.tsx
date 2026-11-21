@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
-import { alignSeries, Band, buildLineOptions, DASHES, fmt, Marker, Overlays, Series } from "./chartOptions";
+import { alignSeries, Band, buildLineOptions, DASHES, fmt, Marker, offScaleMarker, Overlays, Series } from "./chartOptions";
 
 export type { Band, Marker, Series } from "./chartOptions";
 
@@ -52,7 +52,9 @@ export function LineChart({
   const theme = useThemeKey();
   const data = useMemo(() => alignSeries(series), [series]);
   const overlays = useRef<Overlays>({});
-  overlays.current = { markers, bands, yMax };
+  // when yMax clamps the axis, mark where the first series leaves the plot instead of flattening the history
+  const offScale = useMemo(() => (yMax != null && series.length ? offScaleMarker(data[0], data[1], yMax) : null), [data, yMax, series.length]);
+  overlays.current = { markers, bands, yMax, offScale };
 
   useEffect(() => {
     const el = wrap.current;

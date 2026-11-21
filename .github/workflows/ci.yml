@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  # workflow_ref keeps this group distinct when ci.yml runs as a reusable workflow
+  group: ${{ github.workflow_ref }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: scripts/check.sh
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Install
+        run: |
+          uv sync
+          cd web && pnpm install --frozen-lockfile
+      - name: Check (Python, trainscope, TS, build, browser scenarios)
+        env:
+          CHROME: /usr/bin/google-chrome
+        run: scripts/check.sh
+
+  trainscope:
+    # trainscope ships on its own: test it alone on every Python it supports
+    name: trainscope · Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: trainscope/pyproject.toml
+      - name: Install
+        run: pip install "./trainscope[dev]"
+      - name: Lint
+        working-directory: trainscope
+        run: |
+          ruff check trainscope/ tests/ scripts/ examples/
+          ruff format --check trainscope/ tests/ scripts/ examples/
+          python -m mypy trainscope/ tests/
+      - name: Test
+        working-directory: trainscope
+        run: pytest -q

@@ -4140,7 +4140,7 @@ wheels = [
 
 [[package]]
 name = "trainscope"
-version = "1.10.0"
+version = "1.11.0"
 source = { editable = "trainscope" }
 dependencies = [
     { name = "click" },

@@ -1,76 +1,50 @@
 # Contributing to trainscope
 
-Thanks for your interest in contributing! This document covers how to set up a
-development environment, run checks, and submit changes.
+trainscope is developed in the [Weightsmith](https://github.com/kaelvalen/weightsmith) repository, under `trainscope/`, and published to PyPI on its own.
 
 ## Development setup
 
 ```bash
-git clone https://github.com/kaelvalen/trainscope.git
-cd trainscope
-make install
-```
-
-Or manually:
-
-```bash
-pip install -e ".[dev]"
-cd frontend && npm install
+git clone https://github.com/kaelvalen/weightsmith.git
+cd weightsmith
+uv sync
+cd web && pnpm install
 ```
 
 ## Running tests
 
 ```bash
-make test
+cd trainscope && uv run pytest -q     # trainscope only
+scripts/check.sh                      # everything, from the repository root
 ```
-
-This runs the full Python test suite with `pytest`.
 
 ## Linting and formatting
 
 ```bash
-make lint      # ruff check, ruff format --check, mypy
-make format    # auto-format Python code with ruff
+cd trainscope
+uv run ruff check trainscope/ tests/ scripts/ examples/
+uv run ruff format trainscope/ tests/
+uv run mypy trainscope/ tests/
 ```
 
-The project uses **ruff** for linting and formatting (line length 100) and
-**mypy** for type checking.
+The project uses **ruff** for linting and formatting (line length 100) and **mypy** for type checking.
 
-## Frontend
+## UI
+
+The browser UI is Weightsmith's web package (`web/src/scope/`): the same views are Weightsmith's Diagnose tab and the standalone `trainscope ui`. Build the standalone bundle into the package with:
 
 ```bash
-cd frontend
-npm run lint
-npm run build
+cd web && pnpm run build:scope
 ```
 
-## Pre-commit hooks
+## Rules
 
-Install the provided hooks to run checks automatically on every commit:
-
-```bash
-pre-commit install
-```
+- `trainscope/trainscope/` must never import Weightsmith.
+- The Python API, config surface, Arrow format and plugin surface are stable contracts (see the README's "Stability scope").
 
 ## Pull request workflow
 
 1. Create a feature branch from `main`.
 2. Make focused, minimal changes.
 3. Add or update tests for new behavior.
-4. Run `make test` and `make lint` locally.
-5. Open a pull request against `main`.
-
-CI will run the full matrix (Python 3.11/3.12/3.13, ruff, mypy, frontend
-build) before merging.
-
-## Code style
-
-- Python 3.11+ type-hint style (`str | None`, `list[int]`).
-- 100-character line limit.
-- Descriptive variable names and docstrings for public APIs.
-- Keep changes minimal and scoped.
-
-## Reporting issues
-
-If you find a bug or have a feature request, please open an issue on GitHub with
-a minimal reproduction when possible.
+4. Run `scripts/check.sh` locally.

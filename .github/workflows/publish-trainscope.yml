@@ -1,0 +1,63 @@
+name: Publish trainscope to PyPI
+
+on:
+  push:
+    tags:
+      - "trainscope-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # tag pushes bypass branch CI, so the release gate runs the checks itself
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # trusted publishing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify tag matches package version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/trainscope-v}"
+          PKG_VERSION=$(python -c "import tomllib; print(tomllib.load(open('trainscope/pyproject.toml', 'rb'))['project']['version'])")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag trainscope-v$TAG_VERSION does not match trainscope/pyproject.toml version $PKG_VERSION"
+            exit 1
+          fi
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Build the UI into the package
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build:scope
+      - name: Build wheel + sdist
+        run: |
+          pip install build twine
+          python -m build trainscope
+          twine check trainscope/dist/*
+          python -c "import zipfile, glob; assert 'trainscope/ui/static/index.html' in zipfile.ZipFile(glob.glob('trainscope/dist/*.whl')[0]).namelist()"
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: trainscope/dist/

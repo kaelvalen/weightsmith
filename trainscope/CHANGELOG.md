@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - Part of Weightsmith
+
+### Changed
+- **Moved into the Weightsmith repository** (`trainscope/`); issues and releases live there. The package is unchanged for users: `pip install trainscope`, same Python API, config and Arrow format.
+- **The HTTP API is keyed by run.** Every per-run endpoint is `/api/runs/<run>/…` and the WebSocket `/api/runs/<run>/ws`; `POST /api/runs/select` and the server-side "active run" are gone. `/api/cluster` takes an optional `runs=` filter. Multi-run endpoints answer in single-run mode too. (`/api/*` is internal to the UI, as before.) The router is reusable: `trainscope.ui.server.make_router(resolve, list_runs)`.
+- **UI rebuilt on Weightsmith's web package** (TypeScript, the same views as Weightsmith's Diagnose tab). One run is shown at a time with a run picker; the runs index becomes a "why did it blow up" side panel (divergence step, shared config traits, clusters, nearest stable run). The heatmap metric is selectable.
+
+### Added
+- `TrainScope(..., model_config=...)` records the run's own configuration in `meta.json`, which run comparison and clustering diff; the default is unchanged.
+- `weightsmith` config preset (`minimal` without the attention/MLP activation filter).
+- `DiskWriter.last_step`.
+
+### Fixed
+- Resuming a run (`resume=True`) continues step numbering after the last recorded step; it restarted at 0 and duplicated steps.
+
+### Removed
+- The weight-histogram step scrubber in Layers and drag-to-zoom on the Overview charts.
+
 ## [1.10.0] - New UI
 
 ### Changed
