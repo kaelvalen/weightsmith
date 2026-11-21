@@ -3,6 +3,7 @@ import { memo, useState } from "react";
 import type { Issue, ParamCount, Signature } from "../ir/analyze";
 import type { TensorType } from "../ir/shapes";
 import type { Node } from "../ir/types";
+import { useStore } from "../state/store";
 
 export interface NodeData extends Record<string, unknown> {
   node: Node;
@@ -56,7 +57,11 @@ function NodeViewImpl({ data, selected }: NodeProps & { data: NodeData }) {
   const kind =
     node.type === "Subgraph" ? `Subgraph · ${p.graph}${p.repeat > 1 ? ` · ${p.repeat}×${p.tie_weights ? " tied" : ""}` : ""}` : node.type === "PythonModule" ? `Python · ${p.class_name ?? ""}` : node.type;
 
-  const border = selected ? "var(--accent)" : nodeError ? "var(--error)" : frozen ? "var(--muted)" : "var(--ink)";
+  // trainscope on the canvas: tint by how far the node's layers drifted (z, 0..6), outline the spike source
+  const heat = useStore((s) => (s.diag.paint ? s.diag.heat[node.id] : undefined));
+  const source = useStore((s) => s.diag.source === node.id);
+  const tint = heat === undefined ? 0 : Math.round(Math.min(Math.max(heat / 6, 0), 1) * 45);
+  const border = selected ? "var(--accent)" : nodeError || source ? "var(--error)" : frozen ? "var(--muted)" : "var(--ink)";
   const slot = (i: number, n: number) => `calc(${(100 * i) / n}% + 12px)`;
 
   const portRow = (names: string[], dir: "in" | "out") => (
@@ -81,8 +86,14 @@ function NodeViewImpl({ data, selected }: NodeProps & { data: NodeData }) {
   return (
     <div
       className="relative bg-bg"
+      data-paint={heat === undefined ? undefined : heat.toFixed(1)}
+      data-spike-source={source || undefined}
+      title={source ? "trainscope: this node's layers crossed 3σ first, before the spike" : undefined}
       style={{
         width: NODE_W,
+        background: tint ? `color-mix(in srgb, var(--error) ${tint}%, var(--bg))` : undefined,
+        outline: source ? "2px solid var(--error)" : undefined,
+        outlineOffset: 2,
         border: `1px ${frozen ? "dashed" : "solid"} ${border}`,
         borderRadius: 2,
         opacity: node.disabled ? 0.45 : 1,

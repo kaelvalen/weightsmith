@@ -2,6 +2,9 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { keepTyping } from "./keys";
 import { RunEvent, RunRecord, api, daemonBase } from "../api/client";
 import { Diagnose } from "../scope/Diagnose";
+import { layersByNode, nodeHeat, spikeSourceNode } from "../scope/nodeHeat";
+import { nodeFor } from "../scope/nodeMap";
+import type { LayerMatrix } from "../scope/types";
 import { BottomTab, useStore } from "../state/store";
 import { DiffList } from "./DiffList";
 import { Field, fmtCount } from "./Inspector";
@@ -501,9 +504,52 @@ function Code() {
 function DiagnoseTab() {
   const activeRun = useStore((s) => s.activeRun);
   const runs = useStore((s) => s.runs);
+  const paint = useStore((s) => s.diag.paint);
+  const setDiag = useStore((s) => s.setDiag);
   const status = runs.find((r) => r.id === activeRun)?.status ?? "";
+  const [moduleMap, setModuleMap] = useState<Record<string, string>>({});
+  const [last, setLast] = useState<{ m: LayerMatrix; spike: { from: number; to: number } | null } | null>(null);
+  useEffect(() => {
+    // the matrix and the module map arrive in either order
+    if (last) setDiag({ heat: nodeHeat(last.m, moduleMap), source: spikeSourceNode(last.m, moduleMap, last.spike), layers: layersByNode(last.m.layers, moduleMap) });
+  }, [last, moduleMap, setDiag]);
+  useEffect(() => {
+    setModuleMap({});
+    setLast(null);
+    setDiag({ run: activeRun, heat: {}, source: null, layers: {} });
+    if (!activeRun) return;
+    let alive = true;
+    // runs from before module_map.json existed simply get no canvas link
+    api
+      .file(activeRun, "module_map.json")
+      .then((t) => alive && setModuleMap(JSON.parse(t)))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [activeRun, setDiag]);
+  const selectLayer = (layer: string) => {
+    const node = nodeFor(layer, moduleMap);
+    if (!node) return;
+    const st = useStore.getState();
+    if (st.scope) st.setScope("");
+    st.select([node]);
+  };
   // keyed by run so switching runs starts from a clean view
-  return <Diagnose key={activeRun ?? "none"} base={`${daemonBase()}/api/scope`} run={activeRun} live={LIVE.includes(status)} />;
+  return (
+    <Diagnose
+      key={activeRun ?? "none"}
+      base={`${daemonBase()}/api/scope`}
+      run={activeRun}
+      live={LIVE.includes(status)}
+      onSelectLayer={selectLayer}
+      link={{
+        paint,
+        setPaint: (on) => setDiag({ paint: on }),
+        onMatrix: (m, spike) => setLast({ m, spike }),
+      }}
+    />
+  );
 }
 
 const TABS: [BottomTab, string][] = [

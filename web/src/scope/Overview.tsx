@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { fmt, lossYMax } from "../ui/chartOptions";
 import { LineChart } from "../ui/LineChart";
+import { Select } from "../ui/Select";
 import { scopeApi } from "./api";
 import { LayerHeatmap } from "./LayerHeatmap";
 import { runStatus } from "./runStatus";
@@ -20,7 +21,7 @@ const SIGNAL_LABELS: Record<string, string> = {
 };
 
 /** The layer matrix, refetched at most every 5 s while steps arrive. */
-function useMatrix(base: string, run: string, length: number): LayerMatrix | null {
+function useMatrix(base: string, run: string, length: number, metric: string): LayerMatrix | null {
   const [matrix, setMatrix] = useState<LayerMatrix | null>(null);
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -31,20 +32,40 @@ function useMatrix(base: string, run: string, length: number): LayerMatrix | nul
   useEffect(() => {
     let alive = true;
     scopeApi(base, run)
-      .layerMatrix()
+      .layerMatrix({ metric })
       .then((m) => alive && setMatrix(m ?? { layers: [], z: [], values: [] }))
       .catch(() => alive && setMatrix((m) => m ?? { layers: [], z: [], values: [] }));
     return () => {
       alive = false;
     };
-  }, [base, run, tick]);
+  }, [base, run, tick, metric]);
   return matrix;
 }
 
-export function Overview({ base, run, data, live, onSelectLayer, highlight }: { base: string; run: string; data: ScopeRun & { events: SpikeEvent[] }; live: boolean; onSelectLayer?: (layer: string) => void; highlight?: string | null }) {
+const METRICS = [
+  { value: "grad_l2_norm", label: "gradient norm" },
+  { value: "weight_l2_norm", label: "weight norm" },
+  { value: "act_kurtosis", label: "activation kurtosis" },
+  { value: "grad_max_abs", label: "max |gradient|" },
+];
+
+export interface CanvasLink {
+  paint: boolean;
+  setPaint: (on: boolean) => void;
+  /** the matrix behind the heatmap and the first spike window, to paint graph nodes */
+  onMatrix: (m: LayerMatrix, spike: { from: number; to: number } | null) => void;
+}
+
+export function Overview({ base, run, data, live, onSelectLayer, highlight, link }: { base: string; run: string; data: ScopeRun & { events: SpikeEvent[] }; live: boolean; onSelectLayer?: (layer: string) => void; highlight?: string | null; link?: CanvasLink }) {
   const { global, events, meta } = data;
   const [signals, setSignals] = useState<Record<string, any> | null>(null);
-  const matrix = useMatrix(base, run, global.length);
+  const [metric, setMetric] = useState("grad_l2_norm");
+  const matrix = useMatrix(base, run, global.length, metric);
+  const firstWindow = events[0] ? { from: events[0].startStep, to: events[0].endStep } : null;
+  useEffect(() => {
+    if (matrix && link) link.onMatrix(matrix, firstWindow);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matrix, firstWindow?.from, firstWindow?.to]);
   useEffect(() => {
     let alive = true;
     scopeApi(base, run)
@@ -103,7 +124,17 @@ export function Overview({ base, run, data, live, onSelectLayer, highlight }: { 
         <LineChart title="loss" series={lossSeries} height={150} yMax={yMax} bands={bands} markers={markers} syncKey={`diag-${run}`} />
         <LineChart title="grad norm" series={gradSeries} height={110} bands={bands} syncKey={`diag-${run}`} />
         <div>
-          <div className="pb-1 text-label text-muted">gradient norm by layer · z-score against the run's own normal</div>
+          <div className="flex items-center gap-3 pb-1 text-label text-muted">
+            <div className="w-48 shrink-0">
+              <Select value={metric} options={METRICS} onChange={setMetric} ariaLabel="Heatmap metric" />
+            </div>
+            <span>by layer · z-score against the run's own normal</span>
+            {link && (
+              <button className="link ml-auto" aria-pressed={link.paint} style={{ color: link.paint ? "var(--ink)" : undefined }} onClick={() => link.setPaint(!link.paint)}>
+                paint canvas
+              </button>
+            )}
+          </div>
           <LayerHeatmap
             matrix={matrix}
             domain={[steps[0], steps[steps.length - 1]]}

@@ -33,6 +33,21 @@ check(heat !== null, "Overview draws the layer heatmap");
 check(heat !== null && heat.y < 900, "the heatmap is on screen without scrolling");
 check(await page.locator("[data-signal]").count() > 0, "Overview lists the signals that crossed");
 
+// the canvas link: a heatmap row selects its node; painting and the spike source show on the graph
+const spiky = (await api("/api/runs")).find((r) => r.project === "e2e-spiky");
+const matrix = await api(`/api/scope/runs/${spiky.id}/layers/matrix`);
+const moduleMap = await api(`/api/runs/${spiky.id}/files/module_map.json`);
+const firstNode = moduleMap[matrix.layers[0].split(".")[0]];
+const hb = await page.locator("[data-testid=layer-heatmap] canvas").boundingBox();
+await page.mouse.click(hb.x + 140, hb.y + 8);
+await page.waitForTimeout(500);
+check(await page.locator(`.react-flow__node[data-id="${firstNode}"].selected`).count() === 1, `a heatmap row selects its node (${firstNode})`);
+check(await page.getByText("Layer metrics").count() > 0, "the Inspector shows the node's layer metrics");
+await page.locator("button", { hasText: /^paint canvas$/ }).click();
+await page.waitForTimeout(300);
+check(await page.locator("[data-paint]").count() > 0, "painting marks nodes on the canvas");
+check(await page.locator("[data-spike-source]").count() === 1, "exactly one node is marked as the spike source");
+
 await page.locator("[data-testid=diagnose] button", { hasText: /^Spikes$/ }).click();
 await page.waitForTimeout(800);
 check(await page.locator("[data-spike]").count() > 0, "Spikes lists the spike events");

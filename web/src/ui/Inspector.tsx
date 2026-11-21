@@ -9,6 +9,7 @@ import { TYPES, expandDefaults, linearTargetsOf, outFeaturesOf, weightsOf } from
 import type { Adapt, Node } from "../ir/types";
 import { useAnalysis, useIssues, useStore } from "../state/store";
 import { JobPanel } from "./JobPanel";
+import { NodeScope } from "../scope/NodeScope";
 
 const CodeEditor = lazy(() => import("./CodeEditor"));
 
@@ -464,6 +465,7 @@ function NodePanel({ node }: { node: Node }) {
           </button>
         )}
       </div>
+      <NodeScope nodeId={node.id} />
       {issues.length > 0 && (
         <div className="border-t border-line px-4 py-2">
           {issues.map((i, k) => (

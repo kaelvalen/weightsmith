@@ -2,7 +2,7 @@
 // can be shown on the canvas; the standalone trainscope UI renders the same component without it.
 import { useState } from "react";
 import { Layers } from "./Layers";
-import { Overview } from "./Overview";
+import { CanvasLink, Overview } from "./Overview";
 import { Replay } from "./Replay";
 import { Routing } from "./Routing";
 import { Spikes } from "./Spikes";
@@ -11,7 +11,7 @@ import { WeightsDiff } from "./WeightsDiff";
 
 type Sub = "overview" | "layers" | "spikes" | "routing" | "replay" | "weights";
 
-export function Diagnose({ base, run, live = false, onSelectLayer }: { base: string; run: string | null; live?: boolean; onSelectLayer?: (layer: string) => void }) {
+export function Diagnose({ base, run, live = false, onSelectLayer, link }: { base: string; run: string | null; live?: boolean; onSelectLayer?: (layer: string) => void; link?: CanvasLink }) {
   const [sub, setSub] = useState<Sub>("overview");
   const [layer, setLayer] = useState<string | null>(null);
   const data = useScopeRun(base, run, live);
@@ -50,7 +50,7 @@ export function Diagnose({ base, run, live = false, onSelectLayer }: { base: str
         ))}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {sub === "overview" && <Overview base={base} run={run} data={data} live={live} onSelectLayer={pick} highlight={layer} />}
+        {sub === "overview" && <Overview base={base} run={run} data={data} live={live} onSelectLayer={pick} highlight={layer} link={link} />}
         {sub === "layers" && <Layers base={base} run={run} layers={data.layers} events={data.events} layer={layer} onLayer={pick} />}
         {sub === "spikes" && <Spikes base={base} run={run} events={data.events} files={data.spikes} onSelectLayer={open} />}
         {sub === "routing" && <Routing moe={data.moe} />}

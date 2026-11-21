@@ -60,6 +60,8 @@ interface State {
   activeRun: string | null;
   compare: string[];
   bottom: { open: boolean; tab: BottomTab; height: number };
+  /** trainscope on the canvas: the run whose recording is shown, node heat (max z) and the spike source */
+  diag: { run: string | null; paint: boolean; heat: Record<string, number>; source: string | null; layers: Record<string, string[]> };
   palette: boolean;
   notice: { text: string; error?: boolean } | null;
   inspectorFocus: number;
@@ -95,6 +97,7 @@ interface State {
   paste: () => void;
   duplicate: () => void;
   setBottom: (b: Partial<State["bottom"]>) => void;
+  setDiag: (d: Partial<State["diag"]>) => void;
   setPalette: (open: boolean) => void;
   notify: (text: string, error?: boolean) => void;
   validateRemote: () => Promise<void>;
@@ -169,6 +172,7 @@ export const useStore = create<State>((set, get) => {
     activeRun: null,
     compare: [],
     bottom: { open: false, tab: "metrics", height: 264 },
+    diag: { run: null, paint: false, heat: {}, source: null, layers: {} },
     palette: false,
     notice: null,
     inspectorFocus: 0,
@@ -403,6 +407,7 @@ export const useStore = create<State>((set, get) => {
     },
 
     setBottom: (b) => set({ bottom: { ...get().bottom, ...b } }),
+    setDiag: (d) => set({ diag: { ...get().diag, ...d } }),
     setPalette: (open) => set({ palette: open }),
 
     notify: (text, error) => {
