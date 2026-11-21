@@ -469,7 +469,7 @@ def test_fallback_root(tmp_path):
     c = TestClient(create_app(str(empty)))
     r = c.get("/")
     assert r.status_code == 200
-    assert "TrainScope" in r.text
+    assert "trainscope" in r.text.lower()  # the built UI or the "build it" fallback page
 
 
 def test_cors_headers(client):

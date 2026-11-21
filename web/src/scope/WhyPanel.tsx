@@ -6,10 +6,11 @@ import { scopeMulti } from "./api";
 import type { RunSummary } from "./types";
 
 const field = (f: string) => f.replace(/^model\.(train\.)?/, "").replace(/^config\./, "trainscope.");
-const short = (id: string) => id.slice(0, 8);
+const hashId = (id: string) => id.slice(0, 8);
 const val = (v: unknown) => (typeof v === "number" ? String(+v.toPrecision(4)) : v == null ? "—" : String(v));
 
-export function WhyPanel({ base, runs }: { base: string; runs: string[] }) {
+/** `label`: how a run is named; Weightsmith run ids are hashes, trainscope run names are readable. */
+export function WhyPanel({ base, runs, label = hashId }: { base: string; runs: string[]; label?: (run: string) => string }) {
   const [known, setKnown] = useState<RunSummary[] | null>(null);
   const [cmp, setCmp] = useState<Record<string, any> | null>(null);
   const [clusters, setClusters] = useState<Record<string, any> | null>(null);
@@ -64,7 +65,7 @@ export function WhyPanel({ base, runs }: { base: string; runs: string[] }) {
       )}
       {ce && (
         <p className="m-0 mt-1" data-counterexample={ce.counterexample_run}>
-          Nearest stable run to <span className="num">{short(ce.query_run)}</span> is <span className="num">{short(ce.counterexample_run)}</span>
+          Nearest stable run to <span className="num">{label(ce.query_run)}</span> is <span className="num">{label(ce.counterexample_run)}</span>
           {ce.config_diff?.length ? (
             <>
               ; it differs only in{" "}
@@ -83,7 +84,7 @@ export function WhyPanel({ base, runs }: { base: string; runs: string[] }) {
         <div className="mt-1 text-muted">
           {clusters.clusters.map((c: any) => (
             <div key={c.label}>
-              {c.label}: {c.runs.map(short).join(", ")}
+              {c.label}: {c.runs.map(label).join(", ")}
               {c.typical_lead_steps != null ? ` · first signal ~${c.typical_lead_steps} steps before the spike` : ""}
             </div>
           ))}
@@ -91,7 +92,7 @@ export function WhyPanel({ base, runs }: { base: string; runs: string[] }) {
       )}
       {missing.map((id) => (
         <div key={id} data-no-recording={id} className="text-muted">
-          <span className="num">{short(id)}</span>: no recording
+          <span className="num">{label(id)}</span>: no recording
         </div>
       ))}
     </section>

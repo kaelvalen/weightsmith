@@ -4,6 +4,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 [ -d /run/opengl-driver/lib ] && export LD_LIBRARY_PATH="/run/opengl-driver/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+# the standalone trainscope UI is built from web/ into the Python package (a wheel test checks it)
+(cd web && pnpm run build:scope >/dev/null)
 uv run pytest -q
 # trainscope keeps its own pytest config (trainscope/pyproject.toml) and conftest
 (cd trainscope && uv run pytest -q \

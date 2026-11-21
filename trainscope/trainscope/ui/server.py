@@ -1196,7 +1196,7 @@ def create_app(run_path: str, runs_root: str | None = None) -> FastAPI:
     <h1>TrainScope UI</h1>
     <p>React UI assets were not found in <code>trainscope/ui/static</code>.</p>
     <p>If you are running from a local git repository, build the frontend:</p>
-    <p><code>cd frontend && npm install && npm run build</code></p>
+    <p><code>cd web && pnpm install && pnpm run build:scope</code></p>
   </div>
 </body>
 </html>"""

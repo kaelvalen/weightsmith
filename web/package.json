@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:scope": "vite build --mode scope",
     "typecheck": "tsc -b",
     "test": "vitest run",
     "gen": "json2ts -i ../schema/ir.schema.json -o src/ir/schema.gen.ts --bannerComment '/* Generated from schema/ir.schema.json by `pnpm gen`. Do not edit. */' && cd .. && uv run python scripts/gen_fixtures.py"
