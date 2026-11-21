@@ -65,5 +65,23 @@ await page.locator("button", { hasText: plain.id.slice(0, 8) }).first().click();
 await page.locator("button", { hasText: /^Diagnose$/ }).click();
 await page.waitForTimeout(1000);
 check(await page.getByText("No diagnostics were recorded for this run.").count() > 0, "a run without a recording shows the empty state");
+
+// Runs and Compare: a stable run next to the spiky one explains the blow-up
+const stable = await api("/api/runs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+  graph, data, train: { ...train, optimizer: { name: "sgd", lr: 0.05 } }, project: "e2e-spiky" }) });
+for (let i = 0; i < 90; i++) {
+  if ((await api(`/api/runs/${stable.id}`)).status === "completed") break;
+  await new Promise((r) => setTimeout(r, 500));
+}
+await page.locator("button", { hasText: /^Runs$/ }).click();
+await page.waitForTimeout(2000);
+const health = async (id) => (await page.locator(`[data-health="${id}"]`).textContent())?.trim();
+check((await health(spiky.id)) === "spiked" && (await health(stable.id)) === "stable", "Runs shows each run's health");
+for (const id of [spiky.id, stable.id, plain.id]) await page.locator(`input[aria-label="compare ${id}"]`).check();
+await page.locator("button", { hasText: /^Compare$/ }).click();
+await page.waitForTimeout(2500);
+check(await page.getByText("Why did it blow up").count() > 0, "Compare explains the blow-up");
+check((await page.locator("[data-counterexample]").getAttribute("data-counterexample")) === stable.id, "the stable run is the spiky run's counterexample");
+check(await page.locator(`[data-no-recording="${plain.id}"]`).count() === 1, "a run without a recording is listed, not an error");
 check(errors.length === 0, `no page errors (${errors.join(" | ")})`);
 await browser.close();

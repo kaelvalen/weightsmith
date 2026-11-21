@@ -75,10 +75,16 @@ class TrainScope:
         config: TrainScopeConfig | None = None,
         *,
         scaler: Any = None,
+        model_config: dict[str, Any] | None = None,
     ):
         """``scaler``: the ``torch.amp.GradScaler`` used for mixed precision, if
         any. Gradient metrics are then reported unscaled whether ``step()`` is
-        called before or after ``scaler.unscale_(optimizer)``."""
+        called before or after ``scaler.unscale_(optimizer)``.
+
+        ``model_config``: the run's own configuration (hyperparameters,
+        architecture) to record in ``meta.json``; run comparison and clustering
+        diff it. Defaults to the TrainScope config."""
+        self._model_config = model_config
         self._model = model
         self._optimizer = optimizer
         self._scaler = scaler
@@ -148,7 +154,9 @@ class TrainScope:
         )
         self._writer.write_meta(
             model_name=self._model.__class__.__name__,
-            model_config=self._config.to_dict(),
+            model_config=self._model_config
+            if self._model_config is not None
+            else self._config.to_dict(),
             detector_info={
                 "name": detector_name,
                 "min_observations": getattr(self._detector, "min_observations", None),

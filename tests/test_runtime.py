@@ -274,3 +274,14 @@ def test_module_map_is_served(client):
     assert r.status_code == 200
     # "loss" is reserved, so its module attribute is loss_: the map is what makes names exact
     assert _json.loads(r.text) == {"x": "x", "fc1": "fc1", "act": "act", "fc2": "fc2", "loss_": "loss"}
+
+
+def test_scope_meta_has_job_config(client):
+    import json as _json
+
+    rec = submit(client, tiny_classifier(optimizer={"name": "sgd", "lr": 0.05}))
+    wait(client, rec["id"])
+    meta = _json.loads((scope_dir(client, rec["id"]) / "meta.json").read_text())
+    assert meta["model_config"]["train"]["optimizer"]["lr"] == 0.05  # merged with the job defaults
+    assert "diagnostics" not in meta["model_config"]["train"]
+    assert meta["model_config"]["graph"] == client.get(f"/api/runs/{rec['id']}").json()["graph_hash"]

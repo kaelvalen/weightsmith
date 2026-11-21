@@ -584,3 +584,21 @@ def test_resume_continues_step_numbering(tmp_path):
     run(3, resume=True)
     steps = [r["step"] for r in read_arrow_rows_sync(tmp_path / "resumed" / "global.arrow")]
     assert steps == list(range(8))
+
+
+def test_model_config_is_recorded_in_meta(tmp_path):
+    """Callers can record their own run config (what compare/cluster diff) instead of the scope config."""
+    model = nn.Linear(4, 1)
+    opt = torch.optim.SGD(model.parameters(), lr=0.01)
+    cfg = TrainScopeConfig(run_dir=str(tmp_path), run_name="with_config")
+    TrainScope(model, opt, cfg, model_config={"optimizer": {"lr": 0.01}}).attach().detach()
+    meta = json.loads((tmp_path / "with_config" / "meta.json").read_text())
+    assert meta["model_config"] == {"optimizer": {"lr": 0.01}}
+    # default unchanged: the scope config
+    TrainScope(
+        model, opt, TrainScopeConfig(run_dir=str(tmp_path), run_name="default")
+    ).attach().detach()
+    assert (
+        json.loads((tmp_path / "default" / "meta.json").read_text())["model_config"]["run_name"]
+        == "default"
+    )

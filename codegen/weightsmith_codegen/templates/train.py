@@ -441,7 +441,9 @@ def main(argv: list[str] | None = None) -> int:
         scope_cfg = load_config({"profile": dc.get("profile"), "run_dir": str(out_dir), "run_name": "scope",
                                  "resume": bool(args.resume)})
         # the uncompiled module, so layer names stay the graph's attribute names
-        scope = TrainScope(getattr(model, "_orig_mod", model), opt, scope_cfg, scaler=scaler).attach()
+        # what run comparison diffs: this job's training settings and graph, not the scope's own config
+        job = {"train": {k: v for k, v in tc.items() if k != "diagnostics"}, "graph": cfg.get("graph_hash"), "data": cfg["data"].get("source")}
+        scope = TrainScope(getattr(model, "_orig_mod", model), opt, scope_cfg, scaler=scaler, model_config=job).attach()
 
     log_every = tc.get("log_every", 10)
     eval_every = tc.get("eval_every")

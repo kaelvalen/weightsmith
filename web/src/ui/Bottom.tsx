@@ -4,6 +4,10 @@ import { RunEvent, RunRecord, api, daemonBase } from "../api/client";
 import { Diagnose } from "../scope/Diagnose";
 import { layersByNode, nodeHeat, spikeSourceNode } from "../scope/nodeHeat";
 import { nodeFor } from "../scope/nodeMap";
+import { scopeMulti } from "../scope/api";
+import { runHealth } from "../scope/health";
+import type { RunSummary } from "../scope/types";
+import { WhyPanel } from "../scope/WhyPanel";
 import type { LayerMatrix } from "../scope/types";
 import { BottomTab, useStore } from "../state/store";
 import { DiffList } from "./DiffList";
@@ -297,6 +301,18 @@ function Runs() {
         st.apply(`load graph of run ${short(r.id)}`, () => ({ ...full.job!.graph, layout: st.graph().layout }));
       } else st.switchVariant(name);
     });
+  const [health, setHealth] = useState<Record<string, RunSummary>>({});
+  const statusKey = runs.map((r) => `${r.id}:${r.status}`).join();
+  useEffect(() => {
+    let alive = true;
+    scopeMulti(`${daemonBase()}/api/scope`)
+      .runs()
+      .then((all) => alive && setHealth(Object.fromEntries((all ?? []).map((r) => [r.name, r]))))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [statusKey]);
   if (!runs.length) return <p className="m-0 p-4 text-small text-muted">No runs in this project yet.</p>;
   const byId = new Map(runs.map((r) => [r.id, r]));
   return (
@@ -308,6 +324,8 @@ function Runs() {
             <th className="font-normal">run</th>
             <th className="font-normal">name</th>
             <th className="font-normal">status</th>
+            <th className="font-normal" title="from the run's trainscope recording">health</th>
+            <th className="text-right font-normal">first spike</th>
             <th className="text-right font-normal">step</th>
             <th className="text-right font-normal">loss</th>
             <th className="text-right font-normal">best val</th>
@@ -340,6 +358,15 @@ function Runs() {
               <td>
                 <Status s={r.status} />
               </td>
+              {(() => {
+                const h = runHealth(health[r.id], r.status);
+                return (
+                  <td data-health={r.id} style={{ color: h === "diverged" || h === "spiked" ? "var(--error)" : h === "—" ? "var(--muted)" : undefined }}>
+                    {h}
+                  </td>
+                );
+              })()}
+              <td className="text-right">{r.summary?.first_spike_step ?? "—"}</td>
               <td className="text-right">{r.summary?.last?.step ?? "—"}</td>
               <td className="text-right">{f4(r.summary?.last?.loss)}</td>
               <td className="text-right">{f4(r.summary?.best_val_loss)}</td>
@@ -428,6 +455,9 @@ function Compare() {
             ))}
           </tbody>
         </table>
+        <div className="mt-3">
+          <WhyPanel base={`${daemonBase()}/api/scope`} runs={list.map((r) => r.id)} />
+        </div>
         {list.slice(1).map((r) => (
           <div key={r.id} className="mt-3">
             <div className="text-label text-muted">
