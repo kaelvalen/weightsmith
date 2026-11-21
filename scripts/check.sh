@@ -5,6 +5,11 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 [ -d /run/opengl-driver/lib ] && export LD_LIBRARY_PATH="/run/opengl-driver/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 uv run pytest -q
+# trainscope keeps its own pytest config (trainscope/pyproject.toml) and conftest
+(cd trainscope && uv run pytest -q \
+  && uv run ruff check trainscope/ tests/ scripts/ examples/ \
+  && uv run ruff format --check trainscope/ tests/ scripts/ examples/ \
+  && uv run mypy trainscope/ tests/)
 cd web
 pnpm exec vitest run
 pnpm exec tsc -b
