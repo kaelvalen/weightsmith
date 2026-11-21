@@ -15,7 +15,7 @@ function median(values: number[]) {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-export function runStatus({ globalData = [], spikeEvents = [], live = false }: { globalData?: GlobalRow[]; spikeEvents?: { startStep: number; [k: string]: unknown }[]; live?: boolean }): {
+export function runStatus({ globalData = [], spikeEvents = [], live = false }: { globalData?: GlobalRow[]; spikeEvents?: { startStep: number; endStep?: number }[]; live?: boolean }): {
   kind: RunStatusKind;
   label: string;
   detail: string;

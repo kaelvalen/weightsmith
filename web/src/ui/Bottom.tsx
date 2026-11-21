@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { keepTyping } from "./keys";
-import { RunEvent, RunRecord, api } from "../api/client";
+import { RunEvent, RunRecord, api, daemonBase } from "../api/client";
+import { Diagnose } from "../scope/Diagnose";
 import { BottomTab, useStore } from "../state/store";
 import { DiffList } from "./DiffList";
 import { Field, fmtCount } from "./Inspector";
@@ -216,6 +217,7 @@ function Metrics() {
             { id: "train", label: "train", points: series(events, "metric", "loss") },
             ...(series(events, "eval", "val_loss").length ? [{ id: "val", label: "val", points: series(events, "eval", "val_loss") }] : []),
           ]}
+          markers={(events ?? []).filter((e) => e.type === "spike").map((e) => ({ x: e.step, kind: "spike" as const }))}
           height={128}
         />
         <LineChart title="learning rate" series={[{ id: "lr", label: "lr", points: series(events, "metric", "lr") }]} height={128} />
@@ -496,8 +498,17 @@ function Code() {
   );
 }
 
+function DiagnoseTab() {
+  const activeRun = useStore((s) => s.activeRun);
+  const runs = useStore((s) => s.runs);
+  const status = runs.find((r) => r.id === activeRun)?.status ?? "";
+  // keyed by run so switching runs starts from a clean view
+  return <Diagnose key={activeRun ?? "none"} base={`${daemonBase()}/api/scope`} run={activeRun} live={LIVE.includes(status)} />;
+}
+
 const TABS: [BottomTab, string][] = [
   ["metrics", "Metrics"],
+  ["diagnose", "Diagnose"],
   ["runs", "Runs"],
   ["compare", "Compare"],
   ["log", "Log"],
@@ -531,7 +542,14 @@ export function Bottom() {
             key={t}
             className="link"
             style={{ color: bottom.open && bottom.tab === t ? "var(--ink)" : undefined, fontWeight: bottom.open && bottom.tab === t ? 500 : 400 }}
-            onClick={() => setBottom({ tab: t, open: !(bottom.open && bottom.tab === t) })}
+            onClick={() =>
+              setBottom({
+                tab: t,
+                open: !(bottom.open && bottom.tab === t),
+                // Diagnose needs room for charts and the layer heatmap
+                ...(t === "diagnose" ? { height: Math.max(bottom.height, Math.round(window.innerHeight * 0.6)) } : {}),
+              })
+            }
           >
             {label}
           </button>
@@ -546,6 +564,7 @@ export function Bottom() {
       {bottom.open && (
         <div className="min-h-0 flex-1 border-t border-line">
           {bottom.tab === "metrics" && <Metrics />}
+          {bottom.tab === "diagnose" && <DiagnoseTab />}
           {bottom.tab === "runs" && <Runs />}
           {bottom.tab === "compare" && <Compare />}
           {bottom.tab === "log" && <Log />}

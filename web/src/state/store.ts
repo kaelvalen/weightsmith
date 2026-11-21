@@ -42,7 +42,7 @@ interface LogEntry {
   at: number;
 }
 
-export type BottomTab = "metrics" | "log" | "runs" | "compare" | "code";
+export type BottomTab = "metrics" | "diagnose" | "log" | "runs" | "compare" | "code";
 export type View = "projects" | "nodes";
 
 interface State {
