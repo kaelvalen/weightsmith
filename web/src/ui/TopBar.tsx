@@ -52,36 +52,17 @@ export function TopBar() {
   const [branching, setBranching] = useState(false);
   const errors = issues.filter((i) => i.severity === "error").length;
   const view = useStore((s) => s.view);
-  const setView = useStore((s) => s.setView);
-
-  const tabs = (
-    <nav className="flex h-full items-stretch gap-4" aria-label="Views">
-      {(["projects", "nodes"] as const).map((v) => (
-        <button
-          key={v}
-          className="link !h-full !text-[13px]"
-          style={{ color: view === v ? "var(--ink)" : undefined, fontWeight: view === v ? 500 : 400, boxShadow: view === v ? "inset 0 -1px 0 var(--ink)" : undefined }}
-          onClick={() => setView(v)}
-          aria-current={view === v ? "page" : undefined}
-        >
-          {v === "projects" ? "Projects" : "Nodes"}
-        </button>
-      ))}
-    </nav>
-  );
 
   if (view === "projects")
     return (
       <header className="flex h-10 shrink-0 items-center gap-6 border-b border-line px-4">
-        {tabs}
+        <span className="font-medium">Weightsmith</span>
         <span className="num ml-auto text-label text-muted">{daemon === "online" ? "daemon" : daemon === "offline" ? "daemon offline" : ""}</span>
       </header>
     );
 
   return (
     <header className="flex h-10 shrink-0 items-center gap-4 border-b border-line px-4">
-      {tabs}
-      <span className="h-4 w-px bg-line" aria-hidden />
       <div
         className="min-w-[208px] shrink-0 text-project leading-6 font-medium [&_input]:h-8 [&_input]:border-transparent [&_input]:px-0 [&_input:focus]:border-accent"
         style={{ width: `${Math.min(36, Math.max(12, project.name.length + 1))}ch` }}

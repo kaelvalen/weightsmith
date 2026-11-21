@@ -290,8 +290,6 @@ function usePreview(): [PreviewState, () => void] {
   return [state, load];
 }
 
-type Tab = "overview" | "data" | "training";
-let lastTab: Tab = "overview";
 
 function Check({ ok, pending, children, action }: { ok: boolean; pending?: boolean; children: React.ReactNode; action?: React.ReactNode }) {
   return (
@@ -305,7 +303,10 @@ function Check({ ok, pending, children, action }: { ok: boolean; pending?: boole
   );
 }
 
-function Readiness({ preview, go }: { preview: PreviewState; go: (t: Tab) => void }) {
+/** "Ready to train?": what is missing, each item linking to the stage that fixes it, and Run. */
+function Readiness({ preview }: { preview: PreviewState }) {
+  const view = useStore((s) => s.view);
+  const go = useStore((s) => s.setView);
   const graph = useStore((s) => s.graph());
   const daemon = useStore((s) => s.daemon);
   const run = useStore((s) => s.run);
@@ -327,9 +328,11 @@ function Readiness({ preview, go }: { preview: PreviewState; go: (t: Tab) => voi
           ok={dataOk}
           pending={!r}
           action={
-            <button className="link text-label" onClick={() => go("data")}>
-              Data
-            </button>
+            view !== "data" && (
+              <button className="link text-label" onClick={() => go("data")}>
+                Data
+              </button>
+            )
           }
         >
           {preview.busy ? "checking the data…" : !r ? "data not checked yet" : dataOk ? "data fits the inputs" : fail}
@@ -340,9 +343,11 @@ function Readiness({ preview, go }: { preview: PreviewState; go: (t: Tab) => voi
         <button className="primary" onClick={run} disabled={!ready}>
           Run
         </button>
-        <button className="link text-label" onClick={() => go("training")}>
-          training settings
-        </button>
+        {view !== "train" && (
+          <button className="link text-label" onClick={() => go("train")}>
+            training settings
+          </button>
+        )}
       </div>
     </Section>
   );
@@ -395,7 +400,8 @@ function ShuffleToggle() {
   return <input type="checkbox" checked={train.shuffle !== false} onChange={(e) => setJob("train", { ...train, shuffle: e.target.checked })} />;
 }
 
-export function JobPanel() {
+/** Model stage, nothing selected: is it ready, the project, this variant, its issues and the other variants. */
+export function ModelOverview() {
   const graph = useStore((s) => s.graph());
   const apply = useStore((s) => s.apply);
   const select = useStore((s) => s.select);
@@ -407,58 +413,11 @@ export function JobPanel() {
   const project = useStore((s) => s.project);
   const setDescription = useStore((s) => s.setDescription);
   const setNote = useStore((s) => s.setNote);
-  const setVariantJob = useStore((s) => s.setVariantJob);
   const variant = project.variants[project.active];
-  const [tab, setTabState] = useState<Tab>(lastTab);
-  const setTab = (t: Tab) => {
-    lastTab = t;
-    setTabState(t);
-  };
-  const [preview, refresh] = usePreview();
-  const tabs = (
-    <div className="sticky top-0 z-10 flex h-9 items-stretch gap-4 border-b border-line bg-bg px-4" role="tablist">
-      {(["overview", "data", "training"] as const).map((t) => (
-        <button
-          key={t}
-          role="tab"
-          aria-selected={tab === t}
-          className="link !h-full !text-[13px] capitalize"
-          style={{ color: tab === t ? "var(--ink)" : undefined, fontWeight: tab === t ? 500 : 400, boxShadow: tab === t ? "inset 0 -1px 0 var(--ink)" : undefined }}
-          onClick={() => setTab(t)}
-        >
-          {t}
-          {t === "overview" && issues.some((i) => i.severity === "error") ? <span className="text-error"> ·</span> : null}
-          {t === "data" && preview.result && !preview.result.ok ? <span className="text-error"> ·</span> : null}
-        </button>
-      ))}
-    </div>
-  );
-  if (tab === "data")
-    return (
-      <div>
-        {tabs}
-        <div className="border-b border-line px-4 py-2">
-          <label className="flex items-center gap-2 text-small">
-            <input type="checkbox" checked={!!variant.job} onChange={(e) => setVariantJob(e.target.checked)} />
-            own data and training config for variant {project.active}
-          </label>
-        </div>
-        <InitPanel />
-        <DataPanel />
-        <PreviewPanel preview={preview} refresh={refresh} />
-      </div>
-    );
-  if (tab === "training")
-    return (
-      <div>
-        {tabs}
-        <TrainingPanel />
-      </div>
-    );
+  const [preview] = usePreview();
   return (
     <div>
-      {tabs}
-      <Readiness preview={preview} go={setTab} />
+      <Readiness preview={preview} />
       <Section title="Project">
         <textarea
           key={project.slug}
@@ -515,6 +474,47 @@ export function JobPanel() {
         ))}
       </Section>
       <VariantsPanel />
+    </div>
+  );
+}
+
+/** Data stage: where the data comes from (left) and what the model will see (right). */
+export function DataStage() {
+  const project = useStore((s) => s.project);
+  const setVariantJob = useStore((s) => s.setVariantJob);
+  const variant = project.variants[project.active];
+  const [preview, refresh] = usePreview();
+  return (
+    <div className="grid h-full min-h-0 grid-cols-[minmax(320px,420px)_minmax(0,1fr)]">
+      <div className="min-h-0 overflow-y-auto border-r border-line">
+        <div className="border-b border-line px-4 py-2">
+          <label className="flex items-center gap-2 text-small">
+            <input type="checkbox" checked={!!variant.job} onChange={(e) => setVariantJob(e.target.checked)} />
+            own data and training config for variant {project.active}
+          </label>
+        </div>
+        <InitPanel />
+        <DataPanel />
+      </div>
+      <div className="min-h-0 overflow-y-auto">
+        <PreviewPanel preview={preview} refresh={refresh} />
+      </div>
+    </div>
+  );
+}
+
+/** Train stage: the settings (left) and the checklist with Run (right). */
+export function TrainStage() {
+  const [preview] = usePreview();
+  return (
+    <div className="grid h-full min-h-0 grid-cols-[minmax(320px,480px)_minmax(0,1fr)]">
+      <div className="min-h-0 overflow-y-auto border-r border-line">
+        <TrainingPanel />
+      </div>
+      <div className="min-h-0 max-w-[560px] overflow-y-auto">
+        <Readiness preview={preview} />
+        <p className="m-0 px-4 text-small text-muted">Runs appear in the strip at the bottom while they train; Runs has the curves, Diagnose explains spikes.</p>
+      </div>
     </div>
   );
 }

@@ -36,7 +36,11 @@ export function useCommands(): Command[] {
     const cmds: Command[] = [
       { id: "help", label: "How Weightsmith works", hint: "?", run: () => window.dispatchEvent(new CustomEvent("ws:help")) },
       { id: "view:projects", label: "Go to Projects", run: () => st.setView("projects") },
-      { id: "view:nodes", label: "Go to Nodes (canvas)", run: () => st.setView("nodes") },
+      { id: "view:model", label: "Go to Model (canvas)", hint: "1", run: () => st.setView("model") },
+      { id: "view:data", label: "Go to Data", hint: "2", run: () => st.setView("data") },
+      { id: "view:train", label: "Go to Train", hint: "3", run: () => st.setView("train") },
+      { id: "view:runs", label: "Go to Runs", hint: "4", run: () => st.setView("runs") },
+      { id: "view:diagnose", label: "Go to Diagnose", hint: "5", run: () => st.setView("diagnose") },
       { id: "run", label: "Run", hint: "⌘↵", run: () => st.run() },
       { id: "fit", label: "Fit graph to view", hint: "F", run: () => window.dispatchEvent(new CustomEvent("ws:fit")) },
       { id: "minimap", label: "Toggle minimap", hint: "M", run: () => window.dispatchEvent(new CustomEvent("ws:minimap")) },
@@ -45,10 +49,8 @@ export function useCommands(): Command[] {
       { id: "validate", label: "Validate", run: () => st.validateRemote() },
       { id: "undo", label: "Undo", hint: "⌘Z", run: st.undo },
       { id: "redo", label: "Redo", hint: "⇧⌘Z", run: st.redo },
-      { id: "code", label: "Show generated code", run: () => st.setBottom({ open: true, tab: "code" }) },
-      { id: "runs", label: "Show runs", run: () => st.setBottom({ open: true, tab: "runs" }) },
-      { id: "compare", label: "Compare selected runs", run: () => st.setBottom({ open: true, tab: "compare" }) },
-      { id: "strip", label: st.bottom.open ? "Hide bottom strip" : "Show bottom strip", run: () => st.setBottom({ open: !st.bottom.open }) },
+      { id: "code", label: "Show generated code", run: () => (st.setView("model"), st.setModelView("code")) },
+      { id: "compare", label: "Compare selected runs", run: () => (st.setView("runs"), st.setRunsTab("compare")) },
       {
         id: "branch",
         label: "Branch variant from current",
@@ -124,7 +126,8 @@ export function useCommands(): Command[] {
               useStore.setState({ activeRun: child.id });
               st.watchRun(child.id);
               st.refreshRuns();
-              st.setBottom({ open: true, tab: "metrics" });
+              st.setView("runs");
+              st.setRunsTab("metrics");
             } catch (e: any) {
               st.notify(e.message, true);
             }

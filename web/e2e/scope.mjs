@@ -1,5 +1,5 @@
 // A diverging run is diagnosed in the Diagnose tab; a run without a recording says so.
-import { api, check, open } from "./lib.mjs";
+import { api, check, open, stage } from "./lib.mjs";
 
 const graph = {
   schema: 1, name: "e2e spiky",
@@ -24,8 +24,8 @@ await page.keyboard.press("Control+Enter");
 for (let i = 0; i < 90 && !(await page.getByText(/^completed$/).count()); i++) await page.waitForTimeout(500);
 check(await page.getByText(/^completed$/).count() > 0, "spiky run completes");
 
-await page.locator("button", { hasText: /^Diagnose$/ }).click();
-await page.waitForTimeout(1500);
+await stage(page, "Diagnose");
+await page.waitForTimeout(1100);
 const lossFig = page.locator("[data-testid=diagnose] figure", { hasText: "loss" }).first();
 check(Number(await lossFig.getAttribute("data-points").catch(() => 0)) > 0, "Overview draws the loss");
 const heat = await page.locator("[data-testid=layer-heatmap] canvas").boundingBox();
@@ -41,12 +41,16 @@ const firstNode = moduleMap[matrix.layers[0].split(".")[0]];
 const hb = await page.locator("[data-testid=layer-heatmap] canvas").boundingBox();
 await page.mouse.click(hb.x + 140, hb.y + 8);
 await page.waitForTimeout(500);
-check(await page.locator(`.react-flow__node[data-id="${firstNode}"].selected`).count() === 1, `a heatmap row selects its node (${firstNode})`);
-check(await page.getByText("Layer metrics").count() > 0, "the Inspector shows the node's layer metrics");
+check(await page.locator(`[data-testid=node-heat] [data-node="${firstNode}"][aria-current=true]`).count() === 1, `a heatmap row selects its node (${firstNode})`);
+check(await page.getByText("Layer metrics").count() > 0, "Diagnose shows the selected node's layer metrics");
+check(await page.locator("[data-testid=node-heat] [data-source]").count() === 1, "Diagnose names one node as the spike source");
 await page.locator("button", { hasText: /^paint canvas$/ }).click();
-await page.waitForTimeout(300);
+await page.locator("button", { hasText: /^Show on canvas$/ }).click();
+await page.waitForTimeout(800);
+check(await page.locator(`.react-flow__node[data-id="${firstNode}"].selected`).count() === 1, "Show on canvas opens Model with the node selected");
 check(await page.locator("[data-paint]").count() > 0, "painting marks nodes on the canvas");
 check(await page.locator("[data-spike-source]").count() === 1, "exactly one node is marked as the spike source");
+await stage(page, "Diagnose");
 
 await page.locator("[data-testid=diagnose] button", { hasText: /^Spikes$/ }).click();
 await page.waitForTimeout(800);
@@ -59,14 +63,14 @@ for (let i = 0; i < 90; i++) {
   if ((await api(`/api/runs/${plain.id}`)).status === "completed") break;
   await new Promise((r) => setTimeout(r, 500));
 }
-await page.locator("button", { hasText: /^Runs$/ }).click();
-await page.waitForTimeout(1500);
+await stage(page, "Runs");
+await page.waitForTimeout(1100);
 await page.locator("button", { hasText: plain.id.slice(0, 8) }).first().click();
-await page.waitForTimeout(500);
+await stage(page, "Model");
 check(await page.locator("[data-spike-source]").count() === 0 && await page.locator("[data-paint]").count() === 0,
   "another run's diagnostics do not stay on the canvas");
-await page.locator("button", { hasText: /^Diagnose$/ }).click();
-await page.waitForTimeout(1000);
+await stage(page, "Diagnose");
+await page.waitForTimeout(600);
 check(await page.getByText("No diagnostics were recorded for this run.").count() > 0, "a run without a recording shows the empty state");
 
 // Runs and Compare: a stable run next to the spiky one explains the blow-up
@@ -76,12 +80,12 @@ for (let i = 0; i < 90; i++) {
   if ((await api(`/api/runs/${stable.id}`)).status === "completed") break;
   await new Promise((r) => setTimeout(r, 500));
 }
-await page.locator("button", { hasText: /^Runs$/ }).click();
-await page.waitForTimeout(2000);
+await stage(page, "Runs");
+await page.waitForTimeout(1600);
 const health = async (id) => (await page.locator(`[data-health="${id}"]`).textContent())?.trim();
 check((await health(spiky.id)) === "spiked" && (await health(stable.id)) === "stable", "Runs shows each run's health");
 for (const id of [spiky.id, stable.id, plain.id]) await page.locator(`input[aria-label="compare ${id}"]`).check();
-await page.locator("button", { hasText: /^Compare$/ }).click();
+await page.getByRole("tab", { name: /^Compare/ }).click();
 await page.waitForTimeout(2500);
 check(await page.getByText("Why did it blow up").count() > 0, "Compare explains the blow-up");
 check((await page.locator("[data-counterexample]").getAttribute("data-counterexample")) === stable.id, "the stable run is the spiky run's counterexample");

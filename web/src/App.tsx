@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { boot, useStore } from "./state/store";
-import { Bottom } from "./ui/Bottom";
-import { Canvas } from "./ui/Canvas";
-import { Inspector } from "./ui/Inspector";
-import { Library } from "./ui/Library";
+import { STAGES } from "./state/store";
+import { DataStage, TrainStage } from "./ui/JobPanel";
+import { ModelStage } from "./ui/ModelStage";
 import { Palette } from "./ui/Palette";
+import { Rail } from "./ui/Rail";
+import { RunStrip } from "./ui/RunStrip";
+import { DiagnoseStage, RunsStage } from "./ui/RunViews";
 import { ProjectsView } from "./ui/ProjectsView";
 import { TooltipLayer } from "./ui/TooltipLayer";
 import { Help } from "./ui/Help";
@@ -42,7 +44,9 @@ export default function App() {
         st.redo();
       } else if (e.key === "?") {
         setHelp(true);
-      } else if (st.view !== "nodes") {
+      } else if (!mod && !e.altKey && /^[1-5]$/.test(e.key)) {
+        st.setView(STAGES[Number(e.key) - 1]);
+      } else if (st.view !== "model") {
         return;
       } else if (mod && e.key.toLowerCase() === "c") {
         st.copy();
@@ -84,22 +88,18 @@ export default function App() {
   return (
     <div className="flex h-full flex-col">
       <TopBar />
-      {view === "projects" ? (
-        <main className="min-h-0 flex-1">
-          <ProjectsView />
-        </main>
-      ) : (
-        <>
-          <div className="flex min-h-0 flex-1">
-            <Library />
-            <main className="relative min-w-0 flex-1">
-              <Canvas />
-            </main>
-            <Inspector />
-          </div>
-          <Bottom />
-        </>
-      )}
+      <div className="flex min-h-0 flex-1">
+        <Rail />
+        <div className="min-h-0 min-w-0 flex-1">
+          {view === "projects" && <ProjectsView />}
+          {view === "model" && <ModelStage />}
+          {view === "data" && <DataStage />}
+          {view === "train" && <TrainStage />}
+          {view === "runs" && <RunsStage />}
+          {view === "diagnose" && <DiagnoseStage />}
+        </div>
+      </div>
+      {view !== "projects" && <RunStrip />}
       {notice && (
         <div
           role="status"

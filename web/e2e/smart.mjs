@@ -1,6 +1,6 @@
 // Building a model by clicking: empty state → chained adds (wired + sized) → splice → heal on
 // delete → one-click loss fix → readiness checklist with a data preview → help page.
-import { api, check, open } from "./lib.mjs";
+import { api, check, open, stage } from "./lib.mjs";
 
 const { browser, page, errors } = await open("/");
 const lib = (name) => page.locator("nav[aria-label='Node library']").getByText(name, { exact: true }).first();
@@ -57,7 +57,7 @@ await fix.first().click();
 g = await graph();
 check(g.nodes.some((n) => n.type === "CrossEntropy"), "the fix adds the loss after the output");
 
-await page.getByRole("tab", { name: "data" }).click();
+await stage(page, "Data");
 await page.waitForTimeout(2500);
 check(await page.getByText("What the model will see").count() === 1, "the data tab previews the dataset");
 check(await page.locator("li", { hasText: "loss target" }).count() > 0, "the preview checks the loss target field");
@@ -70,6 +70,10 @@ const first = g.nodes.find((n) => n.type === "Linear" && g.edges.some(([s, d]) =
 check(first?.params?.in === 32, `fitting the input re-sizes what follows (in = ${first?.params?.in})`);
 check(await page.locator("li", { hasText: "✕" }).count() === 0, "after the fix the data fits the graph");
 
+await page.keyboard.press("3");
+await page.waitForTimeout(400);
+check(await page.getByText("Ready to train?").count() === 1 && await page.getByText("optimizer", { exact: true }).count() > 0, "key 3 opens Train: settings next to the checklist");
+await stage(page, "Model");
 await page.locator(".react-flow__pane").click({ position: { x: 5, y: 5 } });
 await page.keyboard.press("?");
 await page.waitForTimeout(300);

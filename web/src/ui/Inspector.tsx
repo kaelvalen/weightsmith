@@ -8,7 +8,7 @@ import { bulkAdapt, getBody, renameNode, setParam, updateNode } from "../ir/ops"
 import { TYPES, expandDefaults, linearTargetsOf, outFeaturesOf, weightsOf } from "../ir/registry";
 import type { Adapt, Node } from "../ir/types";
 import { useAnalysis, useIssues, useStore } from "../state/store";
-import { JobPanel } from "./JobPanel";
+import { ModelOverview } from "./JobPanel";
 import { NodeScope } from "../scope/NodeScope";
 
 const CodeEditor = lazy(() => import("./CodeEditor"));
@@ -547,7 +547,7 @@ export function Inspector() {
       ) : scope ? (
         <BlockPanel name={scope} />
       ) : (
-        <JobPanel />
+        <ModelOverview />
       )}
     </aside>
   );

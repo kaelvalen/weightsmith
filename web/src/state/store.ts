@@ -42,8 +42,17 @@ interface LogEntry {
   at: number;
 }
 
-export type BottomTab = "metrics" | "diagnose" | "log" | "runs" | "compare" | "code";
-export type View = "projects" | "nodes";
+/** Where the user is: the start page, or one stage of the build → data → train → runs → diagnose flow. */
+export type View = "projects" | "model" | "data" | "train" | "runs" | "diagnose";
+export const STAGES: Exclude<View, "projects">[] = ["model", "data", "train", "runs", "diagnose"];
+export type RunsTab = "metrics" | "log" | "compare";
+
+function initialView(): View {
+  const q = new URLSearchParams(location.search);
+  const v = q.get("view");
+  if (v && (STAGES as string[]).includes(v)) return v as View;
+  return v === "nodes" || q.get("project") ? "model" : "projects"; // ?view=nodes from older links
+}
 
 interface State {
   project: Project;
@@ -59,7 +68,9 @@ interface State {
   events: Record<string, RunEvent[]>;
   activeRun: string | null;
   compare: string[];
-  bottom: { open: boolean; tab: BottomTab; height: number };
+  runsTab: RunsTab;
+  /** Model stage shows the graph or the generated model.py */
+  modelView: "graph" | "code";
   /** trainscope on the canvas: the run whose recording is shown, node heat (max z) and the spike source */
   diag: { run: string | null; paint: boolean; heat: Record<string, number>; source: string | null; layers: Record<string, string[]> };
   palette: boolean;
@@ -96,7 +107,8 @@ interface State {
   copy: () => void;
   paste: () => void;
   duplicate: () => void;
-  setBottom: (b: Partial<State["bottom"]>) => void;
+  setRunsTab: (t: RunsTab) => void;
+  setModelView: (v: "graph" | "code") => void;
   setDiag: (d: Partial<State["diag"]>) => void;
   setPalette: (open: boolean) => void;
   notify: (text: string, error?: boolean) => void;
@@ -171,13 +183,14 @@ export const useStore = create<State>((set, get) => {
     events: {},
     activeRun: null,
     compare: [],
-    bottom: { open: false, tab: "metrics", height: 264 },
+    runsTab: "metrics",
+    modelView: "graph",
     diag: { run: null, paint: false, heat: {}, source: null, layers: {} },
     palette: false,
     notice: null,
     inspectorFocus: 0,
     projects: [],
-    view: new URLSearchParams(location.search).get("view") === "nodes" || new URLSearchParams(location.search).get("project") ? "nodes" : "projects",
+    view: initialView(),
     clip: null,
 
     graph: () => {
@@ -272,7 +285,7 @@ export const useStore = create<State>((set, get) => {
       for (let i = 2; taken.has(slug); i++) slug = `${base}-${i}`;
       const g: Graph = graph ?? { schema: 1, name, nodes: [], edges: [] };
       get().loadProject({ slug, name, active: "main", variants: { main: { graph: ensureLayout(g), parent: null, created: Date.now() } }, job: job ?? { data: {}, train: {} }, description });
-      set({ view: "nodes" });
+      set({ view: "model" });
       history.replaceState(null, "", `?project=${encodeURIComponent(slug)}`);
       setTimeout(() => get().refreshProjects(), 600);
     },
@@ -321,7 +334,7 @@ export const useStore = create<State>((set, get) => {
       p.job = p.job ?? { data: {}, train: {} };
       p.active = p.variants[p.active] ? p.active : Object.keys(p.variants)[0];
       get().loadProject(p);
-      set({ view: "nodes" });
+      set({ view: "model" });
     },
 
     refreshProjects: async () => {
@@ -400,13 +413,14 @@ export const useStore = create<State>((set, get) => {
         p.job = p.job ?? { data: {}, train: {} };
         get().loadProject(p);
         history.replaceState(null, "", `?project=${encodeURIComponent(slug)}`);
-        set({ view: "nodes" });
+        set({ view: "model" });
       } catch {
         get().notify(`could not open project ${slug}`, true);
       }
     },
 
-    setBottom: (b) => set({ bottom: { ...get().bottom, ...b } }),
+    setRunsTab: (t) => set({ runsTab: t }),
+    setModelView: (v) => set({ modelView: v }),
     setDiag: (d) => set({ diag: { ...get().diag, ...d } }),
     setPalette: (open) => set({ palette: open }),
 
@@ -444,7 +458,7 @@ export const useStore = create<State>((set, get) => {
       try {
         const job = get().job();
         const rec = await api.createRun({ graph: g, data: job.data, train: job.train, init: job.init ?? {}, project: project.slug, variant: project.active, name: `${project.name} · ${project.active}` });
-        set({ activeRun: rec.id, bottom: { ...get().bottom, open: true, tab: "metrics" } });
+        set({ activeRun: rec.id, runsTab: "metrics" });
         if (rec.existing) get().notify(`run ${rec.id.slice(0, 8)} already exists for this graph, config, data and seed`);
         get().watchRun(rec.id);
         await get().refreshRuns();

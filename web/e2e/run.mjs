@@ -1,5 +1,5 @@
 // A small project trains from the canvas; metrics stream in; the run lands in Runs.
-import { api, check, open } from "./lib.mjs";
+import { api, check, open, stage } from "./lib.mjs";
 
 const graph = {
   schema: 1, name: "e2e tiny",
@@ -24,9 +24,10 @@ for (let i = 0; i < 60; i++) {
   await page.waitForTimeout(500);
 }
 check(await page.getByText(/^completed$/).count() > 0, "run completes from the canvas");
+check(await page.locator("[data-testid=run-strip]", { hasText: "completed" }).count() === 1, "the run strip shows the run from any stage");
+await stage(page, "Runs");
 const lossFig = page.locator("figure", { hasText: "loss" }).first();
 check((await lossFig.locator("canvas").count()) > 0 && Number(await lossFig.getAttribute("data-points")) > 0, "loss curve is drawn");
-await page.locator("button", { hasText: /^Runs$/ }).click();
 await page.waitForTimeout(500);
 check(await page.locator("tbody tr").count() >= 1, "run is listed in Runs");
 check(errors.length === 0, `no page errors (${errors.join(" | ")})`);

@@ -371,10 +371,40 @@ button:active:not(:disabled) {
   background: color-mix(in srgb, var(--ink) 6%, transparent);
 }
 
-/* bottom strip resize grip */
-.ws-grip:hover,
-.ws-grip:active {
-  background: var(--line);
+/* stage rail: plain words; the current stage gets an ink rule, status marks are drawn here */
+.ws-rail-item {
+  position: relative;
+  height: 32px;
+  padding: 0 12px 0 14px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  text-align: left;
+  font-size: 13px;
+  color: var(--muted);
+}
+.ws-rail-item:hover {
+  color: var(--ink);
+  background: none;
+}
+.ws-rail-item[aria-current="page"] {
+  color: var(--ink);
+  font-weight: 500;
+  box-shadow: inset 2px 0 0 var(--ink);
+}
+.ws-mark-live::after,
+.ws-mark-alert::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+.ws-mark-alert::after {
+  background: var(--error);
 }
 
 /* tooltips (TooltipLayer replaces the browser's title boxes) */

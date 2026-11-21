@@ -195,6 +195,17 @@ Compare grafiğinde kümelerin ortak kader bandı (metin olarak listeleniyor), R
 `runStatus` (sağlık kayıt özetinden okunur: sonlu ama 10× yukarıda biten run "diverged" değil
 "stable/spiked" görünür), Weightsmith dışı run'ları Runs'a ekleme (proje 3).
 
+## Altıncı tur: aşamalı arayüz
+
+Dört bölge (kütüphane, canvas, inspector, alt şerit) aynı anda açıktı; canvas ekranın üçte biri
+kalıyor, Diagnose ve Runs 264 piksellik şeritte sıkışıyordu ve akış (model → veri → eğitim → sonuç)
+keşfedilmek zorundaydı. Yerine: soldaki şeritte Projects + beş aşama (Model, Data, Train, Runs,
+Diagnose), her biri tam ekran, `1`–`5` ile geçilir; alttaki ince run şeridi her aşamada aktif run'ı
+izler. Tema ve token'lar aynı. Model'de kütüphane katlanır, Graph/Code yan yana; Diagnose'un yanında
+node'lar sapma sırasıyla listelenir ve **Show on canvas** Model'e götürüp boyar. Run şeridi spike
+sayısını değil ilk spike adımını söyler (tespit sayısı ile gruplanmış olay sayısı farklı; ikisini
+yan yana göstermek kafa karıştırıyordu).
+
 ## Testler
 
 `scripts/check.sh`: Python (çekirdek, codegen snapshot'ları, 132 node'un CPU'da gerçek forward'ı, şablon sayıları, importer eşdeğerliği, Cerata döngüsü, daemon uçtan uca), TS aynası çapraz testi, typecheck, build ve Chrome varsa tarayıcı senaryoları (`scripts/e2e.sh`, `web/e2e/`).

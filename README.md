@@ -58,22 +58,39 @@ bildirim için TS aynasını (`web/src/ir/analyze.ts`) kullanır; ayna her deği
 (`web/src/ir/cross.test.ts`, `tests/test_cross_ts.py`). Uyuşmazlıkta daemon'un analizi kazanır;
 canvas onu tercih eder.
 
-## Canvas kullanımı
+## Arayüz
+
+Soldaki şerit işin sırasını izler; her aşama ekranın tamamını kullanır, `1`–`5` tuşları aşamalar
+arasında geçer:
+
+| Aşama | İçerik |
+| --- | --- |
+| **Projects** | Projeler, şablonlar, Hugging Face'ten içe aktarma |
+| **Model** (1) | Kütüphane (katlanır), canvas ya da üretilen `model.py` (**Graph / Code**), seçime göre inspector; hiçbir şey seçili değilken "Ready to train?" listesi, proje, varyantlar |
+| **Data** (2) | Veri kaynağı ve başlangıç ağırlıkları; yanında modelin göreceği verinin önizlemesi, Input'larla karşılaştırmalı |
+| **Train** (3) | Optimizer, takvim, hassasiyet ayarları; yanında hazırlık listesi ve Run |
+| **Runs** (4) | Projenin bütün run'ları (sağlık, ilk spike); seçili run'ın Metrics / Log'u, işaretlilerin Compare'i |
+| **Diagnose** (5) | trainscope: aktif run'ın teşhisi; yanında node'lar katmanlarının ne kadar saptığına göre sıralı, **Show on canvas** |
+
+Alttaki şerit her aşamada aktif run'ı izler: durum, adım, loss, spike ("why?" Diagnose'a götürür),
+duraklat/durdur.
+
+### Canvas kullanımı
 
 - **Tıklayarak kur**: bir node seçiliyken kütüphanede bir öğeye tıklamak onu arkasına ekler, bağlar ve boyutlarını girdisinden alır; bir bağlantı seçiliyken araya sokar. Silmek zinciri koparmaz. Sorunların yanında tek tıkla düzeltme düğmeleri var.
-- Hiçbir şey seçili değilken sağ panel: **Overview** (çalıştırmaya hazır mı listesi + Run), **Data** (kaynak ve modelin göreceği verinin önizlemesi, Input'larla karşılaştırmalı), **Training**.
+- Hiçbir şey seçili değilken sağ panel çalıştırmaya hazır mı listesini gösterir; eksikler Data ya da Train aşamasına bağlanır.
 - `?`: kavramlar ve tüm kısayollar.
 - `Cmd/Ctrl+K`: node ekle, komutlar (LoRA'yı tüm attention q/v'ye, varyant dallandır, bloğa grupla, ablasyon, örnek projeler…)
 - `Cmd/Ctrl+Enter`: Run · `Enter`: inspector'a odaklan · `Shift+Enter`: bloğu aç · `Esc`: seçimi/bloğu bırak
 - `Cmd/Ctrl+Z` / `Shift+Cmd/Ctrl+Z`: IR işlem günlüğünden undo/redo
 - Subgraph node'una çift tık içine girer.
-- Alt şerit: Metrics (canlı eğriler, pause/resume/stop/checkpoint, ablasyon, export), Runs, Compare (eğriler + graph diff), Log, Code (üretilen `model.py`; satıra tıklamak node'u seçer).
+- **Code** görünümünde satıra tıklamak node'u seçer.
 
 ## Eğitim teşhisi (trainscope)
 
 Her run [trainscope](trainscope/README.md) ile kaydedilir: katman bazında gradyan, ağırlık ve
 aktivasyon istatistikleri, loss spike'ları ve onlardan önce eşiği geçen sinyaller
-(`runs/<id>/scope/`). Alt şeritteki **Diagnose** sekmesi aktif run'ı gösterir: loss ve grad norm,
+(`runs/<id>/scope/`). **Diagnose** aşaması aktif run'ı gösterir: loss ve grad norm,
 katman × adım heatmap'i, spike'lar, katman grafikleri, MoE yönlendirmesi, ağırlık farkı.
 
 - Heatmap satırına tıklamak o katmanı tutan node'u canvas'ta seçer; Inspector'da node'un katman

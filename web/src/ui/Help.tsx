@@ -7,7 +7,8 @@ const STEPS: [string, string][] = [
   ["Build", "Select a node and click a library item: it is added after the selection, wired and sized from its input. Select a connection to insert into it instead."],
   ["Fix", "Problems show on the ports. Most have a fix button in the inspector."],
   ["Configure", "With nothing selected, the inspector's Data and Training tabs set the dataset and the optimiser; the checklist says what is still missing."],
-  ["Run", "Run (⌘↵) trains on the daemon; curves stream into Metrics. Runs, Compare and Code are in the bottom strip."],
+  ["Stages", "The left rail follows the work: Model (1) builds the graph, Data (2) checks what the model will see, Train (3) sets the optimizer and runs, Runs (4) has the curves and comparisons, Diagnose (5) explains spikes."],
+  ["Run", "Run (⌘↵) trains on the daemon from any stage; the strip at the bottom follows the run. Code next to Graph shows the generated model.py."],
   ["Explore", "Branch a variant to try an idea, compare runs with their graph diff, ablate a node, or export a run as plain PyTorch."],
 ];
 

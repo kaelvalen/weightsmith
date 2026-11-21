@@ -42,3 +42,10 @@ export function check(cond, msg) {
     process.exitCode = 1;
   } else console.log("ok  ", msg);
 }
+
+/** Go to a stage from the left rail (Projects, Model, Data, Train, Runs, Diagnose). */
+export async function stage(page, name) {
+  await page.locator("nav[aria-label='Stages'] button", { hasText: new RegExp(`^${name}$`) }).click();
+  await page.mouse.move(700, 120); // off the rail, so its tooltip does not stay open
+  await page.waitForTimeout(400);
+}

@@ -4,12 +4,14 @@ import { RunEvent, RunRecord, api, daemonBase } from "../api/client";
 import { Diagnose } from "../scope/Diagnose";
 import { layersByNode, nodeHeat, spikeSourceNode } from "../scope/nodeHeat";
 import { nodeFor } from "../scope/nodeMap";
+import { groupSpikes, spikeBands } from "../scope/spikeCluster";
 import { scopeMulti } from "../scope/api";
 import { runHealth } from "../scope/health";
 import type { RunSummary } from "../scope/types";
 import { WhyPanel } from "../scope/WhyPanel";
 import type { LayerMatrix } from "../scope/types";
-import { BottomTab, useStore } from "../state/store";
+import { RunsTab, useStore } from "../state/store";
+import { NodeScope } from "../scope/NodeScope";
 import { DiffList } from "./DiffList";
 import { Field, fmtCount } from "./Inspector";
 import { LineChart, Series } from "./LineChart";
@@ -24,7 +26,7 @@ function series(evs: RunEvent[] | undefined, type: string, key: string): [number
   return (evs ?? []).filter((e) => e.type === type && typeof e[key] === "number").map((e) => [e.step, e[key]]);
 }
 
-function Status({ s }: { s: string }) {
+export function Status({ s }: { s: string }) {
   const live = s === "running" || s === "preparing";
   return (
     <span className="num" style={{ color: live ? "var(--accent)" : s === "failed" || s === "rejected" ? "var(--error)" : undefined }}>
@@ -34,7 +36,7 @@ function Status({ s }: { s: string }) {
   );
 }
 
-function Controls({ run }: { run: RunRecord }) {
+export function Controls({ run }: { run: RunRecord }) {
   const notify = useStore((s) => s.notify);
   const refresh = useStore((s) => s.refreshRuns);
   const selection = useStore((s) => s.selection);
@@ -224,12 +226,12 @@ function Metrics() {
             { id: "train", label: "train", points: series(events, "metric", "loss") },
             ...(series(events, "eval", "val_loss").length ? [{ id: "val", label: "val", points: series(events, "eval", "val_loss") }] : []),
           ]}
-          markers={(events ?? []).filter((e) => e.type === "spike").map((e) => ({ x: e.step, kind: "spike" as const }))}
-          height={128}
+          bands={spikeBands(groupSpikes([], (events ?? []).filter((e) => e.type === "spike").map((e) => e.step)))}
+          height={190}
         />
-        <LineChart title="learning rate" series={[{ id: "lr", label: "lr", points: series(events, "metric", "lr") }]} height={128} />
-        <LineChart title="grad norm" series={[{ id: "g", label: "grad norm", points: series(events, "metric", "grad_norm") }]} height={128} />
-        <LineChart title="throughput · samples/s" series={[{ id: "t", label: "throughput", points: series(events, "metric", "throughput").slice(1) }]} height={128} />
+        <LineChart title="learning rate" series={[{ id: "lr", label: "lr", points: series(events, "metric", "lr") }]} height={190} />
+        <LineChart title="grad norm" series={[{ id: "g", label: "grad norm", points: series(events, "metric", "grad_norm") }]} height={190} />
+        <LineChart title="throughput · samples/s" series={[{ id: "t", label: "throughput", points: series(events, "metric", "throughput").slice(1) }]} height={190} />
         {gpu.length > 0 && (
           <LineChart
             title="GPU memory · MB"
@@ -237,12 +239,12 @@ function Metrics() {
               { id: "m", label: "allocated", points: gpu },
               { id: "p", label: "peak", points: series(events, "metric", "gpu_mem_peak_mb") },
             ]}
-            height={128}
+            height={190}
           />
         )}
-        {series(events, "metric", "gpu_util").length > 0 && <LineChart title="GPU utilisation · %" series={[{ id: "u", label: "util", points: series(events, "metric", "gpu_util") }]} height={128} />}
+        {series(events, "metric", "gpu_util").length > 0 && <LineChart title="GPU utilisation · %" series={[{ id: "u", label: "util", points: series(events, "metric", "gpu_util") }]} height={190} />}
         {series(events, "metric", "loss/kl_to_base").length > 0 && (
-          <LineChart title="KL to base (anchor prompts)" series={[{ id: "kl", label: "KL", points: series(events, "metric", "loss/kl_to_base") }]} height={128} />
+          <LineChart title="KL to base (anchor prompts)" series={[{ id: "kl", label: "KL", points: series(events, "metric", "loss/kl_to_base") }]} height={190} />
         )}
       </div>
     </div>
@@ -320,7 +322,9 @@ function Runs() {
       <table className="num w-full border-collapse text-small">
         <thead className="text-label text-muted">
           <tr className="text-left">
-            <th className="w-8 py-1 pl-4 font-normal">cmp</th>
+            <th className="w-10 py-1 pl-4 font-normal">
+              <span className="sr-only">compare</span>
+            </th>
             <th className="font-normal">run</th>
             <th className="font-normal">name</th>
             <th className="font-normal">status</th>
@@ -346,7 +350,7 @@ function Runs() {
                 <button
                   className="link"
                   onClick={() => {
-                    useStore.setState({ activeRun: r.id, bottom: { ...useStore.getState().bottom, tab: "metrics" } });
+                    useStore.setState({ activeRun: r.id, runsTab: "metrics" });
                     watch(r.id);
                   }}
                 >
@@ -430,8 +434,8 @@ function Compare() {
   if (!list.length) return <p className="m-0 p-4 text-small text-muted">Tick runs in the Runs tab to compare them. The first one is the baseline.</p>;
   return (
     <div className="grid h-full min-h-0 grid-cols-[1fr_1fr_360px] gap-6 overflow-y-auto px-4 py-2">
-      <LineChart title="train loss" series={memo.loss} height={176} />
-      <LineChart title={memo.acc.some((s) => s.points.length) ? "val accuracy" : "val loss"} series={memo.acc.some((s) => s.points.length) ? memo.acc : memo.val} height={176} />
+      <LineChart title="train loss" series={memo.loss} height={240} />
+      <LineChart title={memo.acc.some((s) => s.points.length) ? "val accuracy" : "val loss"} series={memo.acc.some((s) => s.points.length) ? memo.acc : memo.val} height={240} />
       <div className="min-w-0">
         <table className="num w-full border-collapse text-small">
           <thead className="text-label text-muted">
@@ -471,7 +475,7 @@ function Compare() {
   );
 }
 
-function Code() {
+export function CodeView() {
   const graph = useStore((s) => s.graph());
   const select = useStore((s) => s.select);
   const setScope = useStore((s) => s.setScope);
@@ -582,71 +586,114 @@ function DiagnoseTab() {
   );
 }
 
-const TABS: [BottomTab, string][] = [
-  ["metrics", "Metrics"],
-  ["diagnose", "Diagnose"],
-  ["runs", "Runs"],
-  ["compare", "Compare"],
-  ["log", "Log"],
-  ["code", "Code"],
-];
-
-export function Bottom() {
-  const bottom = useStore((s) => s.bottom);
-  const setBottom = useStore((s) => s.setBottom);
-  const runs = useStore((s) => s.runs);
-  const live = runs.find((r) => r.status === "running" || r.status === "preparing");
-
-  const startResize = (e: React.MouseEvent) => {
-    const y0 = e.clientY;
-    const h0 = bottom.height;
-    const move = (m: MouseEvent) => setBottom({ height: Math.max(160, Math.min(window.innerHeight - 200, h0 + y0 - m.clientY)) });
-    const up = () => {
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mouseup", up);
-    };
-    window.addEventListener("mousemove", move);
-    window.addEventListener("mouseup", up);
-  };
-
+/** Runs stage: every run of the project on top; the selected run's curves, log, or the comparison below. */
+export function RunsStage() {
+  const tab = useStore((s) => s.runsTab);
+  const setTab = useStore((s) => s.setRunsTab);
+  const compare = useStore((s) => s.compare);
+  const tabs: [RunsTab, string][] = [
+    ["metrics", "Metrics"],
+    ["log", "Log"],
+    ["compare", compare.length ? `Compare · ${compare.length}` : "Compare"],
+  ];
   return (
-    <div className="flex flex-col border-t border-line bg-bg" style={{ height: bottom.open ? bottom.height : 24 }}>
-      {bottom.open && <div className="ws-grip -mt-0.5 h-1 cursor-row-resize" onMouseDown={startResize} title="Drag to resize" />}
-      <div className="flex h-6 shrink-0 items-center gap-4 px-4 text-small">
-        {TABS.map(([t, label]) => (
-          <button
-            key={t}
-            className="link"
-            style={{ color: bottom.open && bottom.tab === t ? "var(--ink)" : undefined, fontWeight: bottom.open && bottom.tab === t ? 500 : 400 }}
-            onClick={() =>
-              setBottom({
-                tab: t,
-                open: !(bottom.open && bottom.tab === t),
-                // Diagnose needs room for charts and the layer heatmap
-                ...(t === "diagnose" ? { height: Math.max(bottom.height, Math.round(window.innerHeight * 0.6)) } : {}),
-              })
-            }
-          >
-            {label}
-          </button>
-        ))}
-        {live && (
-          <span className="num ml-auto text-label" style={{ color: "var(--accent)" }}>
-            ● {short(live.id)} step {live.summary?.last?.step ?? 0}
-            {live.summary?.total_steps ? `/${live.summary.total_steps}` : ""} · loss {f4(live.summary?.last?.loss)}
-          </span>
-        )}
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="max-h-[40%] min-h-[64px] shrink-0 overflow-y-auto border-b border-line">
+        <Runs />
       </div>
-      {bottom.open && (
-        <div className="min-h-0 flex-1 border-t border-line">
-          {bottom.tab === "metrics" && <Metrics />}
-          {bottom.tab === "diagnose" && <DiagnoseTab />}
-          {bottom.tab === "runs" && <Runs />}
-          {bottom.tab === "compare" && <Compare />}
-          {bottom.tab === "log" && <Log />}
-          {bottom.tab === "code" && <Code />}
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex h-8 shrink-0 items-stretch gap-4 border-b border-line px-4 text-small" role="tablist">
+          {tabs.map(([t, label]) => (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={tab === t}
+              className="link !h-full"
+              style={{ color: tab === t ? "var(--ink)" : undefined, fontWeight: tab === t ? 500 : 400, boxShadow: tab === t ? "inset 0 -1px 0 var(--ink)" : undefined }}
+              onClick={() => setTab(t)}
+            >
+              {label.startsWith("Compare") ? <span>Compare</span> : label}
+              {label.startsWith("Compare ·") && <span className="num text-muted">{label.slice(7)}</span>}
+            </button>
+          ))}
         </div>
-      )}
+        <div className="min-h-0 flex-1">
+          {tab === "metrics" && <Metrics />}
+          {tab === "log" && <Log />}
+          {tab === "compare" && <Compare />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Nodes of the diagnosed run ranked by how far their layers drifted; the spike source is marked. */
+function NodeHeatPanel() {
+  const diag = useStore((s) => (s.diag.run === s.activeRun ? s.diag : null));
+  const selection = useStore((s) => s.selection);
+  const select = useStore((s) => s.select);
+  const setView = useStore((s) => s.setView);
+  const setDiag = useStore((s) => s.setDiag);
+  if (!diag?.run) return null;
+  const nodes = Object.keys(diag.layers).sort((a, b) => (diag.heat[b] ?? 0) - (diag.heat[a] ?? 0));
+  const chosen = selection.length === 1 ? selection[0] : null;
+  const show = () => {
+    setDiag({ paint: true });
+    setView("model");
+    if (chosen) setTimeout(() => window.dispatchEvent(new CustomEvent("ws:focus", { detail: chosen })), 50);
+  };
+  return (
+    <aside className="flex min-h-0 flex-col border-l border-line">
+      <div className="flex items-center justify-between px-4 pt-2">
+        <span className="text-label text-muted">nodes · peak z of their layers</span>
+        <button className="link text-label" onClick={show}>
+          Show on canvas
+        </button>
+      </div>
+      <ul className="m-0 list-none overflow-y-auto p-0 px-4 pt-1 text-small" data-testid="node-heat">
+        {nodes.map((id) => {
+          const z = diag.heat[id] ?? 0;
+          const source = diag.source === id;
+          return (
+            <li key={id}>
+              <button
+                className="grid w-full grid-cols-[1fr_64px_32px] items-center gap-2 py-0.5 text-left"
+                data-node={id}
+                data-source={source || undefined}
+                aria-current={chosen === id}
+                onClick={() => {
+                  const st = useStore.getState();
+                  if (st.scope) st.setScope("");
+                  select([id]);
+                }}
+                style={{ fontWeight: chosen === id ? 500 : 400, color: source ? "var(--error)" : undefined }}
+              >
+                <span className="num truncate">
+                  {id}
+                  {source && <span className="text-label"> · first to drift</span>}
+                </span>
+                <span className="h-1.5 bg-line">
+                  <span className="block h-full" style={{ width: `${Math.min(100, (z / 6) * 100)}%`, background: "var(--error)" }} />
+                </span>
+                <span className="num text-right text-label text-muted">{z.toFixed(1)}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {chosen && <NodeScope nodeId={chosen} />}
+    </aside>
+  );
+}
+
+/** Diagnose stage: trainscope's view of the active run, with the graph's nodes beside it. */
+export function DiagnoseStage() {
+  return (
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_300px]">
+      <div className="min-h-0">
+        <DiagnoseTab />
+      </div>
+      <NodeHeatPanel />
     </div>
   );
 }
