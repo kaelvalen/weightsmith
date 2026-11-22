@@ -1,25 +1,25 @@
 # Weightsmith
 
-Mimari deneyi yapan araştırmacı için görsel model programlama ortamı. Canvas, PyTorch'un
-üstünde bir görünüm; kaynak gerçeği **graph IR**. Graph kur → doğrula → okunabilir PyTorch üret →
-local GPU'da eğit → run'ları karşılaştır.
+A visual model-programming environment for researchers who experiment with architectures. The
+canvas is a view on top of PyTorch; the source of truth is the **graph IR**. Build a graph →
+validate it → generate readable PyTorch → train on a local GPU → compare runs.
 
-Plan: `Görsel ML Mimari Editörü — Proje Planı.md`. Plana göre verilen kararlar ve eklenenler:
+Plan: [`docs/plan.md`](docs/plan.md). Decisions made against the plan, and what was added:
 [`docs/decisions.md`](docs/decisions.md).
 
-## Hızlı başlangıç
+## Quick start
 
 ```bash
-scripts/dev.sh serve        # canvas'ı build eder, daemon + canvas: http://127.0.0.1:7860
-scripts/dev.sh              # geliştirme: daemon :7860 + Vite :5173 (hot reload)
-scripts/check.sh            # tüm testler + typecheck + build + tarayıcı senaryoları
-scripts/e2e.sh              # yalnız tarayıcı senaryoları (Chrome/Chromium gerekir)
+scripts/dev.sh serve        # builds the canvas, daemon + canvas: http://127.0.0.1:7860
+scripts/dev.sh              # development: daemon :7860 + Vite :5173 (hot reload)
+scripts/check.sh            # every test + typecheck + build + browser scenarios
+scripts/e2e.sh              # browser scenarios only (needs Chrome/Chromium)
 ```
 
-Gereken: `uv`, `pnpm`, Node 22+, NVIDIA sürücüsü (CPU'da da çalışır). Deney deposu
-`~/.weightsmith` altında (`WEIGHTSMITH_HOME` ile değişir).
+Requires `uv`, `pnpm`, Node 22+, an NVIDIA driver (it also runs on CPU). The experiment store
+lives under `~/.weightsmith` (override with `WEIGHTSMITH_HOME`).
 
-CLI, canvas olmadan aynı yolu kullanır:
+The CLI takes the same path without the canvas:
 
 ```bash
 uv run weightsmith validate examples/mlp_lora.json
@@ -27,96 +27,95 @@ uv run weightsmith compile examples/mnist_mlp.job.json -o out/      # model.py, 
 uv run weightsmith train examples/mnist_mlp.job.json --set optimizer.lr=3e-4
 uv run weightsmith runs
 uv run weightsmith diff a.json b.json
-uv run weightsmith export <run id> [--merge]                         # LoRA'yı tabana katlar
+uv run weightsmith export <run id> [--merge]                         # folds LoRA into the base
 ```
 
-## Mimari
+## Architecture
 
 ```
-canvas (web/)  ──yazar──▶  Graph IR (schema/)  ◀──okur──  core/ validator + shape inference
-                                │                          codegen/ IR → model.py / train.py
-                                └──── job spec ───────────▶ runtime/ daemon → train.py alt süreci
-                                                                │ WebSocket (seq numaralı)
-canvas ◀──────────── metrik / log / durum ──────────────────────┘   SQLite + dosya sistemi
+canvas (web/)  ──writes──▶  Graph IR (schema/)  ◀──reads──  core/ validator + shape inference
+                                │                           codegen/ IR → model.py / train.py
+                                └──── job spec ────────────▶ runtime/ daemon → train.py subprocess
+                                                                 │ WebSocket (sequence-numbered)
+canvas ◀──────────── metrics / logs / status ────────────────────┘   SQLite + file system
 ```
 
-| Dizin | İçerik |
+| Directory | Contents |
 | --- | --- |
-| `schema/` | IR JSON Schema (TS tipleri buradan üretilir: `web/src/ir/schema.gen.ts`) |
-| `core/` | IR yükleme, migration, kanonik form + hash, node kayıtları, validator, shape inference, diff, toplu seçim, Python node sandbox'ı |
-| `codegen/` | IR → okunabilir PyTorch; `train.py` / `data.py` şablonları; meta-device smoke test |
-| `runtime/` | FastAPI daemon, job kuyruğu, pause/resume/stop/checkpoint, deney deposu, ablasyon, export, CLI |
-| `web/` | React Flow canvas, inspector, Cmd+K paleti, metrik/karşılaştırma/kod görünümleri |
-| `examples/` | Referans graph'lar + job'lar (MNIST MLP, plan örneği MLP+LoRA, Transformer, Python node) |
-| `importers/` | Hugging Face importer: 8 aile, transformers'la eşdeğerlik testli |
-| `tests/` | core, codegen snapshot'ları, sandbox, daemon uçtan uca, TS çapraz test fixture'ları |
-| `trainscope/` | [trainscope](trainscope/README.md): eğitim kaydı ve spike teşhisi; uv workspace üyesi, PyPI'da ayrı paket (`pip install trainscope`) |
+| `schema/` | IR JSON Schema (the TS types are generated from it: `web/src/ir/schema.gen.ts`) |
+| `core/` | IR loading, migration, canonical form + hash, node registry, validator, shape inference, diff, bulk selection, Python node sandbox |
+| `codegen/` | IR → readable PyTorch; `train.py` / `data.py` templates; meta-device smoke test |
+| `runtime/` | FastAPI daemon, job queue, pause/resume/stop/checkpoint, experiment store, ablation, export, CLI |
+| `web/` | React Flow canvas, inspector, Cmd+K palette, metrics/comparison/code views |
+| `examples/` | Reference graphs + jobs (MNIST MLP, the plan's MLP+LoRA example, Transformer, Python node) |
+| `importers/` | Hugging Face importer: 8 families, each tested for equivalence with transformers |
+| `tests/` | core, codegen snapshots, sandbox, daemon end to end, TS cross-test fixtures |
+| `trainscope/` | [trainscope](trainscope/README.md): training recording and spike diagnosis; a uv workspace member and its own package on PyPI (`pip install trainscope`) |
 
-**Tek doğrulayıcı kuralı.** Shape inference ve validator Python'da (`core/`). Canvas anlık geri
-bildirim için TS aynasını (`web/src/ir/analyze.ts`) kullanır; ayna her değişiklikte
-`scripts/gen_fixtures.py`'nin Python'dan ürettiği fixture'lara karşı test edilir
-(`web/src/ir/cross.test.ts`, `tests/test_cross_ts.py`). Uyuşmazlıkta daemon'un analizi kazanır;
-canvas onu tercih eder.
+**One validator.** Shape inference and the validator live in Python (`core/`). The canvas uses a TS
+mirror (`web/src/ir/analyze.ts`) for instant feedback; on every change the mirror is tested
+against fixtures that `scripts/gen_fixtures.py` generates from Python (`web/src/ir/cross.test.ts`,
+`tests/test_cross_ts.py`). When they disagree, the daemon's analysis wins and the canvas prefers it.
 
-## Arayüz
+## Interface
 
-Soldaki şerit işin sırasını izler; her aşama ekranın tamamını kullanır, `1`–`5` tuşları aşamalar
-arasında geçer:
+The rail on the left follows the order of the work; every stage uses the whole screen, and the
+keys `1`–`5` switch between stages:
 
-| Aşama | İçerik |
+| Stage | Contents |
 | --- | --- |
-| **Projects** | Projeler, şablonlar, Hugging Face'ten içe aktarma |
-| **Model** (1) | Kütüphane (katlanır), canvas ya da üretilen `model.py` (**Graph / Code**), seçime göre inspector; hiçbir şey seçili değilken "Ready to train?" listesi, proje, varyantlar |
-| **Data** (2) | Veri kaynağı ve başlangıç ağırlıkları; yanında modelin göreceği verinin önizlemesi, Input'larla karşılaştırmalı |
-| **Train** (3) | Optimizer, takvim, hassasiyet ayarları; yanında hazırlık listesi ve Run |
-| **Runs** (4) | Projenin bütün run'ları (sağlık, ilk spike); seçili run'ın Metrics / Log'u, işaretlilerin Compare'i |
-| **Diagnose** (5) | trainscope: aktif run'ın teşhisi; yanında node'lar katmanlarının ne kadar saptığına göre sıralı, **Show on canvas** |
+| **Projects** | Projects, templates, import from Hugging Face |
+| **Model** (1) | Library (foldable), the canvas or the generated `model.py` (**Graph / Code**), an inspector for the selection; with nothing selected, the "Ready to train?" checklist, the project and its variants |
+| **Data** (2) | Data source and initial weights; next to them, a preview of what the model will see, checked against the Inputs |
+| **Train** (3) | Optimizer, schedule and precision settings; next to them, the checklist and Run |
+| **Runs** (4) | Every run of the project (health, first spike); the selected run's Metrics / Log, Compare for the ticked ones |
+| **Diagnose** (5) | trainscope: the active run's diagnosis; next to it, nodes sorted by how far their layers drifted, **Show on canvas** |
 
-Alttaki şerit her aşamada aktif run'ı izler: durum, adım, loss, spike ("why?" Diagnose'a götürür),
-duraklat/durdur.
+The strip at the bottom follows the active run on every stage: status, step, loss, spikes ("why?"
+opens Diagnose), pause/stop.
 
-### Canvas kullanımı
+### Using the canvas
 
-- **Tıklayarak kur**: bir node seçiliyken kütüphanede bir öğeye tıklamak onu arkasına ekler, bağlar ve boyutlarını girdisinden alır; bir bağlantı seçiliyken araya sokar. Silmek zinciri koparmaz. Sorunların yanında tek tıkla düzeltme düğmeleri var.
-- Hiçbir şey seçili değilken sağ panel çalıştırmaya hazır mı listesini gösterir; eksikler Data ya da Train aşamasına bağlanır.
-- `?`: kavramlar ve tüm kısayollar.
-- `Cmd/Ctrl+K`: node ekle, komutlar (LoRA'yı tüm attention q/v'ye, varyant dallandır, bloğa grupla, ablasyon, örnek projeler…)
-- `Cmd/Ctrl+Enter`: Run · `Enter`: inspector'a odaklan · `Shift+Enter`: bloğu aç · `Esc`: seçimi/bloğu bırak
-- `Cmd/Ctrl+Z` / `Shift+Cmd/Ctrl+Z`: IR işlem günlüğünden undo/redo
-- Subgraph node'una çift tık içine girer.
-- **Code** görünümünde satıra tıklamak node'u seçer.
+- **Build by clicking**: with a node selected, clicking a library item adds it after the node, connects it and sizes it from its input; with a connection selected, it is inserted in between. Deleting does not break the chain. Issues come with one-click fix buttons.
+- With nothing selected, the right panel shows the ready-to-train checklist; missing items link to the Data or Train stage.
+- `?`: concepts and every shortcut.
+- `Cmd/Ctrl+K`: add nodes, commands (LoRA on every attention q/v, branch a variant, group into a block, ablation, example projects…)
+- `Cmd/Ctrl+Enter`: Run · `Enter`: focus the inspector · `Shift+Enter`: open the block · `Esc`: drop the selection / leave the block
+- `Cmd/Ctrl+Z` / `Shift+Cmd/Ctrl+Z`: undo/redo from the IR operation log
+- Double-clicking a Subgraph node enters it.
+- In the **Code** view, clicking a line selects its node.
 
-## Eğitim teşhisi (trainscope)
+## Training diagnosis (trainscope)
 
-Her run [trainscope](trainscope/README.md) ile kaydedilir: katman bazında gradyan, ağırlık ve
-aktivasyon istatistikleri, loss spike'ları ve onlardan önce eşiği geçen sinyaller
-(`runs/<id>/scope/`). **Diagnose** aşaması aktif run'ı gösterir: loss ve grad norm,
-katman × adım heatmap'i, spike'lar, katman grafikleri, MoE yönlendirmesi, ağırlık farkı.
+Every run is recorded by [trainscope](trainscope/README.md): per-layer gradient, weight and
+activation statistics, loss spikes and the signals that crossed their threshold before them
+(`runs/<id>/scope/`). The **Diagnose** stage shows the active run: loss and grad norm, a layer ×
+step heatmap, spikes, per-layer charts, MoE routing, weight drift.
 
-- Heatmap satırına tıklamak o katmanı tutan node'u canvas'ta seçer; Inspector'da node'un katman
-  grafikleri çıkar. **paint canvas** node'ları katmanlarının ne kadar saptığına göre boyar; ilk
-  spike'tan önce 3σ'yı ilk geçen eğitilen katmanın node'u kırmızı çerçeveyle işaretlenir.
-- **Runs** her run'ın sağlığını (stable / spiked / diverged) ve ilk spike adımını gösterir.
-  **Compare** işaretli run'lar için "neden patladı" sorusunu cevaplar: eğrilerin ayrıldığı adım,
-  patlayan run'ların ortak ayarı, en yakın stabil run ve onu ayıran alanlar.
-- Kayıt job'da kapatılır: `"train": {"diagnostics": {"trainscope": false}}`. Run kimliğine girmez.
-  Maliyeti ve nedeni: `docs/decisions.md` → "Beşinci tur".
-- Weightsmith dışındaki eğitimler için `trainscope ui --runs <dizin>` aynı görünümleri açar.
+- Clicking a heatmap row selects the node that holds that layer; the Inspector shows the node's
+  layer charts. **paint canvas** tints nodes by how far their layers drifted; the node of the
+  trained layer that crossed 3σ first before the first spike gets a red outline.
+- **Runs** shows each run's health (stable / spiked / diverged) and its first spike step.
+  **Compare** answers "why did it blow up" for the ticked runs: the step where the curves part,
+  the setting the runs that blew up share, the nearest stable run and the fields that separate it.
+- Recording is turned off in the job: `"train": {"diagnostics": {"trainscope": false}}`. It is not
+  part of the run's identity. Cost and the reasons behind it: `docs/decisions.md` → "Fifth round".
+- For training outside Weightsmith, `trainscope ui --runs <dir>` opens the same views.
 
-## Önceden eğitilmiş modeller
+## Pretrained models
 
 ```bash
-uv run weightsmith import Qwen/Qwen2.5-1.5B-Instruct   # graph + ağırlıklar → proje
+uv run weightsmith import Qwen/Qwen2.5-1.5B-Instruct   # graph + weights → project
 ```
 
-Projects sekmesinden de yapılır. Llama, Mistral, Qwen2, Mixtral, GPT-2, BERT, MPNet ve Mamba
-desteklenir; ayrıntı: [`importers/README.md`](importers/README.md). İçe aktarılan projede
-LoRA ekleyip Run'a basmak gerçek modeli ince ayarlar; eğitim sonrası **Try it** paneli
-adapter'lı ve adapter'sız cevapları yan yana gösterir.
+Also available from the Projects stage. Llama, Mistral, Qwen2, Mixtral, GPT-2, BERT, MPNet and
+Mamba are supported; details: [`importers/README.md`](importers/README.md). In an imported
+project, adding LoRA and pressing Run fine-tunes the real model; after training, the **Try it**
+panel shows answers with and without the adapter side by side.
 
-## Durum
+## Status
 
-MVP (F0–F3), F4 (Python node) ve F5'in ağırlık importer'ı tamam; F6'nın protokolü ve
-arayüzdeki daemon adresi hazır. Cerata'nın adapter eğitimi (KL terimi, divergence kapısı)
-Weightsmith içinde gerçek Qwen2.5-1.5B üzerinde çalışıyor. Ayrıntı, ölçümler ve sınırlar:
+The MVP (F0–F3), F4 (Python node) and F5's weight importer are done; F6's protocol and the daemon
+address in the interface are ready. Cerata's adapter training (KL term, divergence gate) runs
+inside Weightsmith on a real Qwen2.5-1.5B. Details, measurements and limits:
 [`docs/decisions.md`](docs/decisions.md).
