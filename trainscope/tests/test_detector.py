@@ -452,7 +452,7 @@ class TestChangePointDetector:
         _install_fake_pelt(monkeypatch, cp_mod)
         _pelt_breakpoint(cp_mod, value=-1)
 
-        det = ChangePointDetector(threshold=6.0, min_observations=10)
+        det = ChangePointDetector(threshold=6.0, min_observations=10, direction="both")
         for _ in range(20):
             det.update(1.0)
             det.update(1.1)
@@ -527,6 +527,28 @@ class TestChangePointDetector:
         res = det.update(3.0)
         assert res is not None
         assert res == pytest.approx((3.0 - 1.05) / (1.4826 * 0.05))
+
+    def test_changepoint_ignores_healthy_decreasing_loss(self):
+        import math
+        import random
+
+        from trainscope.core.detectors.changepoint import ChangePointDetector
+
+        rng = random.Random(42)
+        det = ChangePointDetector(threshold=6.0, slack=1.0, window=200, min_observations=30)
+        triggers = []
+        for step in range(600):
+            loss = 1.5 + 2.7 * math.exp(-step / 140.0) + rng.gauss(0.0, 0.04)
+            res = det.update(loss)
+            if res is not None:
+                triggers.append((step, res))
+        assert triggers == [], f"Healthy decreasing loss falsely triggered spikes: {triggers[:5]}"
+
+    def test_changepoint_invalid_direction_raises(self):
+        from trainscope.core.detectors.changepoint import ChangePointDetector
+
+        with pytest.raises(ValueError, match="direction"):
+            ChangePointDetector(direction="down")  # type: ignore[arg-type]
 
 
 class TestChangePointDetectorPeltIntegration:

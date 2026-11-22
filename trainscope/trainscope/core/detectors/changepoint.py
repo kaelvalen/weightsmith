@@ -1,6 +1,7 @@
 """Change-point anomaly detector with optional ``ruptures`` backend."""
 
 import collections
+from typing import Literal
 
 import numpy as np
 
@@ -51,6 +52,10 @@ class ChangePointDetector(AnomalyDetector):
         Number of recent observations to consider for baseline statistics.
     min_observations:
         Number of observations required before reporting.
+    direction:
+        ``"up"`` (default) flags only upward loss spikes/drifts so healthy
+        decreasing training loss does not trigger false alarms; ``"both"``
+        flags shifts in either direction.
     """
 
     def __init__(
@@ -59,11 +64,15 @@ class ChangePointDetector(AnomalyDetector):
         slack: float = 1.0,
         window: int = 200,
         min_observations: int = 30,
+        direction: Literal["up", "both"] = "up",
     ):
+        if direction not in ("up", "both"):
+            raise ValueError(f"direction must be 'up' or 'both', got {direction!r}")
         self.threshold = threshold
         self.slack = slack
         self.window = window
         self.min_observations = min_observations
+        self.direction = direction
         self._history: collections.deque[float] = collections.deque()
         self._positive_cusum = 0.0
         self._negative_cusum = 0.0
@@ -99,13 +108,13 @@ class ChangePointDetector(AnomalyDetector):
         self._history.append(loss)
         self._trim()
 
-        if not (
-            self._positive_cusum >= self.threshold or abs(self._negative_cusum) >= self.threshold
-        ):
+        pos_fired = self._positive_cusum >= self.threshold
+        neg_fired = self.direction == "both" and abs(self._negative_cusum) >= self.threshold
+        if not (pos_fired or neg_fired):
             return None
 
         # CUSUM has fired. Reset accumulators and compute the canonical score.
-        if self._positive_cusum >= self.threshold:
+        if pos_fired:
             score = self._positive_cusum
         else:
             score = self._negative_cusum
