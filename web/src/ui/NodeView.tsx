@@ -106,7 +106,14 @@ function NodeViewImpl({ data, selected }: NodeProps & { data: NodeData }) {
     >
       {sig.inputs.length > 0 && portRow(sig.inputs, "in")}
       <div className="px-2 py-1">
-        <div className="truncate text-label text-muted">{kind}</div>
+        {/* the error takes the kind line's place so the node's height (and the layout around it) doesn't jump */}
+        {firstError ? (
+          <div className="truncate text-label text-error" title={`${kind}: ${firstError.message}`}>
+            {firstError.message}
+          </div>
+        ) : (
+          <div className="truncate text-label text-muted">{kind}</div>
+        )}
         <div className="flex items-baseline justify-between gap-2">
           <div className={`truncate font-medium ${node.disabled ? "line-through" : ""}`}>{node.label || node.id}</div>
           {inner && (
@@ -124,11 +131,6 @@ function NodeViewImpl({ data, selected }: NodeProps & { data: NodeData }) {
           )}
         </div>
       </div>
-      {firstError && (
-        <div className="num truncate px-2 pb-1 text-[10px] leading-[14px] text-error" title={firstError.message}>
-          {firstError.message}
-        </div>
-      )}
       {inner && open && <Peek inner={inner} />}
       {sig.outputs.length > 0 && portRow(sig.outputs, "out")}
       {sig.inputs.map((port, i) => (
