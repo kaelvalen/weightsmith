@@ -53,7 +53,9 @@ function NodeViewImpl({ data, selected }: NodeProps & { data: NodeData }) {
   const p = (node.params ?? {}) as Record<string, any>;
   const frozen = node.trainable === false;
   const errPorts = new Set(issues.filter((i) => i.port).map((i) => i.port!));
-  const nodeError = issues.some((i) => i.severity === "error" && !i.port);
+  // any error, port-level too (e.g. a shape mismatch after the Input changed), shows on the node itself
+  const firstError = issues.find((i) => i.severity === "error");
+  const nodeError = !!firstError;
   const kind =
     node.type === "Subgraph" ? `Subgraph · ${p.graph}${p.repeat > 1 ? ` · ${p.repeat}×${p.tie_weights ? " tied" : ""}` : ""}` : node.type === "PythonModule" ? `Python · ${p.class_name ?? ""}` : node.type;
 
@@ -122,6 +124,11 @@ function NodeViewImpl({ data, selected }: NodeProps & { data: NodeData }) {
           )}
         </div>
       </div>
+      {firstError && (
+        <div className="num truncate px-2 pb-1 text-[10px] leading-[14px] text-error" title={firstError.message}>
+          {firstError.message}
+        </div>
+      )}
       {inner && open && <Peek inner={inner} />}
       {sig.outputs.length > 0 && portRow(sig.outputs, "out")}
       {sig.inputs.map((port, i) => (
